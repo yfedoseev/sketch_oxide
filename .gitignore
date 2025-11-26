@@ -42,6 +42,11 @@ build/
 htmlcov/
 .tox/
 .hypothesis/
+benchmark_results.txt
+test_results.txt
+*.bench
+perf.data
+perf.data.old
 
 # Documentation
 docs/_build/
