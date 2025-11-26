@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Sync versions from VERSION file
+        run: ./scripts/sync-version.sh
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -51,6 +54,10 @@ jobs:
             target: x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
+
+      - name: Sync versions from VERSION file
+        run: bash ./scripts/sync-version.sh
+        shell: bash
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -128,6 +135,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Sync versions from VERSION file
+        run: ./scripts/sync-version.sh
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
