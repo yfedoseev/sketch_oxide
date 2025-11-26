@@ -4,10 +4,14 @@ from .sketch_oxide import *  # noqa: F401, F403
 __all__ = [  # noqa: F405
     # Cardinality
     "UltraLogLog",
+    "HyperLogLog",
     "CpcSketch",
     "ThetaSketch",
+    "QSketch",
     # Membership
     "BinaryFuseFilter",
+    "BloomFilter",
+    "BlockedBloomFilter",
     "CountingBloomFilter",
     "CuckooFilter",
     "RibbonFilter",
@@ -17,31 +21,36 @@ __all__ = [  # noqa: F405
     # Quantiles
     "DDSketch",
     "ReqSketch",
-    "KllSketch",
     "TDigest",
+    "KllSketch",
+    "SplineSketch",
     # Frequency
     "CountMinSketch",
-    "FrequentItems",
-    "HeavyKeeper",
-    "ElasticSketch",
     "CountSketch",
+    "ConservativeCountMin",
     "SpaceSaving",
+    "ElasticSketch",
     "SALSA",
     "RemovableUniversalSketch",
+    "FrequentItems",
+    "HeavyKeeper",
     "NitroSketch",
-    # Similarity
-    "MinHash",
-    "SuperMinHash",
+    # Streaming
+    "SlidingWindowCounter",
+    "ExponentialHistogram",
+    "SlidingHyperLogLog",
     # Range Filters
     "Grafite",
     "GRF",
-    # New Sketches
     "MementoFilter",
+    # Set Reconciliation
     "RatelessIBLT",
-    "SlidingHyperLogLog",
-    "SplineSketch",
-    "QSketch",
-    "ExponentialHistogram",
+    # Similarity
+    "MinHash",
+    "SimHash",
+    # Sampling
+    "ReservoirSampling",
+    "VarOptSampling",
     # Universal
     "UnivMon",
     # Version
