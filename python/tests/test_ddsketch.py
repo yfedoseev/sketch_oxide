@@ -2,8 +2,6 @@
 
 import random
 
-import pytest
-
 import sketch_oxide
 
 

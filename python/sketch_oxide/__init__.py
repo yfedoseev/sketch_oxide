@@ -1,7 +1,7 @@
 # Re-export all classes from the native module
-from .sketch_oxide import *
+from .sketch_oxide import *  # noqa: F401, F403
 
-__all__ = [
+__all__ = [  # noqa: F405
     # Cardinality
     "UltraLogLog",
     "CpcSketch",

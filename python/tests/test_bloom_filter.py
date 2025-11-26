@@ -1,7 +1,5 @@
 """Core tests for BloomFilter sketch."""
 
-import pytest
-
 import sketch_oxide
 
 

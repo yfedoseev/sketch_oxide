@@ -17,7 +17,8 @@ import sys
 # Build the Python module first
 print("Building Python module...")
 os.system(
-    "cd /home/yfedoseev/projects/sketch_oxide && maturin develop -r 2>&1 | grep -E 'error|Finished' || true"
+    "cd /home/yfedoseev/projects/sketch_oxide && maturin develop -r 2>&1 | "
+    "grep -E 'error|Finished' || true"
 )
 
 # Import the module

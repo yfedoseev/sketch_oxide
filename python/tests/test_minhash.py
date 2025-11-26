@@ -1,7 +1,5 @@
 """Core tests for MinHash similarity estimation sketch."""
 
-import pytest
-
 import sketch_oxide
 
 
