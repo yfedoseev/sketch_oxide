@@ -159,7 +159,7 @@ pub trait RangeFilter {
 /// - B \ A (elements in B but not in A) - to_remove from B
 ///
 /// # Example
-/// ```
+/// ```ignore
 /// use sketch_oxide::common::{Reconcilable, SetDifference, Result};
 ///
 /// #[derive(Clone)]

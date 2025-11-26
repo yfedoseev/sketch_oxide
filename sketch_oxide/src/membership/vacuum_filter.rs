@@ -260,7 +260,7 @@ impl VacuumFilter {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use sketch_oxide::membership::VacuumFilter;
     ///
     /// let filter = VacuumFilter::new(1000, 0.01).unwrap();

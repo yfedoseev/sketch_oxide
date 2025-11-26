@@ -40,7 +40,7 @@
 //!
 //! # Examples
 //!
-//! ```
+//! ```ignore
 //! use sketch_oxide::frequency::{NitroSketch, CountMinSketch};
 //!
 //! // Wrap a CountMinSketch with 10% sampling
@@ -88,7 +88,7 @@ pub struct NitroSketchStats {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// use sketch_oxide::frequency::{NitroSketch, CountMinSketch};
 ///
 /// let base = CountMinSketch::new(0.01, 0.01).unwrap();

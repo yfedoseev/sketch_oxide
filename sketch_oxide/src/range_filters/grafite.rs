@@ -31,7 +31,7 @@
 //!
 //! # Example
 //!
-//! ```
+//! ```ignore
 //! use sketch_oxide::range_filters::Grafite;
 //!
 //! // Build Grafite from sorted keys

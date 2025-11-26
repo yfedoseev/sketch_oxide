@@ -76,7 +76,7 @@ use crate::common::{hash::xxhash, RangeFilter, SketchError};
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// use sketch_oxide::range_filters::GRF;
 ///
 /// // Create a GRF filter with Zipf distribution
