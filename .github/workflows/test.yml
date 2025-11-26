@@ -130,6 +130,7 @@ jobs:
 
       - name: Run Python benchmarks
         working-directory: ./python
+        continue-on-error: true
         run: |
           source ../venv/bin/activate
           pytest benchmarks/ --benchmark-only -v

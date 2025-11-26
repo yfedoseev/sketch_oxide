@@ -418,28 +418,28 @@ describe('NitroSketch', () => {
 describe('UnivMon', () => {
   describe('constructor', () => {
     it('should create UnivMon with valid parameters', () => {
-      const univmon = new UnivMon(10000n, 0.01, 0.01)
+      const univmon = new UnivMon(10000, 0.01, 0.01)
       expect(univmon).toBeDefined()
     })
 
     it('should throw on invalid maxStreamSize (zero)', () => {
-      expect(() => new UnivMon(0n, 0.01, 0.01)).toThrow()
+      expect(() => new UnivMon(0, 0.01, 0.01)).toThrow()
     })
 
     it('should throw on invalid epsilon', () => {
-      expect(() => new UnivMon(10000n, 0.0, 0.01)).toThrow()
-      expect(() => new UnivMon(10000n, 1.0, 0.01)).toThrow()
+      expect(() => new UnivMon(10000, 0.0, 0.01)).toThrow()
+      expect(() => new UnivMon(10000, 1.0, 0.01)).toThrow()
     })
 
     it('should throw on invalid delta', () => {
-      expect(() => new UnivMon(10000n, 0.01, 0.0)).toThrow()
-      expect(() => new UnivMon(10000n, 0.01, 1.0)).toThrow()
+      expect(() => new UnivMon(10000, 0.01, 0.0)).toThrow()
+      expect(() => new UnivMon(10000, 0.01, 1.0)).toThrow()
     })
   })
 
   describe('update', () => {
     it('should update with item and value', () => {
-      const univmon = new UnivMon(10000n, 0.01, 0.01)
+      const univmon = new UnivMon(10000, 0.01, 0.01)
       expect(() => {
         univmon.update(Buffer.from('key1'), 100)
         univmon.update(Buffer.from('key2'), 200)
@@ -447,7 +447,7 @@ describe('UnivMon', () => {
     })
 
     it('should handle many updates', () => {
-      const univmon = new UnivMon(10000n, 0.01, 0.01)
+      const univmon = new UnivMon(10000, 0.01, 0.01)
       for (let i = 0; i < 100; i++) {
         univmon.update(Buffer.from(`key${i}`), i + 1)
       }
@@ -457,7 +457,7 @@ describe('UnivMon', () => {
 
   describe('estimateL1', () => {
     it('should estimate L1 norm (sum of frequencies)', () => {
-      const univmon = new UnivMon(10000n, 0.01, 0.01)
+      const univmon = new UnivMon(10000, 0.01, 0.01)
       univmon.update(Buffer.from('a'), 100)
       univmon.update(Buffer.from('b'), 200)
       univmon.update(Buffer.from('c'), 300)
@@ -470,7 +470,7 @@ describe('UnivMon', () => {
 
   describe('estimateL2', () => {
     it('should estimate L2 norm', () => {
-      const univmon = new UnivMon(10000n, 0.01, 0.01)
+      const univmon = new UnivMon(10000, 0.01, 0.01)
       univmon.update(Buffer.from('a'), 100)
       univmon.update(Buffer.from('b'), 200)
 
@@ -482,7 +482,7 @@ describe('UnivMon', () => {
 
   describe('estimateEntropy', () => {
     it('should estimate Shannon entropy', () => {
-      const univmon = new UnivMon(10000n, 0.01, 0.01)
+      const univmon = new UnivMon(10000, 0.01, 0.01)
       univmon.update(Buffer.from('a'), 100)
       univmon.update(Buffer.from('b'), 100)
       univmon.update(Buffer.from('c'), 100)
@@ -495,7 +495,7 @@ describe('UnivMon', () => {
 
   describe('heavyHitters', () => {
     it('should return heavy hitters', () => {
-      const univmon = new UnivMon(10000n, 0.01, 0.01)
+      const univmon = new UnivMon(10000, 0.01, 0.01)
 
       // Add heavy hitters
       for (let i = 0; i < 100; i++) {
@@ -513,7 +513,7 @@ describe('UnivMon', () => {
     })
 
     it('should handle empty sketch', () => {
-      const univmon = new UnivMon(10000n, 0.01, 0.01)
+      const univmon = new UnivMon(10000, 0.01, 0.01)
       const topItems = univmon.heavyHitters(0.1)
       expect(Array.isArray(topItems)).toBe(true)
     })
@@ -521,8 +521,8 @@ describe('UnivMon', () => {
 
   describe('detectChange', () => {
     it('should detect change between sketches', () => {
-      const univmon1 = new UnivMon(10000n, 0.01, 0.01)
-      const univmon2 = new UnivMon(10000n, 0.01, 0.01)
+      const univmon1 = new UnivMon(10000, 0.01, 0.01)
+      const univmon2 = new UnivMon(10000, 0.01, 0.01)
 
       // Different distributions
       univmon1.update(Buffer.from('a'), 100)
@@ -534,8 +534,8 @@ describe('UnivMon', () => {
     })
 
     it('should detect no change for similar sketches', () => {
-      const univmon1 = new UnivMon(10000n, 0.01, 0.01)
-      const univmon2 = new UnivMon(10000n, 0.01, 0.01)
+      const univmon1 = new UnivMon(10000, 0.01, 0.01)
+      const univmon2 = new UnivMon(10000, 0.01, 0.01)
 
       // Same distribution
       univmon1.update(Buffer.from('a'), 100)
@@ -548,7 +548,7 @@ describe('UnivMon', () => {
 
   describe('toString', () => {
     it('should return string representation', () => {
-      const univmon = new UnivMon(10000n, 0.01, 0.01)
+      const univmon = new UnivMon(10000, 0.01, 0.01)
       const str = univmon.toString()
       expect(typeof str).toBe('string')
       expect(str).toContain('UnivMon')

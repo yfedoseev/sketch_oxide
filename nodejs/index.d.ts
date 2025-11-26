@@ -2460,8 +2460,12 @@ export declare class VacuumFilter {
   /** Get string representation */
   toString(): string
 }
-/** Type alias for GRF (runtime re-export) */
-export { Grf as GRF }
+/**
+ * GRF (Gorilla Range Filter): Shape-based range filter for LSM-trees
+ *
+ * Alias for Grf - available as both a type and runtime value for convenience.
+ */
+export declare const GRF: typeof Grf
 /**
  * GRF (Gorilla Range Filter): Shape-based range filter for LSM-trees
  *

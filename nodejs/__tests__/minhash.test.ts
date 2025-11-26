@@ -31,7 +31,6 @@ describe('MinHash', () => {
     })
 
     afterEach(() => {
-      mh.dispose?.()
     })
 
     it('should add elements to MinHash', () => {
@@ -87,8 +86,6 @@ describe('MinHash', () => {
       const similarity = mh1.jaccardSimilarity(mh2)
       expect(similarity).toBeCloseTo(1.0, 1)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
 
     it('should compute similarity of disjoint sets', () => {
@@ -108,8 +105,6 @@ describe('MinHash', () => {
       const similarity = mh1.jaccardSimilarity(mh2)
       expect(similarity).toBeCloseTo(0.0, 1)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
 
     it('should compute similarity of partially overlapping sets', () => {
@@ -133,8 +128,6 @@ describe('MinHash', () => {
       expect(similarity).toBeGreaterThan(0.25)
       expect(similarity).toBeLessThan(0.5)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
 
     it('should compute similarity of subset', () => {
@@ -158,8 +151,6 @@ describe('MinHash', () => {
       expect(similarity).toBeGreaterThan(0.4)
       expect(similarity).toBeLessThan(0.6)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
 
     it('should be symmetric', () => {
@@ -178,8 +169,6 @@ describe('MinHash', () => {
 
       expect(sim12).toBeCloseTo(sim21, 1)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
 
     it('should return similarity in valid range', () => {
@@ -194,14 +183,11 @@ describe('MinHash', () => {
       expect(similarity).toBeGreaterThanOrEqual(0.0)
       expect(similarity).toBeLessThanOrEqual(1.0)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
 
     it('should throw on merge with null', () => {
       const mh = new MinHash(128)
       expect(() => mh.jaccardSimilarity(null as any)).toThrow()
-      mh.dispose?.()
     })
 
     it('should throw on similarity with different numPerm', () => {
@@ -210,8 +196,6 @@ describe('MinHash', () => {
 
       expect(() => mh1.jaccardSimilarity(mh2)).toThrow()
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
   })
 
@@ -238,9 +222,6 @@ describe('MinHash', () => {
       const mergedSim = mh1.jaccardSimilarity(reference)
       expect(mergedSim).toBeGreaterThan(0.9)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
-      reference.dispose?.()
     })
 
     it('should throw on merge with different numPerm', () => {
@@ -249,14 +230,11 @@ describe('MinHash', () => {
 
       expect(() => mh1.merge(mh2)).toThrow()
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
 
     it('should throw on merge with null', () => {
       const mh = new MinHash(128)
       expect(() => mh.merge(null as any)).toThrow()
-      mh.dispose?.()
     })
 
     it('should merge sketches with identical data', () => {
@@ -278,9 +256,6 @@ describe('MinHash', () => {
       const sim = mh1.jaccardSimilarity(reference)
       expect(sim).toBeCloseTo(1.0, 0)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
-      reference.dispose?.()
     })
 
     it('should merge sketches with overlapping data', () => {
@@ -305,9 +280,6 @@ describe('MinHash', () => {
       const mergedSim = mh1.jaccardSimilarity(reference)
       expect(mergedSim).toBeGreaterThan(0.85)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
-      reference.dispose?.()
     })
   })
 
@@ -319,7 +291,6 @@ describe('MinHash', () => {
     })
 
     afterEach(() => {
-      mh.dispose?.()
     })
 
     it('should serialize empty MinHash', () => {
@@ -353,8 +324,6 @@ describe('MinHash', () => {
 
       expect(simRestored).toBeCloseTo(simOriginal, 1)
 
-      restored.dispose?.()
-      testSet.dispose?.()
     })
 
     it('should handle round-trip serialization', () => {
@@ -375,8 +344,6 @@ describe('MinHash', () => {
 
       expect(simRestored).toBeCloseTo(simOriginal, 1)
 
-      restored.dispose?.()
-      testSet.dispose?.()
     })
 
     it('should throw on deserialize invalid data', () => {
@@ -411,8 +378,6 @@ describe('MinHash', () => {
       expect(similarity).toBeGreaterThan(0.25)
       expect(similarity).toBeLessThan(0.45)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
 
     it('should handle very large sets', () => {
@@ -432,8 +397,6 @@ describe('MinHash', () => {
       expect(similarity).toBeGreaterThan(0.25)
       expect(similarity).toBeLessThan(0.45)
 
-      mh1.dispose?.()
-      mh2.dispose?.()
     })
   })
 
@@ -445,14 +408,12 @@ describe('MinHash', () => {
     })
 
     afterEach(() => {
-      mh.dispose?.()
     })
 
     it('should handle empty MinHash similarity', () => {
       const mh2 = new MinHash(128)
       const sim = mh.jaccardSimilarity(mh2)
       expect(typeof sim).toBe('number')
-      mh2.dispose?.()
     })
 
     it('should handle single element sets', () => {
@@ -463,7 +424,6 @@ describe('MinHash', () => {
       const similarity = mh.jaccardSimilarity(mh2)
       expect(similarity).toBeCloseTo(1.0, 1)
 
-      mh2.dispose?.()
     })
 
     it('should distinguish different elements', () => {
@@ -481,7 +441,6 @@ describe('MinHash', () => {
       expect(similarity).toBeGreaterThan(0.1)
       expect(similarity).toBeLessThan(0.4)
 
-      mh2.dispose?.()
     })
 
     it('should work with different numPerm values', () => {
@@ -495,8 +454,6 @@ describe('MinHash', () => {
         const sim = mha.jaccardSimilarity(mhb)
         expect(sim).toBeDefined()
 
-        mha.dispose?.()
-        mhb.dispose?.()
       }
     })
 
@@ -511,7 +468,6 @@ describe('MinHash', () => {
       const similarity = mh.jaccardSimilarity(mh2)
       expect(similarity).toBeCloseTo(1.0, 1)
 
-      mh2.dispose?.()
     })
 
     it('should handle unicode similarity', () => {
@@ -526,7 +482,6 @@ describe('MinHash', () => {
       const similarity = mh.jaccardSimilarity(mh2)
       expect(similarity).toBeCloseTo(1.0, 1)
 
-      mh2.dispose?.()
     })
   })
 
@@ -540,9 +495,6 @@ describe('MinHash', () => {
     it('should allow multiple dispose calls', () => {
       const mh = new MinHash(128)
       expect(() => {
-        mh.dispose?.()
-        mh.dispose?.()
-        mh.dispose?.()
       }).not.toThrow()
     })
   })
