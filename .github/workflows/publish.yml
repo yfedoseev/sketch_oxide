@@ -92,13 +92,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: all-wheels
-          pattern: wheels-*
 
       - name: Organize wheels
         run: |
           mkdir -p wheels
-          find all-wheels -name "*.whl" -exec cp {} wheels/ \;
-          find all-wheels -name "*.tar.gz" -exec cp {} wheels/ \;
+          # Find all wheels in the artifact directories and copy them
+          find all-wheels -type f \( -name "*.whl" -o -name "*.tar.gz" \) -exec cp {} wheels/ \;
+
+          # Debug output
+          echo "=== Downloaded artifacts ==="
+          ls -la all-wheels/
+          echo "=== Organized wheels ==="
           ls -la wheels/
 
       - name: Install build dependencies
