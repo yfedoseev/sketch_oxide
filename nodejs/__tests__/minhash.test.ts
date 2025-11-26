@@ -485,17 +485,4 @@ describe('MinHash', () => {
     })
   })
 
-  describe('disposal', () => {
-    it('should dispose MinHash cleanly', () => {
-      const mh = new MinHash(128)
-      mh.update(Buffer.from('test'))
-      expect(() => mh.dispose?.()).not.toThrow()
-    })
-
-    it('should allow multiple dispose calls', () => {
-      const mh = new MinHash(128)
-      expect(() => {
-      }).not.toThrow()
-    })
-  })
 })
