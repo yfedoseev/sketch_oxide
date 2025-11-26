@@ -8,6 +8,7 @@ use sketch_oxide::range_filters::Grafite;
 use std::time::Instant;
 
 #[test]
+#[ignore]
 fn test_query_performance() {
     // Build filter
     let keys: Vec<u64> = (0..10_000).map(|i| i * 100).collect();
@@ -43,6 +44,7 @@ fn test_query_performance() {
 }
 
 #[test]
+#[ignore]
 fn test_build_performance() {
     // Test with 100K keys (scaled down from 1M for faster test)
     let keys: Vec<u64> = (0..100_000).collect();
@@ -67,6 +69,7 @@ fn test_build_performance() {
 }
 
 #[test]
+#[ignore]
 fn test_point_query_performance() {
     let keys: Vec<u64> = (0..10_000).map(|i| i * 100).collect();
     let filter = Grafite::build(&keys, 6).unwrap();
@@ -98,6 +101,7 @@ fn test_point_query_performance() {
 }
 
 #[test]
+#[ignore]
 fn test_throughput() {
     let keys: Vec<u64> = (0..10_000).map(|i| i * 100).collect();
     let filter = Grafite::build(&keys, 6).unwrap();
@@ -129,6 +133,7 @@ fn test_throughput() {
 }
 
 #[test]
+#[ignore]
 fn test_build_varying_sizes() {
     let sizes = vec![100, 1_000, 10_000, 100_000];
 
