@@ -1,5 +1,5 @@
 {
-  "name": "@sketch-oxide/node",
+  "name": "sketch-oxide-node",
   "version": "0.1.0",
   "description": "High-performance probabilistic data structures for Node.js - 28-75% better space efficiency than classic algorithms",
   "main": "index.js",
@@ -34,7 +34,7 @@
   "napi": {
     "name": "sketch_oxide_node",
     "package": {
-      "name": "@sketch-oxide/node"
+      "name": "sketch-oxide-node"
     },
     "binaryName": "sketch_oxide_node",
     "targets": [
