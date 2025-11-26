@@ -1,20 +1,20 @@
 [package]
 name = "sketch_oxide_py"
-version = "0.1.2"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [lib]
 name = "sketch_oxide"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38"] }
+pyo3.workspace = true
 sketch_oxide = { path = "../sketch_oxide" }
-numpy = "0.22"  # For NumPy integration
-twox-hash = "2.0"  # For hashing in SlidingHyperLogLog
+numpy.workspace = true  # For NumPy integration
+twox-hash.workspace = true  # For hashing in SlidingHyperLogLog
 
 [build-dependencies]
-pyo3-build-config = "0.22"
+pyo3-build-config.workspace = true
 
 [lints.clippy]
 # PyO3 type signatures trigger false positives for useless_conversion

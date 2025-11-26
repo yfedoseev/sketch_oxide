@@ -12,4 +12,24 @@ keywords = ["data-structures", "probabilistic", "sketches", "cardinality", "quan
 categories = ["algorithms", "data-structures", "mathematics"]
 
 [workspace.dependencies]
-# Common dependencies will go here as we add them
+# FFI bindings
+jni = "0.21"
+napi = { version = "2.15", features = ["napi8"] }
+napi-derive = "2.15"
+napi-build = "2.1"
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38"] }
+pyo3-build-config = "0.22"
+
+# Core dependencies
+twox-hash = "2.0"
+xxhash-rust = { version = "0.8", features = ["xxh64"] }
+hex = "0.4"
+rand = "0.9"
+numpy = "0.22"
+
+# Development and benchmarking
+criterion = "0.5"
+proptest = "1.4"
+pdatastructs = "0.7"
+probabilistic-collections = "0.7"
+streaming_algorithms = "0.3"

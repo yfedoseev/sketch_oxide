@@ -1,11 +1,11 @@
 [package]
 name = "sketch-oxide-java"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 publish = false
 
 [dependencies]
-jni = "0.21"
+jni.workspace = true
 sketch_oxide = { path = "../sketch_oxide" }
 
 [build-dependencies]

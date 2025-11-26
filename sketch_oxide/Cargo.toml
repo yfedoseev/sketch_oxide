@@ -11,20 +11,20 @@ description = "State-of-the-art DataSketches library (2025) - UltraLogLog, Binar
 
 [dependencies]
 # Hash functions for sketches
-twox-hash = "2.0"  # XXHash implementation
-xxhash-rust = { version = "0.8", features = ["xxh64"] }  # xxHash for Bloom filter
+twox-hash.workspace = true  # XXHash implementation
+xxhash-rust.workspace = true  # xxHash for Bloom filter
 # Random number generation for sampling algorithms
-rand = "0.9"
+rand.workspace = true
 
 [dev-dependencies]
-criterion = "0.5"
-proptest = "1.4"
-rand = "0.9.2"
+criterion.workspace = true
+proptest.workspace = true
+rand.workspace = true
 
 # Comparison crates for "us vs them" benchmarks
-pdatastructs = "0.7"             # HyperLogLog, Count-Min, Bloom comparison (stable Rust)
-probabilistic-collections = "0.7" # Bloom, Cuckoo comparison
-streaming_algorithms = "0.3"     # SIMD-accelerated streaming algorithms
+pdatastructs.workspace = true             # HyperLogLog, Count-Min, Bloom comparison (stable Rust)
+probabilistic-collections.workspace = true # Bloom, Cuckoo comparison
+streaming_algorithms.workspace = true     # SIMD-accelerated streaming algorithms
 
 [[bench]]
 name = "benchmarks"

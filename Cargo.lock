@@ -1073,7 +1073,7 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 
 [[package]]
 name = "sketch-oxide-java"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "jni",
  "sketch_oxide",
@@ -1081,19 +1081,19 @@ dependencies = [
 
 [[package]]
 name = "sketch-oxide-node"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "hex",
  "napi",
  "napi-build",
  "napi-derive",
  "sketch_oxide",
- "twox-hash 1.6.3",
+ "twox-hash 2.1.2",
 ]
 
 [[package]]
 name = "sketch_oxide"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "criterion",
  "pdatastructs",
@@ -1107,7 +1107,7 @@ dependencies = [
 
 [[package]]
 name = "sketch_oxide_dotnet"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "csbindgen",
  "sketch_oxide",
@@ -1115,7 +1115,7 @@ dependencies = [
 
 [[package]]
 name = "sketch_oxide_py"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "numpy",
  "pyo3",

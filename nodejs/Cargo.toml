@@ -1,21 +1,21 @@
 [package]
 name = "sketch-oxide-node"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 publish = false
 
 [dependencies]
-napi = { version = "2.15", features = ["napi8"] }
-napi-derive = "2.15"
+napi.workspace = true
+napi-derive.workspace = true
 sketch_oxide = { path = "../sketch_oxide" }
-hex = "0.4"
-twox-hash = "1.6"
+hex.workspace = true
+twox-hash.workspace = true
 
 [dev-dependencies]
-napi-build = "2.1"
+napi-build.workspace = true
 
 [build-dependencies]
-napi-build = "2.1"
+napi-build.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
