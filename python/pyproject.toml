@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "sketch-oxide"
-version = "0.1.2"
+version = "0.1.3"
 description = "State-of-the-art DataSketches library (2025) - UltraLogLog, Binary Fuse Filters, DDSketch"
 readme = "README.md"
 requires-python = ">=3.8"
