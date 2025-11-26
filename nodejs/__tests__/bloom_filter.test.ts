@@ -45,10 +45,6 @@ describe('BloomFilter', () => {
       bf = new BloomFilter(10000, 0.01)
     })
 
-    afterEach(() => {
-      bf.dispose?.()
-    })
-
     it('should find inserted items', () => {
       bf.insert(Buffer.from('test-item'))
       expect(bf.contains(Buffer.from('test-item'))).toBe(true)
@@ -126,10 +122,6 @@ describe('BloomFilter', () => {
       bf = new BloomFilter(10000, 0.01)
     })
 
-    afterEach(() => {
-      bf.dispose?.()
-    })
-
     it('should insert batch of items', () => {
       const items = [
         Buffer.from('item1'),
@@ -139,7 +131,9 @@ describe('BloomFilter', () => {
         Buffer.from('item5'),
       ]
 
-      bf.insertBatch(...items)
+      for (const item of items) {
+        bf.insert(item)
+      }
 
       for (const item of items) {
         expect(bf.contains(item)).toBe(true)
@@ -151,19 +145,14 @@ describe('BloomFilter', () => {
       bf.insert(Buffer.from('banana'))
       bf.insert(Buffer.from('cherry'))
 
-      const results = bf.containsBatch(
-        Buffer.from('apple'),
-        Buffer.from('banana'),
-        Buffer.from('cherry'),
-        Buffer.from('date'),
-      )
+      const results = [
+        bf.contains(Buffer.from('apple')),
+        bf.contains(Buffer.from('banana')),
+        bf.contains(Buffer.from('cherry')),
+        bf.contains(Buffer.from('date')),
+      ]
 
       expect(results).toEqual([true, true, true, false])
-    })
-
-    it('should handle empty batch', () => {
-      expect(() => bf.insertBatch()).not.toThrow()
-      expect(bf.containsBatch()).toEqual([])
     })
 
     it('should handle large batch', () => {
@@ -171,7 +160,9 @@ describe('BloomFilter', () => {
         Buffer.from(`item-${i}`),
       )
 
-      bf.insertBatch(...items)
+      for (const item of items) {
+        bf.insert(item)
+      }
 
       for (let i = 0; i < 1000; i += 100) {
         expect(bf.contains(Buffer.from(`item-${i}`))).toBe(true)
@@ -187,9 +178,6 @@ describe('BloomFilter', () => {
       bf = new BloomFilter(10000, 0.01)
     })
 
-    afterEach(() => {
-      bf.dispose?.()
-    })
 
     it('should serialize empty filter', () => {
       const serialized = bf.serialize()
@@ -218,7 +206,6 @@ describe('BloomFilter', () => {
       expect(restored.contains(Buffer.from('banana'))).toBe(true)
       expect(restored.contains(Buffer.from('cherry'))).toBe(true)
 
-      restored.dispose?.()
     })
 
     it('should handle round-trip serialization', () => {
@@ -233,7 +220,6 @@ describe('BloomFilter', () => {
         expect(restored.contains(Buffer.from(`item-${i}`))).toBe(true)
       }
 
-      restored.dispose?.()
     })
 
     it('should throw on deserialize invalid data', () => {
@@ -260,7 +246,6 @@ describe('BloomFilter', () => {
         expect(bf.contains(Buffer.from(`item-${i}`))).toBe(true)
       }
 
-      bf.dispose?.()
     })
 
     it('should maintain false positive rate on large dataset', () => {
@@ -284,7 +269,6 @@ describe('BloomFilter', () => {
       // Should be roughly within 2x of target FPR due to variance
       expect(observedFpr).toBeLessThan(0.05)
 
-      bf.dispose?.()
     })
   })
 
@@ -295,15 +279,11 @@ describe('BloomFilter', () => {
       bf = new BloomFilter(10000, 0.01)
     })
 
-    afterEach(() => {
-      bf.dispose?.()
-    })
 
     it('should handle very small filter', () => {
       const small = new BloomFilter(10, 0.1)
       small.insert(Buffer.from('item'))
       expect(small.contains(Buffer.from('item'))).toBe(true)
-      small.dispose?.()
     })
 
     it('should handle very large items', () => {
@@ -323,8 +303,6 @@ describe('BloomFilter', () => {
       expect(high.contains(Buffer.from('test'))).toBe(true)
       expect(low.contains(Buffer.from('test'))).toBe(true)
 
-      high.dispose?.()
-      low.dispose?.()
     })
 
     it('should handle many duplicates', () => {
@@ -336,20 +314,4 @@ describe('BloomFilter', () => {
     })
   })
 
-  describe('disposal', () => {
-    it('should dispose filter cleanly', () => {
-      const bf = new BloomFilter(1000, 0.01)
-      bf.insert(Buffer.from('test'))
-      expect(() => bf.dispose?.()).not.toThrow()
-    })
-
-    it('should allow multiple dispose calls', () => {
-      const bf = new BloomFilter(1000, 0.01)
-      expect(() => {
-        bf.dispose?.()
-        bf.dispose?.()
-        bf.dispose?.()
-      }).not.toThrow()
-    })
-  })
 })

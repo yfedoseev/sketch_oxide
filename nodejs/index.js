@@ -355,9 +355,3 @@ module.exports.Grf = Grf
 module.exports.NitroSketch = NitroSketch
 module.exports.UnivMon = UnivMon
 module.exports.LearnedBloomFilter = LearnedBloomFilter
-
-// Type aliases for convenience
-module.exports.DDSketch = DdSketch
-module.exports.SALSA = Salsa
-module.exports.RatelessIBLT = RatelessIblt
-module.exports.GRF = Grf

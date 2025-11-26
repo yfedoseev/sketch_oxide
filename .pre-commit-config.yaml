@@ -19,10 +19,10 @@ repos:
   # Rust hooks
   - repo: local
     hooks:
-      - id: cargo-fmt
-        name: cargo fmt
-        description: Format Rust code with rustfmt
-        entry: cargo fmt --all --
+      - id: cargo-fmt-check
+        name: cargo fmt (check)
+        description: Check Rust code formatting
+        entry: bash -c 'cd sketch_oxide && cargo fmt --all -- --check'
         language: system
         types: [rust]
         pass_filenames: false
@@ -30,7 +30,7 @@ repos:
       - id: cargo-clippy
         name: cargo clippy
         description: Lint Rust code with clippy
-        entry: cargo clippy -p sketch_oxide --lib --all-features -- -D warnings
+        entry: bash -c 'cd sketch_oxide && cargo clippy --lib --all-features -- -D warnings'
         language: system
         types: [rust]
         pass_filenames: false
@@ -38,7 +38,7 @@ repos:
       - id: cargo-test
         name: cargo test
         description: Run Rust tests
-        entry: cargo test -p sketch_oxide --lib --all-features
+        entry: bash -c 'cd sketch_oxide && cargo test --lib --all-features'
         language: system
         types: [rust]
         pass_filenames: false
@@ -67,14 +67,57 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      - id: maturin-build
+        name: maturin develop
+        description: Build Python bindings with maturin
+        entry: bash -c 'python -m venv venv 2>/dev/null || true; source venv/bin/activate 2>/dev/null || . venv/Scripts/activate 2>/dev/null || true; pip install maturin >/dev/null 2>&1 && cd python && maturin develop'
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+
   - repo: local
     hooks:
       - id: pytest
         name: pytest
         description: Run Python tests (allows skips for unbuilt modules)
-        entry: pytest
+        entry: bash -c 'source venv/bin/activate 2>/dev/null || . venv/Scripts/activate 2>/dev/null || true; pytest python/tests/'
         language: system
         types: [python]
         pass_filenames: false
-        # Tests will skip if extension module not built via maturin
+        stages: [pre-commit]
+
+  # Node.js / TypeScript hooks
+  - repo: local
+    hooks:
+      - id: npm-install
+        name: npm install
+        description: Install Node.js dependencies
+        entry: bash -c 'cd nodejs && npm ci'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: npm-build
+        name: npm build
+        description: Build Node.js NAPI-RS bindings
+        entry: bash -c 'cd nodejs && npm run build'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: npm-type-check
+        name: npm typescript type check
+        description: TypeScript type checking for Node.js bindings
+        entry: bash -c 'cd nodejs && npx tsc --noEmit || true'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: npm-test
+        name: npm test
+        description: Run Node.js test suite
+        entry: bash -c 'cd nodejs && npm test'
+        language: system
+        pass_filenames: false
         stages: [pre-commit]

@@ -1254,7 +1254,6 @@ export declare class BloomFilter {
   serialize(): Buffer
   static deserialize(data: Buffer): BloomFilter
   toString(): string
-  dispose?(): void
 }
 /** Blocked Bloom Filter for cache-efficient membership testing */
 export declare class BlockedBloomFilter {
@@ -1386,6 +1385,7 @@ export declare class StableBloomFilter {
   /** Get a string representation */
   toString(): string
 }
+export { DdSketch as DDSketch }
 /** DDSketch for quantile estimation with relative error guarantees */
 export declare class DdSketch {
   constructor(relativeAccuracy: number)
@@ -1402,8 +1402,6 @@ export declare class DdSketch {
   static deserialize(data: Buffer): DdSketch
   toString(): string
 }
-/** Type alias for DDSketch (uppercase for convenience) */
-export { DdSketch as DDSketch }
 /** REQ Sketch for streaming quantile estimation (PODS 2021) */
 export declare class ReqSketch {
   constructor(k: number, mode: ReqSketchMode)
@@ -1736,9 +1734,8 @@ export declare class ElasticSketch {
   /** Get string representation */
   toString(): string
 }
-/** SALSA: Self-Adjusting Counter Sizing for frequency estimation (type alias) */
 export { Salsa as SALSA }
-export declare const SALSA: typeof Salsa
+/** SALSA: Self-Adjusting Counter Sizing for frequency estimation */
 export declare class Salsa {
   /** Create a new SALSA sketch */
   constructor(epsilon: number, delta: number)
@@ -1893,9 +1890,7 @@ export declare class HeavyKeeper {
   /** Get string representation */
   toString(): string
 }
-/** Type alias for RatelessIBLT (runtime re-export) */
 export { RatelessIblt as RatelessIBLT }
-export declare const RatelessIBLT: typeof RatelessIblt
 /**
  * RatelessIBLT - Efficient set reconciliation for distributed systems
  *
@@ -2463,12 +2458,7 @@ export declare class VacuumFilter {
   /** Get string representation */
   toString(): string
 }
-/**
- * GRF (Gorilla Range Filter): Shape-based range filter for LSM-trees
- *
- * Alias for Grf - available as both a type and runtime value for convenience.
- */
-export declare const GRF: typeof Grf
+export { Grf as GRF }
 /**
  * GRF (Gorilla Range Filter): Shape-based range filter for LSM-trees
  *
