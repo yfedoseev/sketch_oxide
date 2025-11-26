@@ -134,6 +134,7 @@ struct GRFMetadata {
     /// Number of segments created
     segment_count: usize,
     /// Bits per key configuration
+    #[allow(dead_code)]
     bits_per_key: usize,
     /// Total bits used (for space analysis)
     total_bits: u64,
@@ -192,7 +193,7 @@ impl GRF {
             });
         }
 
-        if bits_per_key < 2 || bits_per_key > 16 {
+        if !(2..=16).contains(&bits_per_key) {
             return Err(SketchError::InvalidParameter {
                 param: "bits_per_key".to_string(),
                 value: bits_per_key.to_string(),
@@ -201,7 +202,7 @@ impl GRF {
         }
 
         // Sort and deduplicate keys
-        let mut sorted_keys: Vec<u64> = keys.iter().copied().collect();
+        let mut sorted_keys: Vec<u64> = keys.to_vec();
         sorted_keys.sort_unstable();
         sorted_keys.dedup();
 

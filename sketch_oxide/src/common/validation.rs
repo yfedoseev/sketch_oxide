@@ -11,7 +11,7 @@ pub const MAX_BYTE_SIZE: usize = 256 * 1024 * 1024; // 256MB
 /// Validate that precision is within acceptable range (4-18)
 /// Typically used for HyperLogLog, UltraLogLog, and similar cardinality sketches
 pub fn validate_precision(precision: u8) -> Result<()> {
-    if precision < 4 || precision > 18 {
+    if !(4..=18).contains(&precision) {
         return Err(SketchError::InvalidParameter {
             param: "precision".to_string(),
             value: precision.to_string(),
@@ -155,7 +155,7 @@ pub fn validate_bloom_parameters(n: u64, m: u64, k: u32) -> Result<()> {
 
 /// Validate CPC Sketch lg_k parameter
 pub fn validate_lg_k(lg_k: u8) -> Result<()> {
-    if lg_k < 4 || lg_k > 26 {
+    if !(4..=26).contains(&lg_k) {
         return Err(SketchError::InvalidParameter {
             param: "lg_k".to_string(),
             value: lg_k.to_string(),

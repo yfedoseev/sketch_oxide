@@ -1,7 +1,7 @@
 // Java JNI Bindings for sketch_oxide
 // Provides access to all 28 probabilistic data structure algorithms from Java
 
-use jni::objects::{JByteArray, JClass, JObject};
+use jni::objects::{JClass, JObject};
 use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, jobject};
 use jni::JNIEnv;
 

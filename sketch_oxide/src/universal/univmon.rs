@@ -74,7 +74,7 @@
 use crate::common::{Mergeable, Result, Sketch, SketchError};
 use crate::frequency::{CountSketch, FrequentItems};
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::hash::Hasher;
 use twox_hash::XxHash64;
 
 /// UnivMon: Universal sketch supporting multiple simultaneous metrics
@@ -288,7 +288,7 @@ impl UnivMon {
             // For sampling rate p = 2^(-i), accept if (hash % 2^i) == 0
             let sample_divisor = (1.0 / layer.sampling_rate) as u64;
 
-            if item_hash % sample_divisor == 0 {
+            if item_hash.is_multiple_of(sample_divisor) {
                 // Item is sampled at this layer
                 layer.sample_count += 1;
 
@@ -464,7 +464,7 @@ impl UnivMon {
         let mut entropy_sum = 0.0;
         let mut layer_count = 0;
 
-        for (i, layer) in self.layers.iter().enumerate() {
+        for layer in self.layers.iter() {
             if layer.sample_count < 10 {
                 continue; // Skip layers with too few samples
             }
@@ -659,10 +659,10 @@ impl UnivMon {
             }
 
             // Create difference sketch (element-wise subtraction)
-            let mut diff_sketch = layer_self.count_sketch.clone();
+            let _diff_sketch = layer_self.count_sketch.clone();
 
             // Create negative version of other sketch
-            let mut neg_other = layer_other.count_sketch.clone();
+            let _neg_other = layer_other.count_sketch.clone();
             // TODO: Properly negate - for now use inner product
 
             // Compute L2 distance via inner product
@@ -847,7 +847,7 @@ impl Sketch for UnivMon {
 
         let mut offset = 0;
 
-        let num_layers =
+        let _num_layers =
             usize::from_le_bytes(bytes[offset..offset + 8].try_into().map_err(|_| {
                 SketchError::DeserializationError("invalid num_layers".to_string())
             })?);
@@ -859,7 +859,7 @@ impl Sketch for UnivMon {
             })?);
         offset += 8;
 
-        let total_updates =
+        let _total_updates =
             u64::from_le_bytes(bytes[offset..offset + 8].try_into().map_err(|_| {
                 SketchError::DeserializationError("invalid total_updates".to_string())
             })?);
@@ -877,7 +877,6 @@ impl Sketch for UnivMon {
                 .try_into()
                 .map_err(|_| SketchError::DeserializationError("invalid delta".to_string()))?,
         );
-        offset += 8;
 
         // Deserialize layers (simplified - full implementation would restore all layers)
         // For now, create new instance

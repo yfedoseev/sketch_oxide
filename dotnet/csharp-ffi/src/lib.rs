@@ -593,7 +593,7 @@ pub unsafe extern "C" fn sliding_hll_decay(
 // Membership - VacuumFilter
 // ============================================================================
 
-use sketch_oxide::membership::{VacuumFilter, VacuumFilterStats};
+use sketch_oxide::membership::VacuumFilter;
 
 /// Creates a new VacuumFilter
 /// # Safety
@@ -718,7 +718,7 @@ pub unsafe extern "C" fn vacuum_filter_clear(ptr: *mut VacuumFilter) {
 // ============================================================================
 
 use sketch_oxide::common::RangeFilter;
-use sketch_oxide::range_filters::{GRFStats, GRF};
+use sketch_oxide::range_filters::GRF;
 
 /// Builds a new GRF filter from sorted keys
 /// # Safety
@@ -946,7 +946,7 @@ pub unsafe extern "C" fn nitro_sketch_stats(
 // Universal - UnivMon
 // ============================================================================
 
-use sketch_oxide::universal::{UnivMon, UnivMonStats};
+use sketch_oxide::universal::UnivMon;
 
 /// Creates a new UnivMon sketch
 /// # Safety

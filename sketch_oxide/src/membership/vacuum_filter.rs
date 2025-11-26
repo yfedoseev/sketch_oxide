@@ -174,6 +174,7 @@ impl Bucket {
 
     /// Returns true if bucket has space
     #[inline]
+    #[allow(dead_code)]
     fn has_space(&self) -> bool {
         self.count < BUCKET_SIZE as u8
     }
