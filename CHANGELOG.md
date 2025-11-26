@@ -7,10 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2025-11-26
+
 ### Added
-- Initial release preparation
-- Documentation finalization
-- Example files for all algorithms
+
+#### Test Coverage
+- **Phase 1**: 257 comprehensive JUnit 5 tests for Java (BloomFilter, CountMinSketch, DDSketch, MinHash, CuckooFilter)
+- **Phase 2**: 170 Jest tests for Node.js with TypeScript (BloomFilter, DDSketch, MinHash)
+- **Phase 3**: 39 pytest tests for Python FFI bindings (BloomFilter, DDSketch, MinHash)
+- **Phase 4**: Verified 388 existing xUnit tests for C# (.NET)
+- **Phase 5**: Cross-language validation documentation and test data patterns
+
+#### Documentation
+- `CROSS_LANGUAGE_VALIDATION.md` - Comprehensive cross-language test strategy
+- `CROSS_LANGUAGE_TEST_DATA.md` - Shared test data formats and integration patterns
+- `TEST_COVERAGE_SUMMARY.md` - Complete overview of 854 tests across 4 languages
+
+#### Infrastructure
+- Consolidated workspace dependencies in root Cargo.toml for centralized version management
+- Fixed CI/CD publishing workflow with proper secret configuration
+- Repository cleanup: removed temporary benchmark output files
+
+### Fixed
+- Fixed PyPI publishing token reference in GitHub Actions workflow
+- Fixed release summary job to handle release events correctly
+- Disabled Maven Central and NuGet publishers until proper certificates are configured
+- All GitHub Actions workflow dependencies updated for disabled jobs
+
+### Changed
+- All FFI bindings now reference workspace version (0.1.3) from single location
+- Improved .gitignore with benchmark and test output file patterns
 
 ## [0.1.0] - 2025-11-07
 
