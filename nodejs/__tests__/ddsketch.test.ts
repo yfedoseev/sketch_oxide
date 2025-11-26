@@ -482,9 +482,4 @@ describe('DDSketch', () => {
       expect(() => ds.quantile(1.1)).toThrow()
     })
   })
-
-  describe('disposal', () => {
-
-    })
-  })
 })
