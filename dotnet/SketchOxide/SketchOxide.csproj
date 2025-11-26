@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net7.0;net8.0;netstandard2.1</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>SketchOxide</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Yury Fedoseev</Authors>
+    <Description>High-performance probabilistic data structures for .NET. 28 state-of-the-art algorithms for cardinality estimation, frequency analysis, membership testing, and more.</Description>
+    <PackageProjectUrl>https://github.com/yfedoseev/sketch_oxide</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/yfedoseev/sketch_oxide</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+    <PackageTags>probabilistic;sketches;algorithms;cardinality;frequency;quantiles;membership;streaming;similarity;sampling;data-structures;performance;rust-bindings</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- Documentation -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+
+    <!-- Performance and Security -->
+    <TieredCompilation>true</TieredCompilation>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
+    <PublishTrimmed>true</PublishTrimmed>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <TrimMode>partial</TrimMode>
+
+    <!-- Signing -->
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Testing -->
+    <PackageReference Include="xunit" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.2" />
+
+    <!-- Benchmarking -->
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.2" />
+
+    <!-- Source Link -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Native Libraries -->
+  <ItemGroup>
+    <Content Include="runtimes/win-x64/native/sketch_oxide_dotnet.dll" Pack="true" PackagePath="runtimes/win-x64/native/" />
+    <Content Include="runtimes/linux-x64/native/libsketch_oxide_dotnet.so" Pack="true" PackagePath="runtimes/linux-x64/native/" />
+    <Content Include="runtimes/linux-x64/native/libsketch_oxide_dotnet_musl.so" Pack="true" PackagePath="runtimes/linux-musl-x64/native/" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="runtimes/osx-x64/native/libsketch_oxide_dotnet.dylib" Pack="true" PackagePath="runtimes/osx-x64/native/" />
+    <Content Include="runtimes/osx-arm64/native/libsketch_oxide_dotnet.dylib" Pack="true" PackagePath="runtimes/osx-arm64/native/" />
+  </ItemGroup>
+
+  <!-- README for NuGet -->
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

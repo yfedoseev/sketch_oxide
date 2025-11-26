@@ -1,0 +1,52 @@
+# This file defines code ownership and responsibility for different parts of the repository
+
+# Global owners - responsible for overall project
+* @sketch-oxide/maintainers
+
+# Rust core library
+/sketch_oxide/ @sketch-oxide/maintainers @sketch-oxide/rust-team
+
+# Python bindings
+/python/ @sketch-oxide/maintainers @sketch-oxide/python-team
+
+# Node.js bindings
+/nodejs/ @sketch-oxide/maintainers @sketch-oxide/nodejs-team
+
+# Java bindings
+/java/ @sketch-oxide/maintainers @sketch-oxide/java-team
+
+# C# bindings
+/dotnet/ @sketch-oxide/maintainers @sketch-oxide/dotnet-team
+
+# Documentation
+/docs/ @sketch-oxide/maintainers @sketch-oxide/docs-team
+README.md @sketch-oxide/maintainers
+CHANGELOG.md @sketch-oxide/maintainers
+CONTRIBUTING.md @sketch-oxide/maintainers
+
+# Tests
+/sketch_oxide/tests/ @sketch-oxide/maintainers
+/python/tests/ @sketch-oxide/python-team
+/nodejs/__tests__/ @sketch-oxide/nodejs-team
+/java/src/test/ @sketch-oxide/java-team
+/dotnet/SketchOxide.Tests/ @sketch-oxide/dotnet-team
+
+# Benchmarks
+/sketch_oxide/benches/ @sketch-oxide/maintainers
+/python/benchmarks/ @sketch-oxide/python-team
+/nodejs/benchmarks/ @sketch-oxide/nodejs-team
+
+# CI/CD and tooling
+/.github/ @sketch-oxide/maintainers
+Cargo.toml @sketch-oxide/maintainers
+Cargo.lock @sketch-oxide/maintainers
+pyproject.toml @sketch-oxide/maintainers @sketch-oxide/python-team
+package.json @sketch-oxide/maintainers @sketch-oxide/nodejs-team
+pom.xml @sketch-oxide/maintainers @sketch-oxide/java-team
+*.csproj @sketch-oxide/maintainers @sketch-oxide/dotnet-team
+
+# License and governance
+LICENSE-MIT @sketch-oxide/maintainers
+LICENSE-APACHE @sketch-oxide/maintainers
+CODE_OF_CONDUCT.md @sketch-oxide/maintainers
+SECURITY.md @sketch-oxide/maintainers

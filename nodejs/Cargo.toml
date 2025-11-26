@@ -1,0 +1,21 @@
+[package]
+name = "sketch-oxide-node"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+napi = { version = "2.15", features = ["napi8"] }
+napi-derive = "2.15"
+sketch_oxide = { path = "../sketch_oxide" }
+hex = "0.4"
+twox-hash = "1.6"
+
+[dev-dependencies]
+napi-build = "2.1"
+
+[build-dependencies]
+napi-build = "2.1"
+
+[lib]
+crate-type = ["cdylib"]

@@ -1,0 +1,16 @@
+[package]
+name = "sketch_oxide_dotnet"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+sketch_oxide = { path = "../../sketch_oxide" }
+
+[build-dependencies]
+csbindgen = "1.7"

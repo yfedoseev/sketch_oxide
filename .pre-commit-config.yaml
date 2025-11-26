@@ -67,10 +67,10 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        description: Run Python tests
+        description: Run Python tests (allows skips for unbuilt modules)
         entry: pytest
         language: system
         types: [python]
         pass_filenames: false
-        # Only run if tests directory exists
+        # Tests will skip if extension module not built via maturin
         stages: [pre-commit]

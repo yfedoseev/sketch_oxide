@@ -1,6 +1,5 @@
 # Rust
 target/
-Cargo.lock
 **/*.rs.bk
 *.pdb
 
@@ -38,3 +37,6 @@ htmlcov/
 
 # Documentation
 docs/_build/
+
+# Claude
+.claude/

@@ -1,0 +1,50 @@
+{
+  "name": "@sketch-oxide/node",
+  "version": "0.1.0",
+  "description": "High-performance probabilistic data structures for Node.js - 28-75% better space efficiency than classic algorithms",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "bench": "node benchmarks/run.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "probabilistic-data-structures",
+    "cardinality-estimation",
+    "counting-bloom-filter",
+    "hyperloglog",
+    "sketch",
+    "algorithm",
+    "rust",
+    "native"
+  ],
+  "author": "sketch_oxide contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "@napi-rs/cli": "^2.16",
+    "@types/jest": "^29",
+    "@types/node": "^20",
+    "jest": "^29",
+    "typescript": "^5"
+  },
+  "napi": {
+    "name": "sketch_oxide_node",
+    "package": {
+      "name": "@sketch-oxide/node"
+    },
+    "binaryName": "sketch_oxide_node",
+    "targets": [
+      "x86_64-unknown-linux-gnu",
+      "x86_64-pc-windows-msvc",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin"
+    ]
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  }
+}

@@ -1,0 +1,14 @@
+[package]
+name = "sketch-oxide-java"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+jni = "0.21"
+sketch_oxide = { path = "../sketch_oxide" }
+
+[build-dependencies]
+
+[lib]
+crate-type = ["cdylib"]

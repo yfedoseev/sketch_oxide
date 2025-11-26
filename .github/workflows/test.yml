@@ -1,0 +1,294 @@
+name: Test All Languages
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Rust core library tests
+  rust:
+    name: Rust Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rust: stable
+            rust-target: ''
+          - os: ubuntu-latest
+            rust: beta
+            rust-target: ''
+          - os: macos-latest
+            rust: stable
+            rust-target: ''
+          - os: macos-latest
+            rust: beta
+            rust-target: ''
+          - os: windows-latest
+            rust: stable
+            rust-target: ''
+          - os: windows-latest
+            rust: beta
+            rust-target: ''
+          # Optional: Windows ARM64 (uncomment to enable when needed)
+          # - os: windows-2022-arm64
+          #   rust: stable
+          #   rust-target: 'aarch64-pc-windows-msvc'
+          # - os: windows-2022-arm64
+          #   rust: beta
+          #   rust-target: 'aarch64-pc-windows-msvc'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          targets: ${{ matrix.rust-target }}
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build for cross-compilation target
+        if: matrix.rust-target != ''
+        working-directory: ./sketch_oxide
+        run: cargo build --target ${{ matrix.rust-target }} --verbose
+
+      - name: Run tests
+        if: matrix.rust-target == ''
+        working-directory: ./sketch_oxide
+        run: cargo test --verbose --all-features
+
+      - name: Run tests (cross-compiled)
+        if: matrix.rust-target != ''
+        working-directory: ./sketch_oxide
+        run: cargo test --target ${{ matrix.rust-target }} --verbose
+
+      - name: Run doc tests
+        working-directory: ./sketch_oxide
+        run: cargo test --doc
+
+      - name: Run benchmarks (without harness)
+        working-directory: ./sketch_oxide
+        run: cargo bench --no-run
+
+  # Python bindings tests
+  python:
+    name: Python Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install maturin pytest pytest-benchmark mypy ruff black
+
+      - name: Build Python bindings
+        working-directory: ./python
+        run: maturin develop
+
+      - name: Run Python tests
+        working-directory: ./python
+        run: pytest tests/ -v
+
+      - name: Run Python benchmarks
+        working-directory: ./python
+        run: pytest benchmarks/ --benchmark-only -v
+
+  # Node.js bindings tests
+  nodejs:
+    name: Node.js Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [16.x, 18.x, 20.x]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: nodejs/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        working-directory: ./nodejs
+        run: npm ci
+
+      - name: Build Node.js bindings
+        working-directory: ./nodejs
+        run: npm run build
+
+      - name: Run Node.js tests
+        working-directory: ./nodejs
+        run: npm test
+
+      - name: Run TypeScript type check
+        working-directory: ./nodejs
+        run: npx tsc --noEmit
+
+  # Java bindings tests
+  java:
+    name: Java Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        java-version: ["11", "17", "21"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: temurin
+          cache: maven
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run Maven tests
+        working-directory: ./java
+        run: mvn clean test -DskipITs=false
+
+      - name: Run benchmarks
+        working-directory: ./java
+        run: mvn clean verify -Pbenchmark
+
+  # C# bindings tests
+  dotnet:
+    name: C# .NET Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        dotnet-version: ["6.0.x", "7.0.x", "8.0.x"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Restore dependencies
+        working-directory: ./dotnet
+        run: dotnet restore
+
+      - name: Run C# tests
+        working-directory: ./dotnet
+        run: dotnet test --no-restore -v normal
+
+      - name: Run benchmarks
+        working-directory: ./dotnet
+        run: dotnet run --project SketchOxide.Benchmarks/SketchOxide.Benchmarks.csproj --no-build -c Release
+
+  # Code quality checks
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check Rust formatting
+        working-directory: ./sketch_oxide
+        run: cargo fmt -- --check
+
+      - name: Run Clippy
+        working-directory: ./sketch_oxide
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python linters
+        run: |
+          pip install black ruff mypy pytest
+
+      - name: Check Python formatting (black)
+        run: black --check python/
+
+      - name: Check Python linting (ruff)
+        run: ruff check python/
+
+      - name: Type check Python (mypy)
+        run: mypy python/ --ignore-missing-imports || true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Check TypeScript
+        working-directory: ./nodejs
+        run: |
+          npm install
+          npx tsc --noEmit || true
+
+  # Final status check
+  status:
+    name: Test Status
+    runs-on: ubuntu-latest
+    needs: [rust, python, nodejs, java, dotnet, quality]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [[ "${{ needs.rust.result }}" != "success" ||
+                "${{ needs.python.result }}" != "success" ||
+                "${{ needs.nodejs.result }}" != "success" ||
+                "${{ needs.java.result }}" != "success" ||
+                "${{ needs.dotnet.result }}" != "success" ||
+                "${{ needs.quality.result }}" != "success" ]]; then
+            echo "Some tests failed"
+            exit 1
+          fi
+          echo "All tests passed!"
