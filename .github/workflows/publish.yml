@@ -76,7 +76,7 @@ jobs:
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: python-wheels
+          name: python-wheels-${{ matrix.target }}
           path: target/wheels/
           retention-days: 1
           if-no-files-found: warn
@@ -92,15 +92,19 @@ jobs:
       - name: Download all wheel artifacts
         uses: actions/download-artifact@v4
         with:
-          name: python-wheels
-          path: wheels
+          path: all-wheels
+          pattern: python-wheels-*
 
-      - name: Verify wheels
+      - name: Organize wheels
         run: |
+          mkdir -p wheels
+          # Copy all wheels from all downloaded artifacts
+          find all-wheels -type f -name "*.whl" -exec cp {} wheels/ \;
+
           echo "=== Downloaded wheels ==="
-          ls -la wheels/
+          ls -lh wheels/
           wheel_count=$(find wheels -name "*.whl" | wc -l)
-          echo "Total wheels: $wheel_count"
+          echo "Total wheels found: $wheel_count"
           if [ "$wheel_count" -lt 4 ]; then
             echo "Warning: Expected at least 4 wheels, found $wheel_count"
           fi
