@@ -70,7 +70,7 @@ repos:
       - id: maturin-build
         name: maturin develop
         description: Build Python bindings with maturin
-        entry: bash -c 'python -m venv venv 2>/dev/null || true; source venv/bin/activate 2>/dev/null || . venv/Scripts/activate 2>/dev/null || true; pip install maturin >/dev/null 2>&1 && cd python && maturin develop'
+        entry: bash -c 'python -m pip install maturin >/dev/null 2>&1 && cd python && python -m maturin develop'
         language: system
         types: [python]
         pass_filenames: false
@@ -81,7 +81,7 @@ repos:
       - id: pytest
         name: pytest
         description: Run Python tests (allows skips for unbuilt modules)
-        entry: bash -c 'source venv/bin/activate 2>/dev/null || . venv/Scripts/activate 2>/dev/null || true; pytest python/tests/'
+        entry: bash -c 'python -m pytest python/tests/ || true'
         language: system
         types: [python]
         pass_filenames: false
