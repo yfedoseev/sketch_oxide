@@ -109,22 +109,30 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install Python dependencies
+      - name: Create virtual environment and install dependencies
         run: |
+          python -m venv venv
+          source venv/bin/activate
           python -m pip install --upgrade pip
           pip install maturin pytest pytest-benchmark mypy ruff black
 
       - name: Build Python bindings
         working-directory: ./python
-        run: maturin develop
+        run: |
+          source ../venv/bin/activate
+          maturin develop
 
       - name: Run Python tests
         working-directory: ./python
-        run: pytest tests/ -v
+        run: |
+          source ../venv/bin/activate
+          pytest tests/ -v
 
       - name: Run Python benchmarks
         working-directory: ./python
-        run: pytest benchmarks/ --benchmark-only -v
+        run: |
+          source ../venv/bin/activate
+          pytest benchmarks/ --benchmark-only -v
 
   # Node.js bindings tests
   nodejs:
