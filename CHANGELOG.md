@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2025-11-26
+
+### Added
+
+#### Version Management
+- `VERSION` file as single source of truth for all package versions
+- `scripts/sync-version.sh` for automatic version synchronization across all language bindings
+- `VERSIONING.md` documentation with clear release workflow
+
+#### Infrastructure
+- CI/CD version sync integration - all publisher jobs sync versions before building
+- Simplified release process - update VERSION file instead of 5 separate locations
+
+### Fixed
+- npm publishing version mismatch (now uses VERSION file)
+- Python publishing version mismatch (now uses VERSION file)
+- All publishers guarantee version consistency across platforms
+
 ## [0.1.3] - 2025-11-26
 
 ### Added
