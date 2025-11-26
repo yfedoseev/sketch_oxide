@@ -152,6 +152,7 @@ jobs:
   publish-maven:
     name: Publish to Maven Central
     runs-on: ubuntu-latest
+    if: false  # Disabled until GPG secrets are configured
     steps:
       - uses: actions/checkout@v4
 
@@ -185,6 +186,7 @@ jobs:
   publish-nuget:
     name: Publish to NuGet
     runs-on: windows-latest
+    if: false  # Disabled until .NET trimming issue is resolved
     steps:
       - uses: actions/checkout@v4
 
