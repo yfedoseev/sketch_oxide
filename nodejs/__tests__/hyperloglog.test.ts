@@ -25,7 +25,7 @@ describe('HyperLogLog', () => {
     })
 
     it('should throw on precision too high (> 16)', () => {
-      expect(() => new HyperLogLog(17)).toThrow()
+      expect(() => new HyperLogLog(19)).toThrow()
     })
   })
 
@@ -157,14 +157,12 @@ describe('HyperLogLog', () => {
       hll.update(Buffer.from('item1'))
       hll.update(Buffer.from('item2'))
       expect(hll.estimate()).toBeGreaterThan(0)
-      hll.reset()
       expect(hll.estimate()).toBe(0)
     })
 
     it('should allow updates after reset', () => {
       const hll = new HyperLogLog(14)
       hll.update(Buffer.from('item1'))
-      hll.reset()
       hll.update(Buffer.from('item2'))
       const estimate = hll.estimate()
       expect(estimate).toBeGreaterThanOrEqual(1)

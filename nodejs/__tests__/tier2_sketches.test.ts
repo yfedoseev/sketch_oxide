@@ -163,7 +163,7 @@ describe('VacuumFilter', () => {
 describe('GRF', () => {
   describe('build', () => {
     it('should build from sorted keys', () => {
-      const keys = [10n, 20n, 30n, 40n, 50n]
+      const keys = [10, 20, 30, 40, 50]
       const grf = GRF.build(keys, 6)
       expect(grf).toBeDefined()
     })
@@ -173,7 +173,7 @@ describe('GRF', () => {
     })
 
     it('should throw on invalid bitsPerKey', () => {
-      const keys = [10n, 20n, 30n]
+      const keys = [10, 20, 30]
       expect(() => GRF.build(keys, 1)).toThrow()
       expect(() => GRF.build(keys, 20)).toThrow()
     })
@@ -187,44 +187,44 @@ describe('GRF', () => {
 
   describe('mayContainRange', () => {
     it('should detect ranges containing keys', () => {
-      const keys = [100n, 200n, 300n, 400n, 500n]
+      const keys = [100, 200, 300, 400, 500]
       const grf = GRF.build(keys, 6)
 
-      expect(grf.mayContainRange(150n, 250n)).toBe(true) // Contains 200
-      expect(grf.mayContainRange(100n, 100n)).toBe(true) // Point query
+      expect(grf.mayContainRange(150, 250)).toBe(true) // Contains 200
+      expect(grf.mayContainRange(100, 100)).toBe(true) // Point query
     })
 
     it('should reject ranges not containing keys', () => {
-      const keys = [100n, 200n, 300n, 400n, 500n]
+      const keys = [100, 200, 300, 400, 500]
       const grf = GRF.build(keys, 6)
 
-      const result1 = grf.mayContainRange(1n, 50n)
-      const result2 = grf.mayContainRange(600n, 700n)
+      const result1 = grf.mayContainRange(1n, 50)
+      const result2 = grf.mayContainRange(600, 700)
       expect(typeof result1).toBe('boolean')
       expect(typeof result2).toBe('boolean')
     })
 
     it('should handle overlapping ranges', () => {
-      const keys = [10n, 20n, 30n, 40n, 50n]
+      const keys = [10, 20, 30, 40, 50]
       const grf = GRF.build(keys, 6)
 
-      expect(grf.mayContainRange(0n, 100n)).toBe(true)
+      expect(grf.mayContainRange(0, 100)).toBe(true)
       expect(grf.mayContainRange(25n, 35n)).toBe(true)
     })
   })
 
   describe('mayContain', () => {
     it('should check point membership', () => {
-      const keys = [100n, 200n, 300n, 400n, 500n]
+      const keys = [100, 200, 300, 400, 500]
       const grf = GRF.build(keys, 6)
 
-      expect(grf.mayContain(200n)).toBe(true)
-      expect(grf.mayContain(300n)).toBe(true)
-      expect(grf.mayContain(100n)).toBe(true)
+      expect(grf.mayContain(200)).toBe(true)
+      expect(grf.mayContain(300)).toBe(true)
+      expect(grf.mayContain(100)).toBe(true)
     })
 
     it('should handle non-existent keys', () => {
-      const keys = [100n, 200n, 300n]
+      const keys = [100, 200, 300]
       const grf = GRF.build(keys, 6)
 
       const result = grf.mayContain(999n)
@@ -234,22 +234,22 @@ describe('GRF', () => {
 
   describe('expectedFpr', () => {
     it('should calculate expected FPR', () => {
-      const keys = [10n, 20n, 30n, 40n, 50n]
+      const keys = [10, 20, 30, 40, 50]
       const grf = GRF.build(keys, 6)
 
-      const fpr = grf.expectedFpr(10n)
+      const fpr = grf.expectedFpr(10)
       expect(typeof fpr).toBe('number')
       expect(fpr).toBeGreaterThanOrEqual(0)
       expect(fpr).toBeLessThanOrEqual(1)
     })
 
     it('should show FPR increases with range width', () => {
-      const keys = [10n, 20n, 30n, 40n, 50n]
+      const keys = [10, 20, 30, 40, 50]
       const grf = GRF.build(keys, 6)
 
-      const fpr1 = grf.expectedFpr(10n)
-      const fpr2 = grf.expectedFpr(100n)
-      const fpr3 = grf.expectedFpr(1000n)
+      const fpr1 = grf.expectedFpr(10)
+      const fpr2 = grf.expectedFpr(100)
+      const fpr3 = grf.expectedFpr(1000)
 
       expect(fpr2).toBeGreaterThan(fpr1)
       expect(fpr3).toBeGreaterThan(fpr2)
@@ -258,7 +258,7 @@ describe('GRF', () => {
 
   describe('stats', () => {
     it('should return filter statistics', () => {
-      const keys = [10n, 20n, 30n, 40n, 50n]
+      const keys = [10, 20, 30, 40, 50]
       const grf = GRF.build(keys, 6)
 
       const stats = grf.stats()
@@ -275,7 +275,7 @@ describe('GRF', () => {
 
   describe('toString', () => {
     it('should return string representation', () => {
-      const keys = [10n, 20n, 30n]
+      const keys = [10, 20, 30]
       const grf = GRF.build(keys, 6)
       const str = grf.toString()
       expect(typeof str).toBe('string')
@@ -384,7 +384,7 @@ describe('NitroSketch', () => {
       expect(stats).toHaveProperty('unsampledCount')
       expect(stats).toHaveProperty('totalItemsEstimated')
       expect(stats.sampleRate).toBe(0.5)
-      expect(stats.totalItemsEstimated).toBe(100n)
+      expect(stats.totalItemsEstimated).toBe(100)
     })
   })
 
@@ -397,10 +397,10 @@ describe('NitroSketch', () => {
         nitro.updateSampled(Buffer.from('key'))
       }
 
-      expect(nitro.stats().totalItemsEstimated).toBeGreaterThan(0n)
+      expect(nitro.stats().totalItemsEstimated).toBeGreaterThan(0)
 
       nitro.resetStats()
-      expect(nitro.stats().totalItemsEstimated).toBe(0n)
+      expect(nitro.stats().totalItemsEstimated).toBe(0)
     })
   })
 

@@ -1254,6 +1254,7 @@ export declare class BloomFilter {
   serialize(): Buffer
   static deserialize(data: Buffer): BloomFilter
   toString(): string
+  dispose?(): void
 }
 /** Blocked Bloom Filter for cache-efficient membership testing */
 export declare class BlockedBloomFilter {
@@ -1737,6 +1738,7 @@ export declare class ElasticSketch {
 }
 /** SALSA: Self-Adjusting Counter Sizing for frequency estimation (type alias) */
 export { Salsa as SALSA }
+export declare const SALSA: typeof Salsa
 export declare class Salsa {
   /** Create a new SALSA sketch */
   constructor(epsilon: number, delta: number)
@@ -1893,6 +1895,7 @@ export declare class HeavyKeeper {
 }
 /** Type alias for RatelessIBLT (runtime re-export) */
 export { RatelessIblt as RatelessIBLT }
+export declare const RatelessIBLT: typeof RatelessIblt
 /**
  * RatelessIBLT - Efficient set reconciliation for distributed systems
  *
