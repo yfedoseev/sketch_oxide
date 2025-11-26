@@ -18,7 +18,6 @@ Test categories:
 Target: 80-100 tests with 100% pass rate and >95% code coverage.
 """
 
-
 import pytest
 
 from sketch_oxide import (
