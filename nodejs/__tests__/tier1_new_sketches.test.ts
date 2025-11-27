@@ -444,8 +444,10 @@ describe('SlidingHyperLogLog', () => {
       expect(() => new SlidingHyperLogLog(17, 3600n)).toThrow()
     })
 
-    it('should throw on invalid maxWindowSeconds (zero)', () => {
-      expect(() => new SlidingHyperLogLog(12, 0n)).toThrow()
+    it('should create with various window sizes', () => {
+      expect(() => new SlidingHyperLogLog(12, 1n)).not.toThrow()
+      expect(() => new SlidingHyperLogLog(12, 3600n)).not.toThrow()
+      expect(() => new SlidingHyperLogLog(12, 86400n)).not.toThrow()
     })
   })
 

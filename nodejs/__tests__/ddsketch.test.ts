@@ -39,10 +39,6 @@ describe('DDSketch', () => {
       ds = new DDSketch(0.01)
     })
 
-    afterEach(() => {
-      ds.dispose?.()
-    })
-
     it('should update with single value', () => {
       expect(() => ds.update(100.0)).not.toThrow()
     })
@@ -124,10 +120,6 @@ describe('DDSketch', () => {
       }
     })
 
-    afterEach(() => {
-      ds.dispose?.()
-    })
-
     it('should query multiple quantiles', () => {
       const results = ds.quantiles([0.25, 0.5, 0.75])
       expect(results.length).toBe(3)
@@ -172,10 +164,6 @@ describe('DDSketch', () => {
 
     beforeEach(() => {
       ds = new DDSketch(0.01)
-    })
-
-    afterEach(() => {
-      ds.dispose?.()
     })
 
     it('should maintain relative accuracy for uniform distribution', () => {
@@ -262,23 +250,17 @@ describe('DDSketch', () => {
       const relativeError = Math.abs(median - trueMedian) / trueMedian
 
       expect(relativeError).toBeLessThan(0.2)
-
-      ds1.dispose?.()
-      ds2.dispose?.()
     })
 
     it('should throw on merge with different relative accuracy', () => {
       const ds1 = new DDSketch(0.01)
       const ds2 = new DDSketch(0.05)
-
-
-      ds1.dispose?.()
-      ds2.dispose?.()
+      expect(() => ds1.mergeWith(ds2)).toThrow()
     })
 
     it('should throw on merge with null', () => {
       const ds = new DDSketch(0.01)
-      ds.dispose?.()
+      expect(() => ds.mergeWith(null as any)).toThrow()
     })
 
     it('should merge sketches with identical data', () => {
@@ -293,9 +275,6 @@ describe('DDSketch', () => {
 
       const median = ds1.quantile(0.5)!
       expect(median).toBeCloseTo(500.5, 0)
-
-      ds1.dispose?.()
-      ds2.dispose?.()
     })
 
     it('should merge sketches with overlapping data', () => {
@@ -313,9 +292,6 @@ describe('DDSketch', () => {
 
       const median = ds1.quantile(0.5)!
       expect(median).toBeGreaterThan(0)
-
-      ds1.dispose?.()
-      ds2.dispose?.()
     })
   })
 
@@ -324,10 +300,6 @@ describe('DDSketch', () => {
 
     beforeEach(() => {
       ds = new DDSketch(0.01)
-    })
-
-    afterEach(() => {
-      ds.dispose?.()
     })
 
     it('should serialize empty sketch', () => {
@@ -357,7 +329,6 @@ describe('DDSketch', () => {
       const restoredMedian = restored.quantile(0.5)!
       expect(restoredMedian).toBeCloseTo(originalMedian, 0)
 
-      restored.dispose?.()
     })
 
     it('should handle round-trip serialization', () => {
@@ -376,7 +347,6 @@ describe('DDSketch', () => {
       expect(restored.quantile(0.5)!).toBeCloseTo(q50, 0)
       expect(restored.quantile(0.75)!).toBeCloseTo(q75, 0)
 
-      restored.dispose?.()
     })
 
     it('should throw on deserialize invalid data', () => {
@@ -404,7 +374,6 @@ describe('DDSketch', () => {
       expect(median).toBeGreaterThan(0)
       expect(p99).toBeGreaterThan(median)
 
-      ds.dispose?.()
     })
 
     it('should maintain accuracy on large dataset', () => {
@@ -420,7 +389,6 @@ describe('DDSketch', () => {
       const relativeError = Math.abs(median - trueMedian) / trueMedian
       expect(relativeError).toBeLessThan(0.1)
 
-      ds.dispose?.()
     })
   })
 
@@ -429,10 +397,6 @@ describe('DDSketch', () => {
 
     beforeEach(() => {
       ds = new DDSketch(0.01)
-    })
-
-    afterEach(() => {
-      ds.dispose?.()
     })
 
     it('should handle single value', () => {
@@ -473,7 +437,6 @@ describe('DDSketch', () => {
         }
         const median = sketch.quantile(0.5)!
         expect(median).toBeGreaterThan(0)
-        sketch.dispose?.()
       }
     })
 

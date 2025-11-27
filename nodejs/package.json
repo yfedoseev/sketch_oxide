@@ -5,8 +5,8 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "build": "napi build --platform --release",
-    "build:debug": "napi build --platform",
+    "build": "napi build --platform --release && node fix-types.js",
+    "build:debug": "napi build --platform && node fix-types.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "bench": "node benchmarks/run.js",

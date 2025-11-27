@@ -179,7 +179,7 @@ describe('GRF', () => {
     })
 
     it('should handle large key sets', () => {
-      const keys = Array.from({ length: 1000 }, (_, i) => BigInt(i * 10n))
+      const keys = Array.from({ length: 1000 }, (_, i) => BigInt(i * 10))
       const grf = GRF.build(keys, 6)
       expect(grf).toBeDefined()
     })

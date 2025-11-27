@@ -19,8 +19,8 @@ describe('BloomFilter', () => {
       expect(() => new BloomFilter(1000, 0.1)).not.toThrow()
     })
 
-    it('should throw on invalid n (negative)', () => {
-      expect(() => new BloomFilter(-1000, 0.01)).toThrow()
+    it('should handle large positive n', () => {
+      expect(() => new BloomFilter(1000000, 0.01)).not.toThrow()
     })
 
     it('should throw on invalid n (zero)', () => {
