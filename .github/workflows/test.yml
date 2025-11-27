@@ -147,7 +147,7 @@ jobs:
 
       - name: Run Rust tests with Python feature
         if: runner.os != 'macOS'
-        run: cargo test --features python
+        run: cargo test -p sketch_oxide --features python
 
       - name: Run Python tests
         run: uv run pytest python/tests/ -v --tb=short --import-mode=importlib
