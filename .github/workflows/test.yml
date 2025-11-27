@@ -101,39 +101,40 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Create virtual environment and install dependencies
-        run: |
-          python -m venv venv
-          python -m pip install --upgrade pip
-          python -m pip install maturin pytest pytest-benchmark mypy ruff black
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
 
-      - name: Build Python bindings
+      - name: Install maturin
+        shell: bash
+        run: pip install maturin pytest pytest-benchmark
+
+      - name: Build Python package
         working-directory: ./python
-        run: |
-          $python_exe = if ($IsWindows) { "../venv/Scripts/python.exe" } else { "../venv/bin/python" }
-          & $python_exe -m pip install -e .
-          maturin develop
+        shell: bash
+        run: maturin build --release
+
+      - name: Install wheel
+        working-directory: ./python
+        shell: bash
+        run: pip install target/wheels/*.whl
 
       - name: Run Python tests
         working-directory: ./python
-        run: |
-          $python_exe = if ($IsWindows) { "../venv/Scripts/python.exe" } else { "../venv/bin/python" }
-          & $python_exe -m pytest tests/ -v
+        shell: bash
+        run: pytest tests/ -v
 
       - name: Run Python benchmarks
         working-directory: ./python
+        shell: bash
         continue-on-error: true
-        run: |
-          $python_exe = if ($IsWindows) { "../venv/Scripts/python.exe" } else { "../venv/bin/python" }
-          & $python_exe -m pytest benchmarks/ --benchmark-only -v
+        run: pytest benchmarks/ --benchmark-only -v
 
   # Node.js bindings tests
   nodejs:
