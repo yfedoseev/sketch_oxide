@@ -130,7 +130,7 @@ jobs:
       - name: Run Python tests
         working-directory: ./python
         shell: bash
-        run: pytest tests/ -v
+        run: pytest tests/ -v --tb=short
 
       - name: Run Python benchmarks
         working-directory: ./python
