@@ -150,11 +150,11 @@ jobs:
         run: cargo test --features python
 
       - name: Run Python tests
-        run: uv run pytest python/tests/ -v --tb=short
+        run: cd python/tests && uv run pytest . -v --tb=short
 
       - name: Run Python benchmarks
         continue-on-error: true
-        run: uv run pytest python/benchmarks/ --benchmark-only -v
+        run: cd python/benchmarks && uv run pytest . --benchmark-only -v
 
   # Node.js bindings tests
   nodejs:
