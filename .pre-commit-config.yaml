@@ -37,8 +37,8 @@ repos:
 
       - id: cargo-test
         name: cargo test
-        description: Run Rust tests
-        entry: bash -c 'cd sketch_oxide && cargo test --lib --all-features'
+        description: Run Rust tests (lib, integration, and doc tests)
+        entry: bash -c 'cd sketch_oxide && cargo test --all-features --verbose && cargo test --doc --all-features'
         language: system
         types: [rust]
         pass_filenames: false
@@ -80,8 +80,8 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        description: Run Python tests (allows skips for unbuilt modules)
-        entry: bash -c 'python -m pytest python/tests/ || true'
+        description: Run Python tests with verbose output
+        entry: bash -c 'pytest python/tests/ -v || true'
         language: system
         types: [python]
         pass_filenames: false
