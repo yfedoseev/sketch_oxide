@@ -145,9 +145,8 @@ jobs:
           wheel=$(ls dist/*.whl)
           uv pip install "$wheel"
 
-      - name: Run Rust tests with Python feature
-        if: runner.os != 'macOS'
-        run: cargo test -p sketch_oxide --features python
+      - name: Run Rust tests
+        run: cargo test -p sketch_oxide --lib
 
       - name: Run Python tests
         run: uv run pytest python/tests/ -v --tb=short --import-mode=importlib
