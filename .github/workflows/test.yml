@@ -137,12 +137,12 @@ jobs:
         run: uv pip install maturin pytest pytest-benchmark
 
       - name: Build Python wheel
-        run: uv run maturin build --release --out python/dist
+        run: uv run maturin build --manifest-path python/Cargo.toml --release --out dist
 
       - name: Install built wheel
         shell: bash
         run: |
-          wheel=$(ls python/dist/*.whl)
+          wheel=$(ls dist/*.whl)
           uv pip install "$wheel"
 
       - name: Run Rust tests with Python feature
