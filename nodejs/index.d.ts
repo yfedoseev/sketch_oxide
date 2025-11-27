@@ -79,7 +79,7 @@ export interface VacuumFilterStats {
   memoryBits: number
   fingerprintBits: number
 }
-export interface GrfStats {
+export interface GRFStats {
   keyCount: number
   segmentCount: number
   avgKeysPerSegment: number
@@ -1385,21 +1385,20 @@ export declare class StableBloomFilter {
   /** Get a string representation */
   toString(): string
 }
-export { DdSketch as DDSketch }
 /** DDSketch for quantile estimation with relative error guarantees */
-export declare class DdSketch {
+export declare class DDSketch {
   constructor(relativeAccuracy: number)
   update(value: number): void
   updateBatch(values: Array<number>): void
   quantile(q: number): number | null
   quantiles(quantiles: Array<number>): Array<number>
-  mergeWith(other: DdSketch): void
+  mergeWith(other: DDSketch): void
   count(): number
   min(): number | null
   max(): number | null
   isEmpty(): boolean
   serialize(): Buffer
-  static deserialize(data: Buffer): DdSketch
+  static deserialize(data: Buffer): DDSketch
   toString(): string
 }
 /** REQ Sketch for streaming quantile estimation (PODS 2021) */
@@ -1734,9 +1733,8 @@ export declare class ElasticSketch {
   /** Get string representation */
   toString(): string
 }
-export { Salsa as SALSA }
 /** SALSA: Self-Adjusting Counter Sizing for frequency estimation */
-export declare class Salsa {
+export declare class SALSA {
   /** Create a new SALSA sketch */
   constructor(epsilon: number, delta: number)
   /** Update with item and frequency */
@@ -1758,7 +1756,7 @@ export declare class Salsa {
   /** Get depth */
   depth(): number
   /** Merge another SALSA sketch */
-  merge(other: Salsa): void
+  merge(other: SALSA): void
   /** Get string representation */
   toString(): string
 }
@@ -1890,7 +1888,6 @@ export declare class HeavyKeeper {
   /** Get string representation */
   toString(): string
 }
-export { RatelessIblt as RatelessIBLT }
 /**
  * RatelessIBLT - Efficient set reconciliation for distributed systems
  *
@@ -1926,7 +1923,7 @@ export { RatelessIblt as RatelessIBLT }
  * console.log(result.toRemove); // Items in Bob but not Alice
  * ```
  */
-export declare class RatelessIblt {
+export declare class RatelessIBLT {
   /**
    * Create a new RatelessIBLT
    *
@@ -1985,7 +1982,7 @@ export declare class RatelessIblt {
    * diff.subtract(bob);
    * ```
    */
-  subtract(other: RatelessIblt): void
+  subtract(other: RatelessIBLT): void
   /**
    * Decode the IBLT to recover items
    *
@@ -2458,7 +2455,6 @@ export declare class VacuumFilter {
   /** Get string representation */
   toString(): string
 }
-export { Grf as GRF }
 /**
  * GRF (Gorilla Range Filter): Shape-based range filter for LSM-trees
  *
@@ -2486,7 +2482,7 @@ export { Grf as GRF }
  * console.log(`Segments: ${stats.segmentCount}`);
  * ```
  */
-export declare class Grf {
+export declare class GRF {
   /**
    * Build a GRF filter from sorted keys
    *
@@ -2504,7 +2500,7 @@ export declare class Grf {
    * const grf = GRF.build(keys, 6);
    * ```
    */
-  static build(keys: Array<bigint>, bitsPerKey: number): Grf
+  static build(keys: Array<bigint>, bitsPerKey: number): GRF
   /**
    * Check if a range may contain keys
    *

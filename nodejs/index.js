@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { HyperLogLog, UltraLogLog, CpcSketch, QSketch, ThetaSketch, CountMinSketch, CountSketch, ConservativeCountMin, SpaceSaving, FrequentItemsErrorType, FrequentItems, BinaryFuseFilter, BloomFilter, BlockedBloomFilter, CountingBloomFilter, CuckooFilter, RibbonFilter, StableBloomFilter, DdSketch, ReqSketchMode, ReqSketch, TDigest, KllSketch, SplineSketch, MinHash, SimHash, ReservoirSampling, VarOptSampling, SlidingWindowCounter, ExponentialHistogram, ElasticSketch, Salsa, RemovableUniversalSketch, HeavyKeeper, RatelessIblt, Grafite, MementoFilter, SlidingHyperLogLog, VacuumFilter, Grf, NitroSketch, UnivMon, LearnedBloomFilter } = nativeBinding
+const { HyperLogLog, UltraLogLog, CpcSketch, QSketch, ThetaSketch, CountMinSketch, CountSketch, ConservativeCountMin, SpaceSaving, FrequentItemsErrorType, FrequentItems, BinaryFuseFilter, BloomFilter, BlockedBloomFilter, CountingBloomFilter, CuckooFilter, RibbonFilter, StableBloomFilter, DDSketch, ReqSketchMode, ReqSketch, TDigest, KllSketch, SplineSketch, MinHash, SimHash, ReservoirSampling, VarOptSampling, SlidingWindowCounter, ExponentialHistogram, ElasticSketch, SALSA, RemovableUniversalSketch, HeavyKeeper, RatelessIBLT, Grafite, MementoFilter, SlidingHyperLogLog, VacuumFilter, GRF, NitroSketch, UnivMon, LearnedBloomFilter } = nativeBinding
 
 module.exports.HyperLogLog = HyperLogLog
 module.exports.UltraLogLog = UltraLogLog
@@ -330,8 +330,7 @@ module.exports.CountingBloomFilter = CountingBloomFilter
 module.exports.CuckooFilter = CuckooFilter
 module.exports.RibbonFilter = RibbonFilter
 module.exports.StableBloomFilter = StableBloomFilter
-module.exports.DdSketch = DdSketch
-module.exports.DDSketch = DdSketch
+module.exports.DDSketch = DDSketch
 module.exports.ReqSketchMode = ReqSketchMode
 module.exports.ReqSketch = ReqSketch
 module.exports.TDigest = TDigest
@@ -344,18 +343,15 @@ module.exports.VarOptSampling = VarOptSampling
 module.exports.SlidingWindowCounter = SlidingWindowCounter
 module.exports.ExponentialHistogram = ExponentialHistogram
 module.exports.ElasticSketch = ElasticSketch
-module.exports.Salsa = Salsa
-module.exports.SALSA = Salsa
+module.exports.SALSA = SALSA
 module.exports.RemovableUniversalSketch = RemovableUniversalSketch
 module.exports.HeavyKeeper = HeavyKeeper
-module.exports.RatelessIblt = RatelessIblt
-module.exports.RatelessIBLT = RatelessIblt
+module.exports.RatelessIBLT = RatelessIBLT
 module.exports.Grafite = Grafite
 module.exports.MementoFilter = MementoFilter
 module.exports.SlidingHyperLogLog = SlidingHyperLogLog
 module.exports.VacuumFilter = VacuumFilter
-module.exports.Grf = Grf
-module.exports.GRF = Grf
+module.exports.GRF = GRF
 module.exports.NitroSketch = NitroSketch
 module.exports.UnivMon = UnivMon
 module.exports.LearnedBloomFilter = LearnedBloomFilter

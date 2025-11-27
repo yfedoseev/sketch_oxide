@@ -2688,7 +2688,7 @@ impl StableBloomFilter {
 // =============================================================================
 
 /// DDSketch for quantile estimation with relative error guarantees
-#[napi]
+#[napi(js_name = "DDSketch")]
 pub struct DDSketch {
     inner: RustDDSketch,
 }
@@ -2758,7 +2758,7 @@ impl DDSketch {
         Buffer::from(Sketch::serialize(&self.inner))
     }
 
-    #[napi(factory)]
+    #[napi(factory, ts_return_type = "DDSketch")]
     pub fn deserialize(data: Buffer) -> Result<Self> {
         RustDDSketch::deserialize(&data)
             .map(|inner| Self { inner })
@@ -4113,7 +4113,7 @@ pub struct EstimateWithConfidence {
 }
 
 /// SALSA: Self-Adjusting Counter Sizing for frequency estimation
-#[napi]
+#[napi(js_name = "SALSA")]
 pub struct SALSA {
     inner: RustSALSA,
 }
@@ -4484,7 +4484,7 @@ impl HeavyKeeper {
 /// console.log(result.toInsert); // Items in Alice but not Bob
 /// console.log(result.toRemove); // Items in Bob but not Alice
 /// ```
-#[napi]
+#[napi(js_name = "RatelessIBLT")]
 pub struct RatelessIBLT {
     inner: RustRatelessIBLT,
 }
@@ -5289,7 +5289,7 @@ pub struct VacuumFilterStats {
 /// const stats = grf.stats();
 /// console.log(`Segments: ${stats.segmentCount}`);
 /// ```
-#[napi]
+#[napi(js_name = "GRF")]
 pub struct GRF {
     inner: RustGRF,
 }
@@ -5311,7 +5311,7 @@ impl GRF {
     /// const keys = [10n, 20n, 30n, 40n, 50n];
     /// const grf = GRF.build(keys, 6);
     /// ```
-    #[napi(factory)]
+    #[napi(factory, ts_return_type = "GRF")]
     pub fn build(keys: Vec<BigInt>, bits_per_key: u32) -> Result<Self> {
         let rust_keys: Vec<u64> = keys.iter().map(|b| b.get_u64().1).collect();
         RustGRF::build(&rust_keys, bits_per_key as usize)
@@ -5414,7 +5414,7 @@ impl GRF {
     }
 }
 
-#[napi(object)]
+#[napi(object, js_name = "GRFStats")]
 pub struct GRFStats {
     pub key_count: u32,
     pub segment_count: u32,
