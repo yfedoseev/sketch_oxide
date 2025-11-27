@@ -76,8 +76,6 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-  - repo: local
-    hooks:
       - id: pytest
         name: pytest
         description: Run Python tests with verbose output

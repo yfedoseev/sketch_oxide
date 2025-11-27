@@ -125,7 +125,12 @@ jobs:
         shell: bash
         run: |
           wheel=$(ls dist/*.whl)
-          pip install "$wheel"
+          echo "Installing wheel: $wheel"
+          pip install "$wheel" -v
+
+      - name: Verify module installation
+        shell: bash
+        run: python -c "import sketch_oxide; print('Module imported successfully'); print(dir(sketch_oxide))"
 
       - name: Run Python tests
         working-directory: ./python
