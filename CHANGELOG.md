@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for v0.1.6
+
+#### Algorithm Documentation (Major Focus)
+- Complete documentation of 27 previously undocumented algorithms
+- Research papers and citations for all 40+ algorithms
+- Algorithm selection guide by use case
+- Performance characteristics and space complexity analysis
+- New `ALGORITHMS_COMPLETE.md` reference guide
+
+#### Documentation Updates
+- Expanded README with complete algorithm catalog (40+ algorithms)
+- Algorithm organization by category (10 categories)
+- Language binding coverage matrix (Rust/Python/Node.js)
+- Integration examples for Pandas, NumPy, DuckDB, Polars
+- Migration guide for v0.1.5 → v0.1.6
+
+#### Language Binding Verification
+- Python bindings audit: All 40 algorithms verified accessible
+- Node.js bindings audit: All 43 algorithms verified exported
+- TypeScript type definitions: Complete coverage validation
+- Cross-language test data consistency
+
+#### Test Coverage Expansion
+- Unit tests for 27 newly documented algorithms (≥30 tests each)
+- Cross-language validation tests across Rust/Python/Node.js
+- Comprehensive benchmarks for all 40+ algorithms
+- Performance comparison documentation
+
+#### Infrastructure
+- GitHub Actions workflow expansion for comprehensive testing
+- Documentation automation improvements
+- Release notes template standardization
+
+### Scope Definition
+This release focuses on **documentation parity** - ensuring all implemented algorithms (40+ across Rust, 40 for Python, 43 for Node.js) are properly documented, tested, and discoverable to users.
+
+**Not in v0.1.6:** Major new algorithm implementations, WASM support, or Java/C# FFI completion (planned for v0.2.0+)
+
 ## [0.1.4] - 2025-11-26
 
 ### Added
