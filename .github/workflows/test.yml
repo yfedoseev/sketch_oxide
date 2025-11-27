@@ -94,54 +94,69 @@ jobs:
     name: Python Tests
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Rust
+      - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Rust
-        uses: Swatinem/rust-cache@v2
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install maturin
-        shell: bash
-        run: pip install maturin pytest pytest-benchmark
+      - name: Cache Cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build Python package
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Create virtual environment with uv
+        run: uv venv
+
+      - name: Install maturin and test dependencies
+        run: uv pip install maturin pytest pytest-benchmark
+
+      - name: Build Python wheel
         working-directory: ./python
-        shell: bash
-        run: maturin build --release --out dist
+        run: uv run maturin build --release --out dist
 
-      - name: Install wheel
+      - name: Install built wheel
         working-directory: ./python
         shell: bash
         run: |
           wheel=$(ls dist/*.whl)
-          echo "Installing wheel: $wheel"
-          pip install "$wheel" -v
+          uv pip install "$wheel"
 
-      - name: Verify module installation
-        shell: bash
-        run: python -c "import sketch_oxide; print('Module imported successfully'); print(dir(sketch_oxide))"
+      - name: Run Rust tests with Python feature
+        if: runner.os != 'macOS'
+        run: cargo test --features python
 
       - name: Run Python tests
-        working-directory: ./python
-        shell: bash
-        run: pytest tests/ -v --tb=short
+        run: uv run pytest python/tests/ -v --tb=short
 
       - name: Run Python benchmarks
-        working-directory: ./python
-        shell: bash
         continue-on-error: true
-        run: pytest benchmarks/ --benchmark-only -v
+        run: uv run pytest python/benchmarks/ --benchmark-only -v
 
   # Node.js bindings tests
   nodejs:
