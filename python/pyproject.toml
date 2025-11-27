@@ -36,6 +36,7 @@ numpy = ["numpy>=1.20"]
 
 [tool.maturin]
 python-source = "."
+module-name = "sketch_oxide.sketch_oxide"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
