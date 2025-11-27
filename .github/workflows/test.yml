@@ -112,28 +112,28 @@ jobs:
       - name: Create virtual environment and install dependencies
         run: |
           python -m venv venv
-          source venv/bin/activate
           python -m pip install --upgrade pip
-          pip install maturin pytest pytest-benchmark mypy ruff black
+          python -m pip install maturin pytest pytest-benchmark mypy ruff black
 
       - name: Build Python bindings
         working-directory: ./python
         run: |
-          source ../venv/bin/activate
+          $python_exe = if ($IsWindows) { "../venv/Scripts/python.exe" } else { "../venv/bin/python" }
+          & $python_exe -m pip install -e .
           maturin develop
 
       - name: Run Python tests
         working-directory: ./python
         run: |
-          source ../venv/bin/activate
-          pytest tests/ -v
+          $python_exe = if ($IsWindows) { "../venv/Scripts/python.exe" } else { "../venv/bin/python" }
+          & $python_exe -m pytest tests/ -v
 
       - name: Run Python benchmarks
         working-directory: ./python
         continue-on-error: true
         run: |
-          source ../venv/bin/activate
-          pytest benchmarks/ --benchmark-only -v
+          $python_exe = if ($IsWindows) { "../venv/Scripts/python.exe" } else { "../venv/bin/python" }
+          & $python_exe -m pytest benchmarks/ --benchmark-only -v
 
   # Node.js bindings tests
   nodejs:
