@@ -384,16 +384,17 @@ describe('MinHash', () => {
       const mh1 = new MinHash(256)
       const mh2 = new MinHash(256)
 
-      for (let i = 0; i < 100000; i++) {
+      // Reduced from 100k to 20k to avoid memory issues in CI
+      for (let i = 0; i < 20000; i++) {
         mh1.update(Buffer.from(`item-${i}`))
       }
 
-      for (let i = 50000; i < 150000; i++) {
+      for (let i = 10000; i < 30000; i++) {
         mh2.update(Buffer.from(`item-${i}`))
       }
 
       const similarity = mh1.jaccardSimilarity(mh2)
-      // Expected: 50000 / 150000 = 0.333
+      // Expected: 10000 / 30000 = 0.333
       expect(similarity).toBeGreaterThan(0.25)
       expect(similarity).toBeLessThan(0.45)
 

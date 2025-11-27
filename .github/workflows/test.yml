@@ -118,12 +118,14 @@ jobs:
       - name: Build Python package
         working-directory: ./python
         shell: bash
-        run: maturin build --release
+        run: maturin build --release --out dist
 
       - name: Install wheel
         working-directory: ./python
         shell: bash
-        run: pip install target/wheels/*.whl
+        run: |
+          wheel=$(ls dist/*.whl)
+          pip install "$wheel"
 
       - name: Run Python tests
         working-directory: ./python
