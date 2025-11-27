@@ -150,11 +150,11 @@ jobs:
         run: cargo test --features python
 
       - name: Run Python tests
-        run: cd python/tests && uv run pytest . -v --tb=short
+        run: uv run pytest python/tests/ -v --tb=short --import-mode=importlib
 
       - name: Run Python benchmarks
         continue-on-error: true
-        run: cd python/benchmarks && uv run pytest . --benchmark-only -v
+        run: uv run pytest python/benchmarks/ --benchmark-only -v --import-mode=importlib
 
   # Node.js bindings tests
   nodejs:
