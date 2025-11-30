@@ -259,8 +259,6 @@ The following are **not** in scope for v0.1.6:
 - Performance tuning playbook
 - Troubleshooting guide
 
-**Versioning Philosophy:** The project maintains 0.x versioning indefinitely. We release new versions whenever ready, not constrained by arbitrary major version milestones. Each 0.x release brings production-ready improvements and new capabilities.
-
 ---
 
 ## Current Algorithm Coverage
