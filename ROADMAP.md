@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-sketch_oxide is a production-ready Rust library of 40+ state-of-the-art probabilistic data sketches with bindings for Python (PyO3), Node.js (napi-rs), Java, and C#. This document outlines the planned development roadmap through v1.0.0.
+sketch_oxide is a production-ready Rust library of 40+ state-of-the-art probabilistic data sketches with bindings for Python (PyO3), Node.js (napi-rs), Java, and C#. This document outlines the planned development roadmap for ongoing evolution. The project follows a 0.x versioning philosophy - we release whenever ready, not bound to arbitrary major version milestones.
 
 ---
 
@@ -244,25 +244,22 @@ The following are **not** in scope for v0.1.6:
 - Algorithm selection via rules engine
 - Hybrid sketch strategies
 
-### v1.0.0 (Planned)
+### v0.4.0+ (Planned)
 
-**Stability Guarantees:**
-- Stable API commitment
-- Semantic versioning enforcement
-- Deprecation policy
-- Long-term support timeline
-
-**Production Readiness:**
+**Long-term Evolution:**
+- Production stability guarantees
 - Performance SLAs
 - Memory guarantees
 - Error handling guarantees
 - Security audit completion
 
-**Documentation:**
+**Advanced Documentation:**
 - Production deployment guides
 - Monitoring and observability
 - Performance tuning playbook
 - Troubleshooting guide
+
+**Versioning Philosophy:** The project maintains 0.x versioning indefinitely. We release new versions whenever ready, not constrained by arbitrary major version milestones. Each 0.x release brings production-ready improvements and new capabilities.
 
 ---
 
@@ -363,12 +360,12 @@ See CONTRIBUTING.md for detailed guidelines.
 
 ## Support Timeline
 
-| Version | Status | Release Date | EOL Date |
+| Version | Status | Release Date | Notes |
 |---------|--------|---|---|
-| v0.1.x | Active | Nov 2025 | May 2026 |
-| v0.2.x | Planned | 2026 | 2027 |
-| v0.3.x | Planned | 2027 | 2028 |
-| v1.0.0 | Planned | 2027 | TBD (LTS) |
+| v0.1.x | Active | Nov 2025 | Current stable release |
+| v0.2.x | Planned | 2026 | Enhanced serialization, SIMD, integration expansion |
+| v0.3.x | Planned | 2027 | WASM support, distributed patterns |
+| v0.4.0+ | Planned | 2027+ | Continued evolution with production guarantees |
 
 ---
 
