@@ -185,14 +185,33 @@ Expand README.md with:
 - ✅ Documentation review completed
 - ✅ Cross-language validation tests passing
 
+### v0.1.6 Language Binding Completion Strategy
+
+**Complete Multi-Language Support:** All 41 algorithms must be available in all 5 supported languages
+
+**Current vs. Target:**
+
+| Language | Current | Target | Status |
+|----------|---------|--------|--------|
+| Rust (core) | 41 | 41 | ✅ Complete |
+| Python (PyO3) | 41 | 41 | ✅ Complete |
+| Node.js (napi-rs) | 41 | 41 | ✅ Complete |
+| Java (JNI) | 9 | 41 | 🔨 In Progress |
+| C# (.NET P/Invoke) | 1 | 41 | 🔨 In Progress |
+
+**Java Additions (32 missing):**
+Need to add: UltraLogLog, CpcSketch, QSketch, ThetaSketch, BinaryFuseFilter, BloomFilter, BlockedBloomFilter, CountingBloomFilter, CuckooFilter, RibbonFilter, StableBloomFilter, VacuumFilter, DDSketch, ReqSketch, TDigest, KllSketch, SplineSketch, CountMinSketch, CountSketch, ConservativeCountMin, SpaceSaving, ElasticSketch, SALSA, RemovableUniversalSketch, FrequentItems, HeavyKeeper, NitroSketch, MinHash, SimHash, ReservoirSampling, VarOptSampling, MementoFilter, Grafite, RatelessIBLT, SlidingWindowCounter, ExponentialHistogram, SlidingHyperLogLog
+
+**C# Additions (40 missing):**
+Need to add: All algorithms except HyperLogLog (which already exists)
+
 ### v0.1.6 Non-Goals
 
 The following are **not** in scope for v0.1.6:
-- Major new algorithm implementations
+- Major new algorithm implementations (beyond current 41)
 - WASM support (planned for v0.2.0)
-- Java/C# FFI completion (separate track)
 - API redesign or breaking changes
-- Native compiled extensions beyond current bindings
+- Additional languages beyond these 5 supported
 
 ---
 

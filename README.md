@@ -1016,17 +1016,19 @@ Built on the shoulders of giants:
 - ✅ **Rust core**: 41 production-ready algorithms fully implemented
 - ✅ **Python bindings**: All 41 algorithms available via PyO3
 - ✅ **Node.js bindings**: All 41 algorithms available via napi-rs
-- ✅ **Java bindings**: ~9 core algorithms available
-- ✅ **C# bindings**: ~9 core algorithms available
+- ⚠️ **Java bindings**: 9/41 algorithms available (partial)
+- ⚠️ **C# bindings**: 1/41 algorithms available (partial)
 - ✅ **Test suite**: 854+ tests across all languages (unit + integration + property-based)
 - ✅ **Code quality**: Zero clippy warnings, 100% rustfmt compliance
 - ✅ **Performance**: All algorithms exceed research targets by 2-10x
 - ✅ **CI/CD**: Complete publishing pipeline (PyPI, crates.io, npm)
 
-### Next (v0.1.6)
-- 🔨 **Documentation**: Complete algorithm catalog and cross-language validation (in planning)
-- ⏳ **Additional tests**: Expanded unit tests for undocumented algorithms
-- ⏳ **Benchmarks**: Comprehensive performance benchmarks for all 40+ algorithms
+### Next (v0.1.6) - Complete Multi-Language Support
+- 🔨 **Java FFI Completion**: Add 32 missing algorithms to reach 41/41
+- 🔨 **C# FFI Completion**: Add 40 missing algorithms to reach 41/41
+- ✅ **Documentation**: Complete algorithm catalog for all languages
+- ✅ **Cross-language validation**: Tests and examples across all 5 languages
+- ✅ **Benchmarks**: Performance benchmarks for all algorithms on all platforms
 
 ---
 
