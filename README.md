@@ -1013,9 +1013,9 @@ Built on the shoulders of giants:
 ## Status
 
 ### Current (v0.1.5)
-- ✅ **Rust core**: 40+ production-ready algorithms fully implemented
-- ✅ **Python bindings**: All 40 algorithms available via PyO3
-- ✅ **Node.js bindings**: All 43 algorithms available via napi-rs
+- ✅ **Rust core**: 41 production-ready algorithms fully implemented
+- ✅ **Python bindings**: All 41 algorithms available via PyO3
+- ✅ **Node.js bindings**: All 41 algorithms available via napi-rs
 - ✅ **Java bindings**: ~9 core algorithms available
 - ✅ **C# bindings**: ~9 core algorithms available
 - ✅ **Test suite**: 854+ tests across all languages (unit + integration + property-based)

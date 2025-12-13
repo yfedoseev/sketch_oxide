@@ -268,7 +268,7 @@ The following are **not** in scope for v0.1.6:
 | Language | Count | Status | Latest Update |
 |----------|-------|--------|---|
 | Rust (core) | 41 | Implemented | v0.1.5 |
-| Python (PyO3) | 40 | Implemented | v0.1.5 |
+| Python (PyO3) | 41 | Implemented | v0.1.5 |
 | Node.js (napi-rs) | 41 | Implemented | v0.1.5 |
 | Java | ~9 | Partial | v0.1.3 |
 | C# (.NET) | ~9 | Partial | v0.1.3 |
