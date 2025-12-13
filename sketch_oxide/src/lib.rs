@@ -30,7 +30,7 @@ pub mod error {
 }
 
 // Re-export commonly used sketches
-pub use cardinality::{HyperLogLog, QSketch, ThetaSketch, UltraLogLog};
+pub use cardinality::{CpcSketch, HyperLogLog, QSketch, ThetaSketch, UltraLogLog};
 pub use frequency::{
     ConservativeCountMin, CountMinSketch, CountSketch, ElasticSketch, FrequentItems, HeavyKeeper,
     NitroSketch, NitroSketchStats, RemovableUniversalSketch, SpaceSaving, SALSA,
