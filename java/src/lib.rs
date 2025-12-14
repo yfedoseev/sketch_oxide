@@ -715,3 +715,436 @@ pub extern "system" fn Java_com_sketches_oxide_CountMinSketch_free(
         let _ = unsafe { Box::from_raw(ptr as *mut CountMinSketch) };
     }
 }
+
+// ============================================================================
+// MEMBERSHIP TESTING - BlockedBloomFilter (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new BlockedBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_BlockedBloomFilter_new(
+    _env: JNIEnv,
+    _: JClass,
+    n: jlong,
+    fpr: jdouble,
+) -> jlong {
+    let bf = BlockedBloomFilter::new(n as usize, fpr);
+    Box::into_raw(Box::new(bf)) as jlong
+}
+
+/// Insert an item into BlockedBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_BlockedBloomFilter_insert(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let bf = unsafe { &mut *(ptr as *mut BlockedBloomFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        bf.insert(&bytes);
+    }
+}
+
+/// Check if item exists in BlockedBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_BlockedBloomFilter_contains(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let bf = unsafe { &*(ptr as *const BlockedBloomFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => bf.contains(&bytes) as jboolean,
+        Err(_) => 0,
+    }
+}
+
+/// Merge another BlockedBloomFilter into this one
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_BlockedBloomFilter_merge(
+    _env: JNIEnv,
+    _: JObject,
+    ptr1: jlong,
+    ptr2: jlong,
+) {
+    if ptr1 == 0 || ptr2 == 0 {
+        return;
+    }
+    let bf1 = unsafe { &mut *(ptr1 as *mut BlockedBloomFilter) };
+    let bf2 = unsafe { &*(ptr2 as *const BlockedBloomFilter) };
+    bf1.merge(bf2);
+}
+
+/// Free BlockedBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_BlockedBloomFilter_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut BlockedBloomFilter) };
+    }
+}
+
+// ============================================================================
+// MEMBERSHIP TESTING - CountingBloomFilter (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new CountingBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountingBloomFilter_new(
+    _env: JNIEnv,
+    _: JClass,
+    n: jlong,
+    fpr: jdouble,
+) -> jlong {
+    let cbf = CountingBloomFilter::new(n as usize, fpr);
+    Box::into_raw(Box::new(cbf)) as jlong
+}
+
+/// Insert an item into CountingBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountingBloomFilter_insert(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let cbf = unsafe { &mut *(ptr as *mut CountingBloomFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        cbf.insert(&bytes);
+    }
+}
+
+/// Remove an item from CountingBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountingBloomFilter_remove(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let cbf = unsafe { &mut *(ptr as *mut CountingBloomFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => cbf.remove(&bytes) as jboolean,
+        Err(_) => 0,
+    }
+}
+
+/// Check if item exists in CountingBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountingBloomFilter_contains(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let cbf = unsafe { &*(ptr as *const CountingBloomFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => cbf.contains(&bytes) as jboolean,
+        Err(_) => 0,
+    }
+}
+
+/// Free CountingBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountingBloomFilter_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut CountingBloomFilter) };
+    }
+}
+
+// ============================================================================
+// MEMBERSHIP TESTING - CuckooFilter (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new CuckooFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CuckooFilter_new(
+    _env: JNIEnv,
+    _: JClass,
+    capacity: jlong,
+) -> jlong {
+    match CuckooFilter::new(capacity as usize) {
+        Ok(cf) => Box::into_raw(Box::new(cf)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Insert an item into CuckooFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CuckooFilter_insert(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let cf = unsafe { &mut *(ptr as *mut CuckooFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => match cf.insert(&bytes) {
+            Ok(_) => 1,
+            Err(_) => 0,
+        },
+        Err(_) => 0,
+    }
+}
+
+/// Check if item exists in CuckooFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CuckooFilter_contains(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let cf = unsafe { &*(ptr as *const CuckooFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => cf.contains(&bytes) as jboolean,
+        Err(_) => 0,
+    }
+}
+
+/// Remove an item from CuckooFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CuckooFilter_remove(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let cf = unsafe { &mut *(ptr as *mut CuckooFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => cf.remove(&bytes) as jboolean,
+        Err(_) => 0,
+    }
+}
+
+/// Free CuckooFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CuckooFilter_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut CuckooFilter) };
+    }
+}
+
+// ============================================================================
+// MEMBERSHIP TESTING - RibbonFilter (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new RibbonFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RibbonFilter_new(
+    _env: JNIEnv,
+    _: JClass,
+    n: jlong,
+    fpr: jdouble,
+) -> jlong {
+    let rf = RibbonFilter::new(n as usize, fpr);
+    Box::into_raw(Box::new(rf)) as jlong
+}
+
+/// Insert an item into RibbonFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RibbonFilter_insert(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let rf = unsafe { &mut *(ptr as *mut RibbonFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        rf.insert(&bytes);
+    }
+}
+
+/// Finalize RibbonFilter after insertions
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RibbonFilter_finalize(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let rf = unsafe { &mut *(ptr as *mut RibbonFilter) };
+    rf.finalize();
+}
+
+/// Check if item exists in RibbonFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RibbonFilter_contains(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let rf = unsafe { &*(ptr as *const RibbonFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => rf.contains(&bytes) as jboolean,
+        Err(_) => 0,
+    }
+}
+
+/// Check if RibbonFilter is finalized
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RibbonFilter_is_finalized(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let rf = unsafe { &*(ptr as *const RibbonFilter) };
+    rf.is_finalized() as jboolean
+}
+
+/// Free RibbonFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RibbonFilter_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut RibbonFilter) };
+    }
+}
+
+// ============================================================================
+// MEMBERSHIP TESTING - StableBloomFilter (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new StableBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_StableBloomFilter_new(
+    _env: JNIEnv,
+    _: JClass,
+    expected_items: jlong,
+    fpr: jdouble,
+) -> jlong {
+    match StableBloomFilter::new(expected_items as usize, fpr) {
+        Ok(sbf) => Box::into_raw(Box::new(sbf)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Insert an item into StableBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_StableBloomFilter_insert(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sbf = unsafe { &mut *(ptr as *mut StableBloomFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        sbf.insert(&bytes);
+    }
+}
+
+/// Check if item exists in StableBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_StableBloomFilter_contains(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let sbf = unsafe { &*(ptr as *const StableBloomFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => sbf.contains(&bytes) as jboolean,
+        Err(_) => 0,
+    }
+}
+
+/// Get count for an item in StableBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_StableBloomFilter_get_count(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sbf = unsafe { &*(ptr as *const StableBloomFilter) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => sbf.get_count(&bytes) as jint,
+        Err(_) => 0,
+    }
+}
+
+/// Free StableBloomFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_StableBloomFilter_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut StableBloomFilter) };
+    }
+}
