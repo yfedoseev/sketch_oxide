@@ -3,16 +3,19 @@
 // v0.1.6 Expansion: Complete multi-language support
 
 use jni::objects::{JByteArray, JClass, JObject};
-use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong};
+use jni::sys::{jboolean, jbyteArray, jdouble, jint, jlong, JNI_FALSE};
 use jni::JNIEnv;
+
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 use sketch_oxide::{
     // Cardinality Estimation
     cardinality::{CpcSketch, HyperLogLog, QSketch, ThetaSketch, UltraLogLog},
     // Frequency Estimation
     frequency::{
-        ConservativeCountMin, CountMinSketch, CountSketch, ElasticSketch, HeavyKeeper,
-        RemovableUniversalSketch, SALSA,
+        ConservativeCountMin, CountMinSketch, CountSketch, ElasticSketch, FrequentItems,
+        HeavyKeeper, RemovableUniversalSketch, SpaceSaving, SALSA,
     },
     // Membership Testing
     membership::{
@@ -22,9 +25,11 @@ use sketch_oxide::{
     // Quantiles
     quantiles::{DDSketch, KllSketch, ReqMode, ReqSketch, SplineSketch, TDigest},
     // Range Filters
-    range_filters::{Grafite, MementoFilter},
+    range_filters::{Grafite, MementoFilter, GRF},
     // Reconciliation
     reconciliation::RatelessIBLT,
+    // Sampling
+    sampling::{ReservoirSampling, VarOptSampling},
     // Similarity
     similarity::{MinHash, SimHash},
     // Streaming
@@ -32,6 +37,7 @@ use sketch_oxide::{
     // Universal
     universal::UnivMon,
     Mergeable,
+    RangeFilter,
     Sketch,
 };
 
@@ -2134,11 +2140,7 @@ pub extern "system" fn Java_com_sketches_oxide_SALSA_estimate(
 
 /// Free SALSA
 #[no_mangle]
-pub extern "system" fn Java_com_sketches_oxide_SALSA_free(
-    _env: JNIEnv,
-    _: JObject,
-    ptr: jlong,
-) {
+pub extern "system" fn Java_com_sketches_oxide_SALSA_free(_env: JNIEnv, _: JObject, ptr: jlong) {
     if ptr != 0 {
         let _ = unsafe { Box::from_raw(ptr as *mut SALSA) };
     }
@@ -2286,7 +2288,11 @@ pub extern "system" fn Java_com_sketches_oxide_HeavyKeeper_estimate(
 
 /// Apply decay to the sketch
 #[no_mangle]
-pub extern "system" fn Java_com_sketches_oxide_HeavyKeeper_decay(_env: JNIEnv, _: JObject, ptr: jlong) {
+pub extern "system" fn Java_com_sketches_oxide_HeavyKeeper_decay(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
     if ptr == 0 {
         return;
     }
@@ -2380,11 +2386,7 @@ pub extern "system" fn Java_com_sketches_oxide_MinHash_num_perm(
 
 /// Free MinHash
 #[no_mangle]
-pub extern "system" fn Java_com_sketches_oxide_MinHash_free(
-    _env: JNIEnv,
-    _: JObject,
-    ptr: jlong,
-) {
+pub extern "system" fn Java_com_sketches_oxide_MinHash_free(_env: JNIEnv, _: JObject, ptr: jlong) {
     if ptr != 0 {
         let _ = unsafe { Box::from_raw(ptr as *mut MinHash) };
     }
@@ -2486,11 +2488,7 @@ pub extern "system" fn Java_com_sketches_oxide_SimHash_len(
 
 /// Free SimHash
 #[no_mangle]
-pub extern "system" fn Java_com_sketches_oxide_SimHash_free(
-    _env: JNIEnv,
-    _: JObject,
-    ptr: jlong,
-) {
+pub extern "system" fn Java_com_sketches_oxide_SimHash_free(_env: JNIEnv, _: JObject, ptr: jlong) {
     if ptr != 0 {
         let _ = unsafe { Box::from_raw(ptr as *mut SimHash) };
     }
@@ -2942,11 +2940,7 @@ pub extern "system" fn Java_com_sketches_oxide_UnivMon_total_updates(
 
 /// Free UnivMon
 #[no_mangle]
-pub extern "system" fn Java_com_sketches_oxide_UnivMon_free(
-    _env: JNIEnv,
-    _: JObject,
-    ptr: jlong,
-) {
+pub extern "system" fn Java_com_sketches_oxide_UnivMon_free(_env: JNIEnv, _: JObject, ptr: jlong) {
     if ptr != 0 {
         let _ = unsafe { Box::from_raw(ptr as *mut UnivMon) };
     }
@@ -3128,12 +3122,548 @@ pub extern "system" fn Java_com_sketches_oxide_Grafite_bits_per_key(
 
 /// Free Grafite
 #[no_mangle]
-pub extern "system" fn Java_com_sketches_oxide_Grafite_free(
+pub extern "system" fn Java_com_sketches_oxide_Grafite_free(_env: JNIEnv, _: JObject, ptr: jlong) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut Grafite) };
+    }
+}
+
+// ============================================================================
+// RANGE FILTERS - GRF (Gorilla Range Filter) (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new GRF from keys
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_GRF_new(
+    env: JNIEnv,
+    _: JClass,
+    keys: jbyteArray,
+    bits_per_key: jint,
+) -> jlong {
+    let arr = unsafe { JByteArray::from_raw(keys) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let mut key_vec = Vec::new();
+        for chunk in bytes.chunks_exact(8) {
+            if let Ok(arr) = <[u8; 8]>::try_from(chunk) {
+                key_vec.push(u64::from_le_bytes(arr));
+            }
+        }
+        if !key_vec.is_empty() && bits_per_key > 0 {
+            if let Ok(sketch) = GRF::build(&key_vec, bits_per_key as usize) {
+                return Box::into_raw(Box::new(sketch)) as jlong;
+            }
+        }
+    }
+    0
+}
+
+/// Check if key may be in GRF
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_GRF_may_contain(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    key: jlong,
+) -> jboolean {
+    if ptr == 0 {
+        return JNI_FALSE;
+    }
+    let sketch = unsafe { &*(ptr as *const GRF) };
+    sketch.may_contain(key as u64) as jboolean
+}
+
+/// Check if range may contain keys
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_GRF_may_contain_range(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    low: jlong,
+    high: jlong,
+) -> jboolean {
+    if ptr == 0 {
+        return JNI_FALSE;
+    }
+    let sketch = unsafe { &*(ptr as *const GRF) };
+    sketch.may_contain_range(low as u64, high as u64) as jboolean
+}
+
+/// Get key count
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_GRF_key_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const GRF) };
+    sketch.key_count() as jlong
+}
+
+/// Get bits per key
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_GRF_bits_per_key(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const GRF) };
+    sketch.bits_per_key() as jint
+}
+
+/// Free GRF
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_GRF_free(_env: JNIEnv, _: JObject, ptr: jlong) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut GRF) };
+    }
+}
+
+// ============================================================================
+// FREQUENCY - SpaceSaving (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new SpaceSaving sketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SpaceSaving_new(
+    _env: JNIEnv,
+    _: JClass,
+    epsilon: jdouble,
+) -> jlong {
+    if epsilon <= 0.0 || epsilon >= 1.0 {
+        return 0;
+    }
+    match SpaceSaving::<u64>::new(epsilon) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update SpaceSaving with item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SpaceSaving_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let sketch = unsafe { &mut *(ptr as *mut SpaceSaving<u64>) };
+        sketch.update(hash);
+    }
+}
+
+/// Estimate frequency
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SpaceSaving_estimate(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let sketch = unsafe { &*(ptr as *const SpaceSaving<u64>) };
+        match sketch.estimate(&hash) {
+            Some((count, _error)) => count as jlong,
+            None => 0,
+        }
+    } else {
+        0
+    }
+}
+
+/// Get capacity
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SpaceSaving_capacity(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SpaceSaving<u64>) };
+    sketch.capacity() as jint
+}
+
+/// Get stream length
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SpaceSaving_stream_length(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SpaceSaving<u64>) };
+    sketch.stream_length() as jlong
+}
+
+/// Free SpaceSaving
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SpaceSaving_free(
     _env: JNIEnv,
     _: JObject,
     ptr: jlong,
 ) {
     if ptr != 0 {
-        let _ = unsafe { Box::from_raw(ptr as *mut Grafite) };
+        let _ = unsafe { Box::from_raw(ptr as *mut SpaceSaving<u64>) };
+    }
+}
+
+// ============================================================================
+// FREQUENCY - FrequentItems (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new FrequentItems sketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_FrequentItems_new(
+    _env: JNIEnv,
+    _: JClass,
+    max_size: jint,
+) -> jlong {
+    if max_size <= 0 {
+        return 0;
+    }
+    match FrequentItems::<u64>::new(max_size as usize) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update FrequentItems with item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_FrequentItems_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let sketch = unsafe { &mut *(ptr as *mut FrequentItems<u64>) };
+        sketch.update(hash);
+    }
+}
+
+/// Update with count
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_FrequentItems_update_by(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+    count: jlong,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let sketch = unsafe { &mut *(ptr as *mut FrequentItems<u64>) };
+        sketch.update_by(hash, count as u64);
+    }
+}
+
+/// Estimate frequency
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_FrequentItems_estimate(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let sketch = unsafe { &*(ptr as *const FrequentItems<u64>) };
+        match sketch.get_estimate(&hash) {
+            Some((count, _error)) => count as jlong,
+            None => 0,
+        }
+    } else {
+        0
+    }
+}
+
+/// Get number of items
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_FrequentItems_num_items(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const FrequentItems<u64>) };
+    sketch.num_items() as jint
+}
+
+/// Get max size
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_FrequentItems_max_size(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const FrequentItems<u64>) };
+    sketch.max_size() as jint
+}
+
+/// Free FrequentItems
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_FrequentItems_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut FrequentItems<u64>) };
+    }
+}
+
+// ============================================================================
+// SAMPLING - ReservoirSampling (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new ReservoirSampling sketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReservoirSampling_new(
+    _env: JNIEnv,
+    _: JClass,
+    capacity: jint,
+) -> jlong {
+    if capacity <= 0 {
+        return 0;
+    }
+    let sketch = ReservoirSampling::<u64>::new(capacity as usize);
+    Box::into_raw(Box::new(sketch)) as jlong
+}
+
+/// Update ReservoirSampling with item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReservoirSampling_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let sketch = unsafe { &mut *(ptr as *mut ReservoirSampling<u64>) };
+        sketch.update(hash);
+    }
+}
+
+/// Get sample length
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReservoirSampling_len(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const ReservoirSampling<u64>) };
+    sketch.len() as jlong
+}
+
+/// Get capacity
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReservoirSampling_capacity(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const ReservoirSampling<u64>) };
+    sketch.capacity() as jint
+}
+
+/// Get count (stream length)
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReservoirSampling_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const ReservoirSampling<u64>) };
+    sketch.count() as jlong
+}
+
+/// Free ReservoirSampling
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReservoirSampling_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut ReservoirSampling<u64>) };
+    }
+}
+
+// ============================================================================
+// SAMPLING - VarOptSampling (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new VarOptSampling sketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_VarOptSampling_new(
+    _env: JNIEnv,
+    _: JClass,
+    capacity: jint,
+) -> jlong {
+    if capacity <= 0 {
+        return 0;
+    }
+    let sketch = VarOptSampling::<u64>::new(capacity as usize);
+    Box::into_raw(Box::new(sketch)) as jlong
+}
+
+/// Update VarOptSampling with weighted item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_VarOptSampling_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+    weight: jdouble,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let sketch = unsafe { &mut *(ptr as *mut VarOptSampling<u64>) };
+        sketch.update(hash, weight);
+    }
+}
+
+/// Get sample length
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_VarOptSampling_len(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const VarOptSampling<u64>) };
+    sketch.len() as jlong
+}
+
+/// Get capacity
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_VarOptSampling_capacity(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const VarOptSampling<u64>) };
+    sketch.capacity() as jint
+}
+
+/// Get count (stream length)
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_VarOptSampling_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const VarOptSampling<u64>) };
+    sketch.count() as jlong
+}
+
+/// Get total weight
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_VarOptSampling_total_weight(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const VarOptSampling<u64>) };
+    sketch.total_weight()
+}
+
+/// Free VarOptSampling
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_VarOptSampling_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut VarOptSampling<u64>) };
     }
 }
