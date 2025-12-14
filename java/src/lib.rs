@@ -3761,20 +3761,20 @@ pub extern "system" fn Java_com_sketches_oxide_membership_BinaryFuseFilter_free(
 /// Create a new LearnedBloomFilter from training data
 #[no_mangle]
 pub extern "system" fn Java_com_sketches_oxide_LearnedBloomFilter_new(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _: JClass,
     training_keys: jni::sys::jobjectArray,
     fpr: jdouble,
 ) -> jlong {
     let array = unsafe { jni::objects::JObjectArray::from_raw(training_keys) };
-    let len = match env.get_array_length(array) {
+    let len = match env.get_array_length(&array) {
         Ok(l) => l as usize,
         Err(_) => return 0,
     };
 
     let mut keys_vec = Vec::new();
     for i in 0..len {
-        match env.get_object_array_element(array, i as i32) {
+        match env.get_object_array_element(&array, i as i32) {
             Ok(elem) => {
                 let arr = unsafe { JByteArray::from_raw(elem.into_raw()) };
                 match env.convert_byte_array(arr) {
@@ -3786,7 +3786,7 @@ pub extern "system" fn Java_com_sketches_oxide_LearnedBloomFilter_new(
         }
     }
 
-    match LearnedBloomFilter::build(&keys_vec, fpr as f64) {
+    match LearnedBloomFilter::new(&keys_vec, fpr as f64) {
         Ok(filter) => Box::into_raw(Box::new(filter)) as jlong,
         Err(_) => 0,
     }
@@ -3855,7 +3855,7 @@ pub extern "system" fn Java_com_sketches_oxide_VacuumFilter_new(
     capacity: jlong,
     fpr: jdouble,
 ) -> jlong {
-    match VacuumFilter::with_fpr(capacity as u64, fpr as f64) {
+    match VacuumFilter::new(capacity as usize, fpr as f64) {
         Ok(filter) => Box::into_raw(Box::new(filter)) as jlong,
         Err(_) => 0,
     }
@@ -3919,7 +3919,7 @@ pub extern "system" fn Java_com_sketches_oxide_VacuumFilter_delete(
     let arr = unsafe { jni::objects::JByteArray::from_raw(key) };
     match env.convert_byte_array(arr) {
         Ok(bytes) => {
-            if filter.delete(&bytes) {
+            if filter.delete(&bytes).unwrap_or(false) {
                 jni::sys::JNI_TRUE as jboolean
             } else {
                 jni::sys::JNI_FALSE as jboolean
@@ -3981,7 +3981,11 @@ pub extern "system" fn Java_com_sketches_oxide_NitroSketch_new(
     delta: jdouble,
     sample_rate: jdouble,
 ) -> jlong {
-    match NitroSketch::with_sample_rate(epsilon as f64, delta as f64, sample_rate as f64) {
+    let base_sketch = match CountMinSketch::new(epsilon as f64, delta as f64) {
+        Ok(sketch) => sketch,
+        Err(_) => return 0,
+    };
+    match NitroSketch::new(base_sketch, sample_rate as f64) {
         Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
         Err(_) => 0,
     }
@@ -3998,7 +4002,7 @@ pub extern "system" fn Java_com_sketches_oxide_NitroSketch_updateSampled(
     if ptr == 0 {
         return;
     }
-    let sketch = unsafe { &mut *(ptr as *mut NitroSketch) };
+    let sketch = unsafe { &mut *(ptr as *mut NitroSketch<CountMinSketch>) };
     let arr = unsafe { jni::objects::JByteArray::from_raw(key) };
     if let Ok(bytes) = env.convert_byte_array(arr) {
         sketch.update_sampled(&bytes);
@@ -4016,7 +4020,7 @@ pub extern "system" fn Java_com_sketches_oxide_NitroSketch_query(
     if ptr == 0 {
         return 0;
     }
-    let sketch = unsafe { &*(ptr as *const NitroSketch) };
+    let sketch = unsafe { &*(ptr as *const NitroSketch<CountMinSketch>) };
     let arr = unsafe { jni::objects::JByteArray::from_raw(key) };
     match env.convert_byte_array(arr) {
         Ok(bytes) => sketch.query(&bytes) as jlong,
@@ -4033,7 +4037,7 @@ pub extern "system" fn Java_com_sketches_oxide_NitroSketch_sync(
     unsampled_weight: jdouble,
 ) {
     if ptr != 0 {
-        let sketch = unsafe { &mut *(ptr as *mut NitroSketch) };
+        let sketch = unsafe { &mut *(ptr as *mut NitroSketch<CountMinSketch>) };
         sketch.sync(unsampled_weight as f64);
     }
 }
@@ -4048,7 +4052,7 @@ pub extern "system" fn Java_com_sketches_oxide_NitroSketch_sampleRate(
     if ptr == 0 {
         return 0.0;
     }
-    let sketch = unsafe { &*(ptr as *const NitroSketch) };
+    let sketch = unsafe { &*(ptr as *const NitroSketch<CountMinSketch>) };
     sketch.sample_rate() as jdouble
 }
 
@@ -4062,7 +4066,7 @@ pub extern "system" fn Java_com_sketches_oxide_NitroSketch_sampledCount(
     if ptr == 0 {
         return 0;
     }
-    let sketch = unsafe { &*(ptr as *const NitroSketch) };
+    let sketch = unsafe { &*(ptr as *const NitroSketch<CountMinSketch>) };
     sketch.sampled_count() as jlong
 }
 
@@ -4076,7 +4080,7 @@ pub extern "system" fn Java_com_sketches_oxide_NitroSketch_unsampledCount(
     if ptr == 0 {
         return 0;
     }
-    let sketch = unsafe { &*(ptr as *const NitroSketch) };
+    let sketch = unsafe { &*(ptr as *const NitroSketch<CountMinSketch>) };
     sketch.unsampled_count() as jlong
 }
 
@@ -4088,7 +4092,7 @@ pub extern "system" fn Java_com_sketches_oxide_NitroSketch_resetStats(
     ptr: jlong,
 ) {
     if ptr != 0 {
-        let sketch = unsafe { &mut *(ptr as *mut NitroSketch) };
+        let sketch = unsafe { &mut *(ptr as *mut NitroSketch<CountMinSketch>) };
         sketch.reset_stats();
     }
 }
@@ -4101,6 +4105,6 @@ pub extern "system" fn Java_com_sketches_oxide_NitroSketch_free(
     ptr: jlong,
 ) {
     if ptr != 0 {
-        let _ = unsafe { Box::from_raw(ptr as *mut NitroSketch) };
+        let _ = unsafe { Box::from_raw(ptr as *mut NitroSketch<CountMinSketch>) };
     }
 }
