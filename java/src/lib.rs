@@ -12,7 +12,10 @@ use sketch_oxide::{
     // Frequency Estimation
     frequency::CountMinSketch,
     // Membership Testing
-    membership::BloomFilter,
+    membership::{
+        BlockedBloomFilter, BloomFilter, CountingBloomFilter, CuckooFilter, RibbonFilter,
+        StableBloomFilter,
+    },
     Mergeable,
     Sketch,
 };
