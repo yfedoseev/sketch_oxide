@@ -8,7 +8,7 @@ use jni::JNIEnv;
 
 use sketch_oxide::{
     // Cardinality Estimation
-    cardinality::{HyperLogLog, UltraLogLog},
+    cardinality::{CpcSketch, HyperLogLog, QSketch, ThetaSketch, UltraLogLog},
     // Frequency Estimation
     frequency::CountMinSketch,
     // Membership Testing
@@ -224,6 +224,258 @@ pub extern "system" fn Java_com_sketches_oxide_UltraLogLog_free(
 ) {
     if ptr != 0 {
         let _ = unsafe { Box::from_raw(ptr as *mut UltraLogLog) };
+    }
+}
+
+// ============================================================================
+// CARDINALITY ESTIMATION - CpcSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new CpcSketch
+/// Args: lg_k (4-20)
+/// Returns: pointer to native CpcSketch instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CpcSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    lg_k: jint,
+) -> jlong {
+    match CpcSketch::new(lg_k as u8) {
+        Ok(cpc) => Box::into_raw(Box::new(cpc)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Add an item to the CpcSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CpcSketch_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+
+    let cpc = unsafe { &mut *(ptr as *mut CpcSketch) };
+
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+        cpc.update(&hash);
+    }
+}
+
+/// Get cardinality estimate
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CpcSketch_estimate(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let cpc = unsafe { &*(ptr as *const CpcSketch) };
+    cpc.estimate()
+}
+
+/// Get lg_k parameter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CpcSketch_lg_k(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let cpc = unsafe { &*(ptr as *const CpcSketch) };
+    cpc.lg_k() as jint
+}
+
+/// Free native memory
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CpcSketch_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut CpcSketch) };
+    }
+}
+
+// ============================================================================
+// CARDINALITY ESTIMATION - QSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new QSketch
+/// Args: max_samples
+/// Returns: pointer to native QSketch instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_QSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    max_samples: jlong,
+) -> jlong {
+    Box::into_raw(Box::new(QSketch::new(max_samples as usize))) as jlong
+}
+
+/// Add an item with weight to the QSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_QSketch_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+    weight: jdouble,
+) {
+    if ptr == 0 {
+        return;
+    }
+
+    let qsketch = unsafe { &mut *(ptr as *mut QSketch) };
+
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        qsketch.update(&bytes, weight);
+    }
+}
+
+/// Get cardinality estimate
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_QSketch_estimate_distinct_elements(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let qsketch = unsafe { &*(ptr as *const QSketch) };
+    qsketch.estimate_distinct_elements() as jlong
+}
+
+/// Merge another QSketch into this one
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_QSketch_merge(
+    _env: JNIEnv,
+    _: JObject,
+    ptr1: jlong,
+    ptr2: jlong,
+) {
+    if ptr1 == 0 || ptr2 == 0 {
+        return;
+    }
+    let qsketch1 = unsafe { &mut *(ptr1 as *mut QSketch) };
+    let qsketch2 = unsafe { &*(ptr2 as *const QSketch) };
+    let _ = qsketch1.merge(qsketch2);
+}
+
+/// Get max samples parameter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_QSketch_max_samples(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let qsketch = unsafe { &*(ptr as *const QSketch) };
+    qsketch.max_samples() as jlong
+}
+
+/// Free native memory
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_QSketch_free(_env: JNIEnv, _: JObject, ptr: jlong) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut QSketch) };
+    }
+}
+
+// ============================================================================
+// CARDINALITY ESTIMATION - ThetaSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new ThetaSketch
+/// Args: lg_k (4-26)
+/// Returns: pointer to native ThetaSketch instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ThetaSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    lg_k: jint,
+) -> jlong {
+    match ThetaSketch::new(lg_k as u8) {
+        Ok(theta) => Box::into_raw(Box::new(theta)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Add an item to the ThetaSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ThetaSketch_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+
+    let theta = unsafe { &mut *(ptr as *mut ThetaSketch) };
+
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        theta.update(&bytes);
+    }
+}
+
+/// Get cardinality estimate
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ThetaSketch_estimate(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let theta = unsafe { &*(ptr as *const ThetaSketch) };
+    theta.estimate()
+}
+
+/// Get number of retained values
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ThetaSketch_num_retained(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let theta = unsafe { &*(ptr as *const ThetaSketch) };
+    theta.num_retained() as jlong
+}
+
+/// Free native memory
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ThetaSketch_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut ThetaSketch) };
     }
 }
 
