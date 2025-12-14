@@ -7,11 +7,11 @@
 
     <groupId>com.sketches-oxide</groupId>
     <artifactId>sketch-oxide</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.6</version>
     <packaging>jar</packaging>
 
     <name>SketchOxide</name>
-    <description>High-performance probabilistic data structures for Java. 28 state-of-the-art algorithms for cardinality estimation, frequency analysis, membership testing, and more.</description>
+    <description>High-performance probabilistic data structures for Java. 41 state-of-the-art algorithms for cardinality estimation, frequency analysis, membership testing, quantiles, streaming, similarity, sampling, and more.</description>
     <url>https://github.com/yfedoseev/sketch_oxide</url>
 
     <licenses>

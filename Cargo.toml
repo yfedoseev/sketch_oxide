@@ -3,7 +3,7 @@ members = ["sketch_oxide", "python", "nodejs", "java", "dotnet/csharp-ffi"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Yury Fedoseev <yfedoseev@gmail.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"

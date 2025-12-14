@@ -1,7 +1,7 @@
 {
   "name": "sketch-oxide-node",
-  "version": "0.1.5",
-  "description": "High-performance probabilistic data structures for Node.js - 28-75% better space efficiency than classic algorithms",
+  "version": "0.1.6",
+  "description": "High-performance probabilistic data structures for Node.js - 41 algorithms with 28-75% better space efficiency than classic algorithms",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
