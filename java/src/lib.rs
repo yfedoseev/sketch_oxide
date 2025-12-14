@@ -16,6 +16,8 @@ use sketch_oxide::{
         BlockedBloomFilter, BloomFilter, CountingBloomFilter, CuckooFilter, RibbonFilter,
         StableBloomFilter,
     },
+    // Quantiles
+    quantiles::{DDSketch, KllSketch, ReqMode, ReqSketch, SplineSketch, TDigest},
     Mergeable,
     Sketch,
 };
@@ -1146,5 +1148,613 @@ pub extern "system" fn Java_com_sketches_oxide_StableBloomFilter_free(
 ) {
     if ptr != 0 {
         let _ = unsafe { Box::from_raw(ptr as *mut StableBloomFilter) };
+    }
+}
+
+// ============================================================================
+// QUANTILES - DDSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new DDSketch
+/// Args: relative_accuracy (0.0-1.0)
+/// Returns: pointer to native DDSketch instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_DDSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    relative_accuracy: jdouble,
+) -> jlong {
+    match DDSketch::new(relative_accuracy) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Add a value to the DDSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_DDSketch_add(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    value: jdouble,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut DDSketch) };
+    sketch.add(value);
+}
+
+/// Get quantile estimate
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_DDSketch_quantile(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    q: jdouble,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const DDSketch) };
+    sketch.quantile(q).unwrap_or(0.0)
+}
+
+/// Get minimum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_DDSketch_min(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const DDSketch) };
+    sketch.min().unwrap_or(0.0)
+}
+
+/// Get maximum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_DDSketch_max(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const DDSketch) };
+    sketch.max().unwrap_or(0.0)
+}
+
+/// Get count of values
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_DDSketch_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const DDSketch) };
+    sketch.count() as jlong
+}
+
+/// Free DDSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_DDSketch_free(_env: JNIEnv, _: JObject, ptr: jlong) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut DDSketch) };
+    }
+}
+
+// ============================================================================
+// QUANTILES - KllSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new KllSketch
+/// Args: k (sketch size parameter)
+/// Returns: pointer to native KllSketch instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_KllSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    k: jint,
+) -> jlong {
+    match KllSketch::new(k as u16) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update KllSketch with a value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_KllSketch_update(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    value: jdouble,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut KllSketch) };
+    sketch.update(value);
+}
+
+/// Get quantile estimate
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_KllSketch_quantile(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    rank: jdouble,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut KllSketch) };
+    sketch.quantile(rank).unwrap_or(0.0)
+}
+
+/// Get minimum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_KllSketch_min(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const KllSketch) };
+    sketch.min()
+}
+
+/// Get maximum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_KllSketch_max(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const KllSketch) };
+    sketch.max()
+}
+
+/// Get count of values
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_KllSketch_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const KllSketch) };
+    sketch.count() as jlong
+}
+
+/// Serialize to binary format
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_KllSketch_serialize(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jbyteArray {
+    if ptr == 0 {
+        return std::ptr::null_mut();
+    }
+    let sketch = unsafe { &mut *(ptr as *mut KllSketch) };
+    let data = sketch.to_bytes();
+    match env.byte_array_from_slice(&data) {
+        Ok(arr) => arr.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Deserialize from binary format
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_KllSketch_deserialize(
+    env: JNIEnv,
+    _: JClass,
+    data: jbyteArray,
+) -> jlong {
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(data_vec) = env.convert_byte_array(arr) {
+        if let Ok(sketch) = KllSketch::from_bytes(&data_vec) {
+            return Box::into_raw(Box::new(sketch)) as jlong;
+        }
+    }
+    0
+}
+
+/// Free KllSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_KllSketch_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut KllSketch) };
+    }
+}
+
+// ============================================================================
+// QUANTILES - ReqSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new ReqSketch
+/// Args: max_k (maximum number of compactors)
+/// Returns: pointer to native ReqSketch instance as long
+/// Note: Uses HighRankAccuracy mode (zero error at maximum/p100)
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReqSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    max_k: jint,
+) -> jlong {
+    match ReqSketch::new(max_k as usize, ReqMode::HighRankAccuracy) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update ReqSketch with a value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReqSketch_update(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    value: jdouble,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut ReqSketch) };
+    sketch.update(value);
+}
+
+/// Get quantile estimate
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReqSketch_quantile(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    q: jdouble,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const ReqSketch) };
+    sketch.quantile(q).unwrap_or(0.0)
+}
+
+/// Get minimum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReqSketch_min(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const ReqSketch) };
+    sketch.min().unwrap_or(0.0)
+}
+
+/// Get maximum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReqSketch_max(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const ReqSketch) };
+    sketch.max().unwrap_or(0.0)
+}
+
+/// Merge another ReqSketch into this one
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReqSketch_merge(
+    _env: JNIEnv,
+    _: JObject,
+    ptr1: jlong,
+    ptr2: jlong,
+) {
+    if ptr1 == 0 || ptr2 == 0 {
+        return;
+    }
+    let sketch1 = unsafe { &*(ptr1 as *const ReqSketch) };
+    let sketch2 = unsafe { &*(ptr2 as *const ReqSketch) };
+    if let Ok(merged) = sketch1.merge(sketch2) {
+        let ptr = ptr1 as *mut ReqSketch;
+        let _ = std::mem::replace(unsafe { &mut *ptr }, merged);
+    }
+}
+
+/// Free ReqSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ReqSketch_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut ReqSketch) };
+    }
+}
+
+// ============================================================================
+// QUANTILES - SplineSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new SplineSketch
+/// Args: max_samples (maximum number of samples to keep)
+/// Returns: pointer to native SplineSketch instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SplineSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    max_samples: jlong,
+) -> jlong {
+    Box::into_raw(Box::new(SplineSketch::new(max_samples as usize))) as jlong
+}
+
+/// Update SplineSketch with a value and weight
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SplineSketch_update(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    value: jlong,
+    weight: jdouble,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut SplineSketch) };
+    sketch.update(value as u64, weight);
+}
+
+/// Get minimum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SplineSketch_min(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SplineSketch) };
+    sketch.min().unwrap_or(0) as jlong
+}
+
+/// Get maximum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SplineSketch_max(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SplineSketch) };
+    sketch.max().unwrap_or(0) as jlong
+}
+
+/// Get maximum samples parameter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SplineSketch_max_samples(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SplineSketch) };
+    sketch.max_samples() as jlong
+}
+
+/// Merge another SplineSketch into this one
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SplineSketch_merge(
+    _env: JNIEnv,
+    _: JObject,
+    ptr1: jlong,
+    ptr2: jlong,
+) {
+    if ptr1 == 0 || ptr2 == 0 {
+        return;
+    }
+    let sketch1 = unsafe { &mut *(ptr1 as *mut SplineSketch) };
+    let sketch2 = unsafe { &*(ptr2 as *const SplineSketch) };
+    sketch1.merge_into(sketch2);
+}
+
+/// Free SplineSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SplineSketch_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut SplineSketch) };
+    }
+}
+
+// ============================================================================
+// QUANTILES - TDigest (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new TDigest
+/// Args: compression (compression factor, typically 100-1000)
+/// Returns: pointer to native TDigest instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_new(
+    _env: JNIEnv,
+    _: JClass,
+    compression: jdouble,
+) -> jlong {
+    Box::into_raw(Box::new(TDigest::new(compression))) as jlong
+}
+
+/// Update TDigest with a single value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_update(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    value: jdouble,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut TDigest) };
+    sketch.update(value);
+}
+
+/// Update TDigest with a weighted value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_update_weighted(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    value: jdouble,
+    weight: jdouble,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut TDigest) };
+    sketch.update_weighted(value, weight);
+}
+
+/// Get quantile estimate
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_quantile(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    q: jdouble,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut TDigest) };
+    sketch.quantile(q)
+}
+
+/// Get cumulative distribution function value at point
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_cdf(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    value: jdouble,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut TDigest) };
+    sketch.cdf(value)
+}
+
+/// Get minimum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_min(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const TDigest) };
+    sketch.min()
+}
+
+/// Get maximum value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_max(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const TDigest) };
+    sketch.max()
+}
+
+/// Get count of values
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const TDigest) };
+    sketch.count()
+}
+
+/// Serialize to binary format
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_serialize(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jbyteArray {
+    if ptr == 0 {
+        return std::ptr::null_mut();
+    }
+    let sketch = unsafe { &mut *(ptr as *mut TDigest) };
+    let data = sketch.to_bytes();
+    match env.byte_array_from_slice(&data) {
+        Ok(arr) => arr.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Deserialize from binary format
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_deserialize(
+    env: JNIEnv,
+    _: JClass,
+    data: jbyteArray,
+) -> jlong {
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(data_vec) = env.convert_byte_array(arr) {
+        if let Ok(sketch) = TDigest::from_bytes(&data_vec) {
+            return Box::into_raw(Box::new(sketch)) as jlong;
+        }
+    }
+    0
+}
+
+/// Free TDigest
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_TDigest_free(_env: JNIEnv, _: JObject, ptr: jlong) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut TDigest) };
     }
 }

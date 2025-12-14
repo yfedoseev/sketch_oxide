@@ -404,6 +404,22 @@ impl DDSketch {
 
         Some(result)
     }
+
+    /// Returns the relative accuracy parameter (alpha)
+    ///
+    /// This is the same value passed to `DDSketch::new()`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sketch_oxide::quantiles::DDSketch;
+    ///
+    /// let dd = DDSketch::new(0.01).unwrap();
+    /// assert!((dd.alpha() - 0.01).abs() < 1e-10);
+    /// ```
+    pub fn alpha(&self) -> f64 {
+        self.alpha
+    }
 }
 
 impl Sketch for DDSketch {
