@@ -578,4 +578,45 @@ public class SketchOxideNative {
     public static native long varoptsampling_deserialize(byte[] data);
 
     public static native void varoptsampling_free(long ptr);
+
+    // RANGE FILTERS - Grafite
+    public static native long grafite_build(byte[] keysData, int bitsPerKey);
+
+    public static native boolean grafite_mayContain(long ptr, long key);
+
+    public static native boolean grafite_mayContainRange(long ptr, long low, long high);
+
+    public static native double grafite_expectedFpr(long ptr, long rangeWidth);
+
+    public static native int grafite_keyCount(long ptr);
+
+    public static native void grafite_free(long ptr);
+
+    // RANGE FILTERS - MementoFilter
+    public static native long mementofilter_new(long n, double fpr, long timestamp);
+
+    public static native void mementofilter_insert(long ptr, byte[] data, long timestamp);
+
+    public static native boolean mementofilter_contains(long ptr, byte[] data, long timestamp);
+
+    public static native void mementofilter_merge(long ptr1, long ptr2);
+
+    public static native byte[] mementofilter_serialize(long ptr);
+
+    public static native long mementofilter_deserialize(byte[] data);
+
+    public static native void mementofilter_free(long ptr);
+
+    // RANGE FILTERS - GRF
+    public static native long grf_new(byte[] keysData, int bitsPerKey);
+
+    public static native boolean grf_mayContain(long ptr, long key);
+
+    public static native boolean grf_mayContainRange(long ptr, long low, long high);
+
+    public static native int grf_keyCount(long ptr);
+
+    public static native int grf_bitsPerKey(long ptr);
+
+    public static native void grf_free(long ptr);
 }
