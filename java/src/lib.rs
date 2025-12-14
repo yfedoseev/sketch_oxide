@@ -22,11 +22,9 @@ use sketch_oxide::{
     // Quantiles
     quantiles::{DDSketch, KllSketch, ReqMode, ReqSketch, SplineSketch, TDigest},
     // Range Filters
-    range_filters::{Grafite, GRF},
+    range_filters::{Grafite, MementoFilter},
     // Reconciliation
     reconciliation::RatelessIBLT,
-    // Sampling
-    sampling::{ReservoirSampling, VarOptSampling},
     // Similarity
     similarity::{MinHash, SimHash},
     // Streaming
@@ -2305,5 +2303,837 @@ pub extern "system" fn Java_com_sketches_oxide_HeavyKeeper_free(
 ) {
     if ptr != 0 {
         let _ = unsafe { Box::from_raw(ptr as *mut HeavyKeeper) };
+    }
+}
+
+// ============================================================================
+// SIMILARITY - MinHash (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new MinHash sketch
+/// Args: num_perm (number of hash permutations, typically 128+)
+/// Returns: pointer to native MinHash instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MinHash_new(
+    _env: JNIEnv,
+    _: JClass,
+    num_perm: jint,
+) -> jlong {
+    match MinHash::new(num_perm as usize) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update MinHash with an item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MinHash_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut MinHash) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+        sketch.update(&hash);
+    }
+}
+
+/// Get Jaccard similarity with another MinHash
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MinHash_jaccard_similarity(
+    _env: JNIEnv,
+    _: JObject,
+    ptr1: jlong,
+    ptr2: jlong,
+) -> jdouble {
+    if ptr1 == 0 || ptr2 == 0 {
+        return 0.0;
+    }
+    let sketch1 = unsafe { &*(ptr1 as *const MinHash) };
+    let sketch2 = unsafe { &*(ptr2 as *const MinHash) };
+    sketch1.jaccard_similarity(sketch2).unwrap_or(0.0)
+}
+
+/// Get number of permutations
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MinHash_num_perm(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const MinHash) };
+    sketch.num_perm() as jint
+}
+
+/// Free MinHash
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MinHash_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut MinHash) };
+    }
+}
+
+// ============================================================================
+// SIMILARITY - SimHash (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new SimHash sketch
+/// Returns: pointer to native SimHash instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SimHash_new(_env: JNIEnv, _: JClass) -> jlong {
+    Box::into_raw(Box::new(SimHash::new())) as jlong
+}
+
+/// Update SimHash with a feature
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SimHash_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut SimHash) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+        sketch.update(&hash);
+    }
+}
+
+/// Get SimHash fingerprint
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SimHash_fingerprint(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut SimHash) };
+    sketch.fingerprint() as jlong
+}
+
+/// Get Hamming distance to another SimHash
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SimHash_hamming_distance(
+    _env: JNIEnv,
+    _: JObject,
+    ptr1: jlong,
+    ptr2: jlong,
+) -> jint {
+    if ptr1 == 0 || ptr2 == 0 {
+        return 0;
+    }
+    let sketch1 = unsafe { &mut *(ptr1 as *mut SimHash) };
+    let sketch2 = unsafe { &mut *(ptr2 as *mut SimHash) };
+    sketch1.hamming_distance(sketch2) as jint
+}
+
+/// Get Similarity to another SimHash
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SimHash_similarity(
+    _env: JNIEnv,
+    _: JObject,
+    ptr1: jlong,
+    ptr2: jlong,
+) -> jdouble {
+    if ptr1 == 0 || ptr2 == 0 {
+        return 0.0;
+    }
+    let sketch1 = unsafe { &mut *(ptr1 as *mut SimHash) };
+    let sketch2 = unsafe { &mut *(ptr2 as *mut SimHash) };
+    sketch1.similarity(sketch2)
+}
+
+/// Get number of features
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SimHash_len(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SimHash) };
+    sketch.len() as jlong
+}
+
+/// Free SimHash
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SimHash_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut SimHash) };
+    }
+}
+
+// ============================================================================
+// STREAMING - SlidingWindowCounter (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new SlidingWindowCounter
+/// Args: window_size, epsilon
+/// Returns: pointer to native SlidingWindowCounter instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingWindowCounter_new(
+    _env: JNIEnv,
+    _: JClass,
+    window_size: jlong,
+    epsilon: jdouble,
+) -> jlong {
+    match SlidingWindowCounter::new(window_size as u64, epsilon) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Increment counter at timestamp
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingWindowCounter_increment(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    timestamp: jlong,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut SlidingWindowCounter) };
+    sketch.increment(timestamp as u64);
+}
+
+/// Increment by count at timestamp
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingWindowCounter_increment_by(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    timestamp: jlong,
+    count: jlong,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut SlidingWindowCounter) };
+    sketch.increment_by(timestamp as u64, count as u64);
+}
+
+/// Get count in window
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingWindowCounter_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    current_time: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SlidingWindowCounter) };
+    sketch.count(current_time as u64) as jlong
+}
+
+/// Get window size
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingWindowCounter_window_size(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SlidingWindowCounter) };
+    sketch.window_size() as jlong
+}
+
+/// Free SlidingWindowCounter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingWindowCounter_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut SlidingWindowCounter) };
+    }
+}
+
+// ============================================================================
+// STREAMING - ExponentialHistogram (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new ExponentialHistogram
+/// Args: window_size, epsilon
+/// Returns: pointer to native ExponentialHistogram instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ExponentialHistogram_new(
+    _env: JNIEnv,
+    _: JClass,
+    window_size: jlong,
+    epsilon: jdouble,
+) -> jlong {
+    match ExponentialHistogram::new(window_size as u64, epsilon) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Insert event with count at timestamp
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ExponentialHistogram_insert(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    timestamp: jlong,
+    count: jlong,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut ExponentialHistogram) };
+    sketch.insert(timestamp as u64, count as u64);
+}
+
+/// Get count in current window (returns estimate as jlong)
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ExponentialHistogram_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    current_time: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const ExponentialHistogram) };
+    let (estimate, _lower, _upper) = sketch.count(current_time as u64);
+    estimate as jlong
+}
+
+/// Get window size
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ExponentialHistogram_window_size(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const ExponentialHistogram) };
+    sketch.window_size() as jlong
+}
+
+/// Free ExponentialHistogram
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ExponentialHistogram_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut ExponentialHistogram) };
+    }
+}
+
+// ============================================================================
+// STREAMING - SlidingHyperLogLog (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new SlidingHyperLogLog
+/// Args: precision, max_window_seconds
+/// Returns: pointer to native SlidingHyperLogLog instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingHyperLogLog_new(
+    _env: JNIEnv,
+    _: JClass,
+    precision: jint,
+    max_window_seconds: jlong,
+) -> jlong {
+    match SlidingHyperLogLog::new(precision as u8, max_window_seconds as u64) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update SlidingHyperLogLog with item at timestamp
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingHyperLogLog_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+    timestamp: jlong,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut SlidingHyperLogLog) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+        let _ = sketch.update(&hash, timestamp as u64);
+    }
+}
+
+/// Estimate cardinality in window
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingHyperLogLog_estimate_window(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    current_time: jlong,
+    window_seconds: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const SlidingHyperLogLog) };
+    sketch.estimate_window(current_time as u64, window_seconds as u64)
+}
+
+/// Get precision
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingHyperLogLog_precision(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SlidingHyperLogLog) };
+    sketch.precision() as jint
+}
+
+/// Free SlidingHyperLogLog
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SlidingHyperLogLog_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut SlidingHyperLogLog) };
+    }
+}
+
+// ============================================================================
+// RECONCILIATION - RatelessIBLT (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new RatelessIBLT
+/// Args: expected_diff, cell_size
+/// Returns: pointer to native RatelessIBLT instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RatelessIBLT_new(
+    _env: JNIEnv,
+    _: JClass,
+    expected_diff: jint,
+    cell_size: jint,
+) -> jlong {
+    match RatelessIBLT::new(expected_diff as usize, cell_size as usize) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Insert key-value pair
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RatelessIBLT_insert(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    key: jbyteArray,
+    value: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut RatelessIBLT) };
+    let key_arr = unsafe { JByteArray::from_raw(key) };
+    let val_arr = unsafe { JByteArray::from_raw(value) };
+    if let (Ok(key_bytes), Ok(val_bytes)) = (
+        env.convert_byte_array(key_arr),
+        env.convert_byte_array(val_arr),
+    ) {
+        let _ = sketch.insert(&key_bytes, &val_bytes);
+    }
+}
+
+/// Delete key-value pair
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RatelessIBLT_delete(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    key: jbyteArray,
+    value: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut RatelessIBLT) };
+    let key_arr = unsafe { JByteArray::from_raw(key) };
+    let val_arr = unsafe { JByteArray::from_raw(value) };
+    if let (Ok(key_bytes), Ok(val_bytes)) = (
+        env.convert_byte_array(key_arr),
+        env.convert_byte_array(val_arr),
+    ) {
+        let _ = sketch.delete(&key_bytes, &val_bytes);
+    }
+}
+
+/// Free RatelessIBLT
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RatelessIBLT_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut RatelessIBLT) };
+    }
+}
+
+// ============================================================================
+// UNIVERSAL - UnivMon (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new UnivMon sketch
+/// Args: max_stream_size, epsilon, delta
+/// Returns: pointer to native UnivMon instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_UnivMon_new(
+    _env: JNIEnv,
+    _: JClass,
+    max_stream_size: jlong,
+    epsilon: jdouble,
+    delta: jdouble,
+) -> jlong {
+    match UnivMon::new(max_stream_size as u64, epsilon, delta) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update UnivMon with item and value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_UnivMon_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+    value: jdouble,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut UnivMon) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let _ = sketch.update(&bytes, value);
+    }
+}
+
+/// Estimate L1 (sum of all values)
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_UnivMon_estimate_l1(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const UnivMon) };
+    sketch.estimate_l1()
+}
+
+/// Estimate L2 (sum of squared values)
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_UnivMon_estimate_l2(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const UnivMon) };
+    sketch.estimate_l2()
+}
+
+/// Estimate entropy
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_UnivMon_estimate_entropy(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jdouble {
+    if ptr == 0 {
+        return 0.0;
+    }
+    let sketch = unsafe { &*(ptr as *const UnivMon) };
+    sketch.estimate_entropy()
+}
+
+/// Get number of layers
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_UnivMon_num_layers(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const UnivMon) };
+    sketch.num_layers() as jint
+}
+
+/// Get total updates
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_UnivMon_total_updates(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const UnivMon) };
+    sketch.total_updates() as jlong
+}
+
+/// Free UnivMon
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_UnivMon_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut UnivMon) };
+    }
+}
+
+// ============================================================================
+// RANGE FILTERS - MementoFilter (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new MementoFilter
+/// Args: expected_elements, fpr
+/// Returns: pointer to native MementoFilter instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MementoFilter_new(
+    _env: JNIEnv,
+    _: JClass,
+    expected_elements: jlong,
+    fpr: jdouble,
+) -> jlong {
+    match MementoFilter::new(expected_elements as usize, fpr) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Insert range (key, value) into MementoFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MementoFilter_insert(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    key: jlong,
+    value: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut MementoFilter) };
+    let arr = unsafe { JByteArray::from_raw(value) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        let _ = sketch.insert(key as u64, &bytes);
+    }
+}
+
+/// Check if range may contain value
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MementoFilter_may_contain_range(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    low: jlong,
+    high: jlong,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const MementoFilter) };
+    sketch.may_contain_range(low as u64, high as u64) as jboolean
+}
+
+/// Get number of elements
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MementoFilter_len(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const MementoFilter) };
+    sketch.len() as jlong
+}
+
+/// Free MementoFilter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_MementoFilter_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut MementoFilter) };
+    }
+}
+
+// ============================================================================
+// RANGE FILTERS - Grafite (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new Grafite from keys (build-once sketch)
+/// Args: keys array (encoded as bytes), bits_per_key
+/// Note: In JNI, we pass keys as a concatenated byte array of u64s in native order
+/// Returns: pointer to native Grafite instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_Grafite_new(
+    env: JNIEnv,
+    _: JClass,
+    keys: jbyteArray,
+    bits_per_key: jint,
+) -> jlong {
+    let arr = unsafe { JByteArray::from_raw(keys) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        // Decode bytes as array of u64 (8 bytes each, little-endian)
+        let mut key_vec = Vec::new();
+        for chunk in bytes.chunks_exact(8) {
+            if let Ok(arr) = <[u8; 8]>::try_from(chunk) {
+                key_vec.push(u64::from_le_bytes(arr));
+            }
+        }
+
+        if !key_vec.is_empty() {
+            if let Ok(sketch) = Grafite::build(&key_vec, bits_per_key as usize) {
+                return Box::into_raw(Box::new(sketch)) as jlong;
+            }
+        }
+    }
+    0
+}
+
+/// Check if range may contain value in Grafite
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_Grafite_may_contain_range(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    low: jlong,
+    high: jlong,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const Grafite) };
+    sketch.may_contain_range(low as u64, high as u64) as jboolean
+}
+
+/// Check if value may be in Grafite
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_Grafite_may_contain(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    key: jlong,
+) -> jboolean {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const Grafite) };
+    sketch.may_contain(key as u64) as jboolean
+}
+
+/// Get key count
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_Grafite_key_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const Grafite) };
+    sketch.key_count() as jlong
+}
+
+/// Get bits per key
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_Grafite_bits_per_key(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const Grafite) };
+    sketch.bits_per_key() as jint
+}
+
+/// Free Grafite
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_Grafite_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut Grafite) };
     }
 }
