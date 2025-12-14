@@ -21,6 +21,18 @@ use sketch_oxide::{
     },
     // Quantiles
     quantiles::{DDSketch, KllSketch, ReqMode, ReqSketch, SplineSketch, TDigest},
+    // Range Filters
+    range_filters::{Grafite, GRF},
+    // Reconciliation
+    reconciliation::RatelessIBLT,
+    // Sampling
+    sampling::{ReservoirSampling, VarOptSampling},
+    // Similarity
+    similarity::{MinHash, SimHash},
+    // Streaming
+    streaming::{ExponentialHistogram, SlidingHyperLogLog, SlidingWindowCounter},
+    // Universal
+    universal::UnivMon,
     Mergeable,
     Sketch,
 };
