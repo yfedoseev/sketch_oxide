@@ -10,7 +10,10 @@ use sketch_oxide::{
     // Cardinality Estimation
     cardinality::{CpcSketch, HyperLogLog, QSketch, ThetaSketch, UltraLogLog},
     // Frequency Estimation
-    frequency::CountMinSketch,
+    frequency::{
+        ConservativeCountMin, CountMinSketch, CountSketch, ElasticSketch, HeavyKeeper,
+        RemovableUniversalSketch, SALSA,
+    },
     // Membership Testing
     membership::{
         BlockedBloomFilter, BloomFilter, CountingBloomFilter, CuckooFilter, RibbonFilter,
@@ -1756,5 +1759,539 @@ pub extern "system" fn Java_com_sketches_oxide_TDigest_deserialize(
 pub extern "system" fn Java_com_sketches_oxide_TDigest_free(_env: JNIEnv, _: JObject, ptr: jlong) {
     if ptr != 0 {
         let _ = unsafe { Box::from_raw(ptr as *mut TDigest) };
+    }
+}
+
+// ============================================================================
+// FREQUENCY ESTIMATION - CountSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new CountSketch
+/// Args: epsilon, delta (error parameters)
+/// Returns: pointer to native CountSketch instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    epsilon: jdouble,
+    delta: jdouble,
+) -> jlong {
+    match CountSketch::new(epsilon, delta) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update CountSketch with an item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountSketch_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+    delta: jlong,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut CountSketch) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+        sketch.update(&hash, delta as i64);
+    }
+}
+
+/// Get frequency estimate for an item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountSketch_estimate(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const CountSketch) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => {
+            use std::collections::hash_map::DefaultHasher;
+            use std::hash::{Hash, Hasher};
+            let mut hasher = DefaultHasher::new();
+            bytes.hash(&mut hasher);
+            let hash = hasher.finish();
+            sketch.estimate(&hash) as jlong
+        }
+        Err(_) => 0,
+    }
+}
+
+/// Get width parameter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountSketch_width(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const CountSketch) };
+    sketch.width() as jint
+}
+
+/// Get depth parameter
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountSketch_depth(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const CountSketch) };
+    sketch.depth() as jint
+}
+
+/// Free CountSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_CountSketch_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut CountSketch) };
+    }
+}
+
+// ============================================================================
+// FREQUENCY ESTIMATION - ConservativeCountMin (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new ConservativeCountMin
+/// Args: epsilon, delta (error parameters)
+/// Returns: pointer to native ConservativeCountMin instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ConservativeCountMin_new(
+    _env: JNIEnv,
+    _: JClass,
+    epsilon: jdouble,
+    delta: jdouble,
+) -> jlong {
+    match ConservativeCountMin::new(epsilon, delta) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update ConservativeCountMin with an item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ConservativeCountMin_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut ConservativeCountMin) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+        sketch.update(&hash);
+    }
+}
+
+/// Get frequency estimate for an item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ConservativeCountMin_estimate(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const ConservativeCountMin) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => {
+            use std::collections::hash_map::DefaultHasher;
+            use std::hash::{Hash, Hasher};
+            let mut hasher = DefaultHasher::new();
+            bytes.hash(&mut hasher);
+            let hash = hasher.finish();
+            sketch.estimate(&hash) as jlong
+        }
+        Err(_) => 0,
+    }
+}
+
+/// Get total count
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ConservativeCountMin_total_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const ConservativeCountMin) };
+    sketch.total_count() as jlong
+}
+
+/// Free ConservativeCountMin
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ConservativeCountMin_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut ConservativeCountMin) };
+    }
+}
+
+// ============================================================================
+// FREQUENCY ESTIMATION - ElasticSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new ElasticSketch
+/// Args: bucket_count, depth
+/// Returns: pointer to native ElasticSketch instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ElasticSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    bucket_count: jint,
+    depth: jint,
+) -> jlong {
+    match ElasticSketch::new(bucket_count as usize, depth as usize) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update ElasticSketch with an item and count
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ElasticSketch_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+    count: jlong,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut ElasticSketch) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        sketch.update(&bytes, count as u64);
+    }
+}
+
+/// Get frequency estimate for an item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ElasticSketch_estimate(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const ElasticSketch) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => sketch.estimate(&bytes) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Get bucket count
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ElasticSketch_bucket_count(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const ElasticSketch) };
+    sketch.bucket_count() as jint
+}
+
+/// Free ElasticSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_ElasticSketch_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut ElasticSketch) };
+    }
+}
+
+// ============================================================================
+// FREQUENCY ESTIMATION - SALSA (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new SALSA sketch
+/// Args: epsilon, delta (error parameters)
+/// Returns: pointer to native SALSA instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SALSA_new(
+    _env: JNIEnv,
+    _: JClass,
+    epsilon: jdouble,
+    delta: jdouble,
+) -> jlong {
+    match SALSA::new(epsilon, delta) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update SALSA with an item and count
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SALSA_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+    count: jlong,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut SALSA) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+        sketch.update(&hash, count as u64);
+    }
+}
+
+/// Get frequency estimate for an item (returns estimate as jlong)
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SALSA_estimate(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const SALSA) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => {
+            use std::collections::hash_map::DefaultHasher;
+            use std::hash::{Hash, Hasher};
+            let mut hasher = DefaultHasher::new();
+            bytes.hash(&mut hasher);
+            let hash = hasher.finish();
+            let (estimate, _confidence) = sketch.estimate(&hash);
+            estimate as jlong
+        }
+        Err(_) => 0,
+    }
+}
+
+/// Free SALSA
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_SALSA_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut SALSA) };
+    }
+}
+
+// ============================================================================
+// FREQUENCY ESTIMATION - RemovableUniversalSketch (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new RemovableUniversalSketch
+/// Args: epsilon, delta (error parameters)
+/// Returns: pointer to native RemovableUniversalSketch instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RemovableUniversalSketch_new(
+    _env: JNIEnv,
+    _: JClass,
+    epsilon: jdouble,
+    delta: jdouble,
+) -> jlong {
+    match RemovableUniversalSketch::new(epsilon, delta) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update RemovableUniversalSketch with an item (supports positive/negative deltas)
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RemovableUniversalSketch_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+    delta: jint,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut RemovableUniversalSketch) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        let hash = hasher.finish();
+        sketch.update(&hash, delta);
+    }
+}
+
+/// Get frequency estimate for an item (returns signed i64)
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RemovableUniversalSketch_estimate(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jlong {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const RemovableUniversalSketch) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => {
+            use std::collections::hash_map::DefaultHasher;
+            use std::hash::{Hash, Hasher};
+            let mut hasher = DefaultHasher::new();
+            bytes.hash(&mut hasher);
+            let hash = hasher.finish();
+            sketch.estimate(&hash)
+        }
+        Err(_) => 0,
+    }
+}
+
+/// Free RemovableUniversalSketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_RemovableUniversalSketch_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut RemovableUniversalSketch) };
+    }
+}
+
+// ============================================================================
+// FREQUENCY ESTIMATION - HeavyKeeper (v0.1.6 Addition)
+// ============================================================================
+
+/// Create a new HeavyKeeper sketch
+/// Args: k (number of heavy hitters to track), epsilon, delta
+/// Returns: pointer to native HeavyKeeper instance as long
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_HeavyKeeper_new(
+    _env: JNIEnv,
+    _: JClass,
+    k: jint,
+    epsilon: jdouble,
+    delta: jdouble,
+) -> jlong {
+    match HeavyKeeper::new(k as usize, epsilon, delta) {
+        Ok(sketch) => Box::into_raw(Box::new(sketch)) as jlong,
+        Err(_) => 0,
+    }
+}
+
+/// Update HeavyKeeper with an item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_HeavyKeeper_update(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut HeavyKeeper) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    if let Ok(bytes) = env.convert_byte_array(arr) {
+        sketch.update(&bytes);
+    }
+}
+
+/// Get frequency estimate for an item
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_HeavyKeeper_estimate(
+    env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+    data: jbyteArray,
+) -> jint {
+    if ptr == 0 {
+        return 0;
+    }
+    let sketch = unsafe { &*(ptr as *const HeavyKeeper) };
+    let arr = unsafe { JByteArray::from_raw(data) };
+    match env.convert_byte_array(arr) {
+        Ok(bytes) => sketch.estimate(&bytes) as jint,
+        Err(_) => 0,
+    }
+}
+
+/// Apply decay to the sketch
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_HeavyKeeper_decay(_env: JNIEnv, _: JObject, ptr: jlong) {
+    if ptr == 0 {
+        return;
+    }
+    let sketch = unsafe { &mut *(ptr as *mut HeavyKeeper) };
+    sketch.decay();
+}
+
+/// Free HeavyKeeper
+#[no_mangle]
+pub extern "system" fn Java_com_sketches_oxide_HeavyKeeper_free(
+    _env: JNIEnv,
+    _: JObject,
+    ptr: jlong,
+) {
+    if ptr != 0 {
+        let _ = unsafe { Box::from_raw(ptr as *mut HeavyKeeper) };
     }
 }
