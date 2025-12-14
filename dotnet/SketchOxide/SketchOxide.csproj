@@ -8,9 +8,9 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>SketchOxide</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.6</Version>
     <Authors>Yury Fedoseev</Authors>
-    <Description>High-performance probabilistic data structures for .NET. 28 state-of-the-art algorithms for cardinality estimation, frequency analysis, membership testing, and more.</Description>
+    <Description>High-performance probabilistic data structures for .NET. 41 state-of-the-art algorithms for cardinality estimation, frequency analysis, membership testing, quantiles, streaming, similarity, sampling, and more.</Description>
     <PackageProjectUrl>https://github.com/yfedoseev/sketch_oxide</PackageProjectUrl>
     <RepositoryUrl>https://github.com/yfedoseev/sketch_oxide</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

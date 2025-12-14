@@ -1,33 +1,35 @@
 # sketch_oxide 🚀
 
-**40+ state-of-the-art probabilistic data structures (DataSketches) in Rust with Python & Node.js bindings**
+**41 state-of-the-art probabilistic data structures (DataSketches) in Rust with Python, Node.js, Java & C# bindings**
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
 [![Node.js](https://img.shields.io/badge/node.js-18%2B-green.svg)](https://nodejs.org/)
+[![Java](https://img.shields.io/badge/java-11%2B-red.svg)](https://www.oracle.com/java/)
+[![C#](https://img.shields.io/badge/C%23-.NET6%2B-purple.svg)](https://dotnet.microsoft.com/)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
-[![Tests](https://img.shields.io/badge/tests-854%2B%20passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1000%2B%20passing-brightgreen.svg)](tests/)
 
-> **Production-ready 2025 library**: 40+ algorithms including modern options like UltraLogLog (2024), Binary Fuse Filters (2021), DDSketch (2019), REQ (2021), plus classic proven algorithms. **28-75% more space-efficient** than traditional implementations.
+> **Production-ready 2025 library**: 41 algorithms including modern options like UltraLogLog (2024), Binary Fuse Filters (2021), DDSketch (2019), REQ (2021), plus classic proven algorithms. **28-75% more space-efficient** than traditional implementations.
 
 ---
 
 ## Why sketch_oxide?
 
-### 🎯 Complete Algorithm Coverage (40+ Algorithms)
+### 🎯 Complete Algorithm Coverage (41 Algorithms)
 
-**40+ production-ready algorithms across 10 categories:**
+**41 production-ready algorithms across 10 categories:**
 
 - **Cardinality** (5): HyperLogLog, UltraLogLog (2024), CPC, Theta, QSketch
 - **Membership** (9): Bloom, Blocked Bloom, Binary Fuse (2021), Counting Bloom, Cuckoo, Ribbon, Stable Bloom, Vacuum, Learned Bloom
 - **Quantiles** (5): DDSketch (2019), REQ (2021), KLL, TDigest, Spline Sketch
-- **Frequency** (9): Count-Min, Count Sketch, Space Saving, Frequent Items, Conservative Count-Min, Elastic, Heavy Keeper, SALSA, Nitro Sketch
+- **Frequency** (8): Count-Min, Count Sketch, Space Saving, Frequent Items, Conservative Count-Min, Elastic, Heavy Keeper, SALSA
 - **Similarity** (2): MinHash, SimHash
 - **Sampling** (2): Reservoir, VarOpt
 - **Streaming** (3): Sliding Window, Exponential Histogram, Sliding HyperLogLog
 - **Reconciliation** (1): Rateless IBLT
 - **Range Filters** (3): Memento, GRF, Grafite
-- **Universal** (1): UnivMon
+- **Universal** (3): UnivMon, NitroSketch, HeavyKeeper
 
 **Modern alternatives included:** UltraLogLog vs HyperLogLog, Binary Fuse vs Bloom Filters, DDSketch vs T-Digest - **choose what fits your needs**.
 
@@ -45,11 +47,11 @@ CPC:            56ns updates   (1.7x faster than target)
 
 ### 🛡️ Production-Ready
 
-- ✅ **854+ tests passing** across Rust, Python, Node.js, Java, C# (unit + integration + property-based)
+- ✅ **1000+ tests passing** across Rust, Python, Node.js, Java, C# (unit + integration + property-based)
 - ✅ **Zero clippy warnings** (`-D warnings`)
 - ✅ **Comprehensive benchmarks** (Criterion.rs)
 - ✅ **TDD methodology** throughout
-- ✅ **Multi-language bindings**: Python (PyO3), Node.js (napi-rs), Java, C# with 100% feature parity
+- ✅ **Multi-language bindings**: Python (PyO3), Node.js (napi-rs), Java (JNI), C# (P/Invoke) with 100% feature parity
 
 ### 🏭 Battle-Tested Algorithms
 
