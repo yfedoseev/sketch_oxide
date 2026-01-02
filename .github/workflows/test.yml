@@ -8,6 +8,7 @@ on:
 
 jobs:
   # Rust core library tests
+  # Optimization: Run beta only on Ubuntu (cheapest runner) to reduce CI costs
   rust:
     name: Rust Tests
     runs-on: ${{ matrix.os }}
@@ -23,22 +24,9 @@ jobs:
           - os: macos-latest
             rust: stable
             rust-target: ''
-          - os: macos-latest
-            rust: beta
-            rust-target: ''
           - os: windows-latest
             rust: stable
             rust-target: ''
-          - os: windows-latest
-            rust: beta
-            rust-target: ''
-          # Optional: Windows ARM64 (uncomment to enable when needed)
-          # - os: windows-2022-arm64
-          #   rust: stable
-          #   rust-target: 'aarch64-pc-windows-msvc'
-          # - os: windows-2022-arm64
-          #   rust: beta
-          #   rust-target: 'aarch64-pc-windows-msvc'
     steps:
       - uses: actions/checkout@v4
 
@@ -90,6 +78,7 @@ jobs:
         run: cargo bench --no-run
 
   # Python bindings tests
+  # Optimization: Reduce versions from 6 to 3 (drop EOL versions) to reduce CI costs
   python:
     name: Python Tests
     runs-on: ${{ matrix.os }}
@@ -97,7 +86,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
@@ -156,13 +145,14 @@ jobs:
         run: uv run pytest python/benchmarks/ --benchmark-only -v --import-mode=importlib
 
   # Node.js bindings tests
+  # Optimization: Reduce versions from 3 to 2 (drop Node 18 going EOL) to reduce CI costs
   nodejs:
     name: Node.js Tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [20.x, 22.x]
     steps:
       - uses: actions/checkout@v4
 
