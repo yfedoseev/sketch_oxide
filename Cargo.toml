@@ -28,7 +28,7 @@ rand = "0.9"
 numpy = "0.22"
 
 # Development and benchmarking
-criterion = "0.5"
+criterion = "0.8"
 proptest = "1.4"
 pdatastructs = "0.7"
 probabilistic-collections = "0.7"
