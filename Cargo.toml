@@ -18,7 +18,7 @@ napi = { version = "2.15", features = ["napi8"] }
 napi-derive = "2.15"
 napi-build = "2.1"
 pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38"] }
-pyo3-build-config = "0.22"
+pyo3-build-config = "0.27"
 
 # Core dependencies
 twox-hash = "2.0"
