@@ -15,7 +15,7 @@ categories = ["algorithms", "data-structures", "mathematics"]
 # FFI bindings
 jni = "0.21"
 napi = { version = "2.15", features = ["napi8"] }
-napi-derive = "2.15"
+napi-derive = "3.5"
 napi-build = "2.1"
 pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38"] }
 pyo3-build-config = "0.22"
