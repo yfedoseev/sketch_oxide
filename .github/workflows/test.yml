@@ -208,6 +208,15 @@ jobs:
         working-directory: ./sketch_oxide
         run: cargo clippy --lib --all-features -- -D warnings
 
+      - name: Build documentation
+        working-directory: ./sketch_oxide
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+        run: cargo doc --no-deps
+
+      - name: Check dependencies
+        uses: EmbarkStudios/cargo-deny-action@v2
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:

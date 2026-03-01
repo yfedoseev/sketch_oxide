@@ -2,6 +2,36 @@
 members = ["sketch_oxide", "python", "nodejs", "java", "dotnet/csharp-ffi"]
 resolver = "2"
 
+[workspace.lints.rust]
+unsafe_code = "warn"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+# Deny dangerous patterns in production
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"
+print_stdout = "warn"
+print_stderr = "warn"
+
+# Pedantic lints (cherry-picked for value)
+cloned_instead_of_copied = "warn"
+doc_markdown = "warn"
+explicit_iter_loop = "warn"
+flat_map_option = "warn"
+fn_params_excessive_bools = "warn"
+inefficient_to_string = "warn"
+manual_let_else = "warn"
+map_unwrap_or = "warn"
+needless_pass_by_value = "warn"
+redundant_closure_for_method_calls = "warn"
+semicolon_if_nothing_returned = "warn"
+unnecessary_wraps = "warn"
+unused_async = "warn"
+
+# Cargo group
+cargo_common_metadata = "warn"
+
 [workspace.package]
 version = "0.1.6"
 authors = ["Yury Fedoseev <yfedoseev@gmail.com>"]
