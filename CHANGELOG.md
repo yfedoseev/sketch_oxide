@@ -163,6 +163,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   al., ICML 2009): each feature hashes to a coordinate and a ±1 sign, values accumulate, and
   collisions cancel in expectation so inner products are preserved. The standard input layer
   for online learning (VW) and the scikit-learn `FeatureHasher`. `add`/`vector`/`transform`.
+- **`membership::StackedFilter` — meta-filter for known-negative workloads.** Layers
+  alternating Bloom filters — positives, then the known negatives layer 0 falsely admits, then
+  the positives layer 1 falsely admits (Deeds et al., VLDB 2020) — turning prior knowledge of
+  frequent non-members into a far lower effective FPR than a single filter of the same size.
+  Static `build(positives, known_negatives, fp)`; no false negatives.
 - **`learned::SandwichedLearnedBloom` — sandwiched learned Bloom filter.** Wraps an oracle
   between an initial and a backup Bloom filter (Mitzenmacher, NeurIPS 2018): the initial
   filter screens true negatives, the model classifies survivors, and the backup holds the

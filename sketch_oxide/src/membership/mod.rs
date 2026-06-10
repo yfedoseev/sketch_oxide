@@ -10,6 +10,7 @@ mod cuckoo;
 mod learned_bloom;
 mod ribbon;
 mod stable_bloom;
+mod stacked_filter;
 mod vacuum_filter;
 
 pub use binary_fuse::BinaryFuseFilter;
@@ -20,6 +21,7 @@ pub use cuckoo::CuckooFilter;
 pub use learned_bloom::{LearnedBloomFilter, LearnedBloomStats};
 pub use ribbon::RibbonFilter;
 pub use stable_bloom::StableBloomFilter;
+pub use stacked_filter::StackedFilter;
 pub use vacuum_filter::{VacuumFilter, VacuumFilterStats};
 
 #[cfg(test)]
