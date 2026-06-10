@@ -22,6 +22,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   full set operations that fold summaries. Built on the `ThetaCore<S>` substrate;
   `estimated_column_sums()` scales the retained sample up to a population estimate. Closes the
   biggest functional gap vs DataSketches.
+- **`frequency::WavingSketch` — unbiased top-k / heavy hitters.** Each bucket holds a small
+  heavy part plus a signed waving counter; light items only nudge the counter by their ±1 sign
+  (cancelling in expectation), while heavy items are promoted and bias-corrected (Li et al.,
+  KDD 2020). Unlike Count-Min's one-sided overestimate, the estimate is unbiased — so it can be
+  summed across distributed shards without skew. `insert`/`estimate`/`heavy_hitters`.
 - **`frequency::SpreadSketch` — superspreader detection.** Count-Min of HyperLogLogs:
   estimates a key's *spread* (distinct peers — destinations contacted, ports scanned) rather
   than packet volume, the basis for detecting port scans / DDoS bots / superspreaders (Tang et

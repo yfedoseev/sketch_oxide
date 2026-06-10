@@ -14,6 +14,7 @@ mod space_saving;
 mod space_saving_pm;
 mod spread_sketch;
 mod tower_sketch;
+mod waving_sketch;
 
 pub use conservative_count_min::ConservativeCountMin;
 pub use count_min::CountMinSketch;
@@ -29,3 +30,4 @@ pub use space_saving::SpaceSaving;
 pub use space_saving_pm::SpaceSavingPlusMinus;
 pub use spread_sketch::SpreadSketch;
 pub use tower_sketch::TowerSketch;
+pub use waving_sketch::WavingSketch;
