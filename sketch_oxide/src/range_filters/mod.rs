@@ -58,10 +58,12 @@
 mod grafite;
 mod grf;
 mod memento_filter;
+mod pgm_index;
 
 pub use grafite::{Grafite, GrafiteStats};
 pub use grf::{GRFStats, GRF};
 pub use memento_filter::{MementoFilter, MementoStats};
+pub use pgm_index::PgmIndex;
 
 #[cfg(test)]
 mod tests {

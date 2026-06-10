@@ -46,6 +46,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   8-bit row while heavy keys are carried by the wider rows. Estimate is the min over
   non-saturated rows, preserving Count-Min's no-underestimate guarantee at lower memory for
   skewed data.
+- **`range_filters::PgmIndex` — learned index (PGM).** Replaces a B-tree's routing structure
+  with a piecewise-linear model of key positions (Ferragina & Vinciguerra, VLDB 2020): the
+  sorted keys are covered by the fewest segments that predict each position within `±ε`, and a
+  lookup evaluates the segment line then binary-searches the `2ε` window. `rank`/`contains`
+  with worst-case bounds; ~tens of segments for 100k linear keys.
 - **`graph::Triest` — streaming triangle counting (TRIÈST-BASE).** Estimates the number of
   triangles in a graph edge stream with only a reservoir of `m` edges (Stefani et al., KDD
   2016): reservoir-sample edges, adjust the triangle count by the triangles each sampled edge
