@@ -82,6 +82,7 @@
 
 mod ddsketch;
 mod kll;
+mod otel_histogram;
 pub mod req;
 mod spline_sketch;
 mod tdigest;
@@ -89,6 +90,7 @@ mod udd_sketch;
 
 pub use ddsketch::DDSketch;
 pub use kll::{KllFloatSketch, KllSketch};
+pub use otel_histogram::OtelExponentialHistogram;
 pub use req::{ReqMode, ReqSketch};
 pub use spline_sketch::SplineSketch;
 pub use tdigest::TDigest;

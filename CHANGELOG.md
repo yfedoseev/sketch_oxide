@@ -11,6 +11,12 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`quantiles::OtelExponentialHistogram` — OpenTelemetry base-2 exponential histogram.** The
+  wire format of modern observability (OTel/Prometheus native histograms): base-2 scaled
+  buckets with a `scale` parameter, automatic **downscale** when the bucket span exceeds
+  `max_buckets` (exactly as the OTel SDKs do), positive/negative/zero buckets, sum/min/max,
+  and OTLP-shaped accessors (`scale`, `positive_offset`/`positive_counts`, …) for direct
+  `ExponentialHistogramDataPoint` encoding. Mergeable (aligns scales) and serializable.
 - **`sampling::WeightedReservoirSampling` — weighted reservoir (Efraimidis–Spirakis A-Res).**
   One-pass, bounded-memory weighted sampling without replacement: each item's chance of being
   kept scales with its weight (key `u^(1/w)`, keep top-`k`). Generic over the item type,
