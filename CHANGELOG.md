@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Development toward holistic 2026 coverage. See the phased roadmap (internal) for the
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
+### Added
+- **`common::time` — shared time/watermark convention** for windowed and time-decayed
+  sketches. Defines `Timestamp` (caller-chosen `u64` units, no hidden wall clock),
+  `TimeDomain` (event vs processing time), a monotonic `Watermark` with configurable
+  `allowed_lateness` and a `LateDataPolicy` (Drop/Accept/ClampToWatermark), and a
+  `Temporal` trait exposing the canonical `advance(now)` / `watermark()` surface mirrored
+  across all four FFI languages. Substrate for the windowed sketches in later waves.
+
 ### Internal / Infrastructure
 - **Unified Exponential Histogram engine.** `ExponentialHistogram` and
   `SlidingWindowCounter` were two near-duplicate implementations of the Datar 2002
