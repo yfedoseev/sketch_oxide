@@ -22,6 +22,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   full set operations that fold summaries. Built on the `ThetaCore<S>` substrate;
   `estimated_column_sums()` scales the retained sample up to a population estimate. Closes the
   biggest functional gap vs DataSketches.
+- **`frequency::FcmSketch` — hierarchical Count-Min with overflow chaining.** A drop-in
+  Count-Min replacement (Song et al., 2020): each row has a wide 8-bit leaf layer and a narrow
+  32-bit overflow layer; a key fills its 1-byte leaf then spills into a shared wide counter, so
+  the long tail costs one byte while heavy keys borrow a 32-bit counter. Estimate = min over
+  rows, preserving the no-underestimate guarantee at lower memory for skewed streams.
 - **`frequency::SpaceSavingPlusMinus` — frequent items under bounded deletions.** The Double
   Space-Saving construction: one Space-Saving sketch over insertions, one over deletions, net
   frequency = the difference. Solves frequent-items / frequency-estimation in the
