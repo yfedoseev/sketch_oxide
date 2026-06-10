@@ -52,9 +52,56 @@ pub struct UltraLogLog {
     /// Register array: 2^p registers, 8-bit each
     /// Each register stores the maximum number of leading zeros seen for its bucket
     registers: Vec<u8>,
+
+    /// Running sum of `2^{-register}`, maintained incrementally for the HIP/martingale
+    /// estimator.
+    kxq: f64,
+
+    /// HIP estimator accumulator (running martingale estimate). Valid only for a
+    /// single-stream insertion history (see `estimate_hip`).
+    hip_accum: f64,
+
+    /// Whether `hip_accum` is valid. Cleared by `merge` and deserialization.
+    hip_valid: bool,
 }
 
 impl UltraLogLog {
+    /// Builds a sketch from existing registers, deriving the HIP `kxq` sum.
+    fn from_registers(precision: u8, registers: Vec<u8>, hip_valid: bool) -> Self {
+        let kxq = registers.iter().map(|&r| 2.0_f64.powi(-(r as i32))).sum();
+        UltraLogLog {
+            precision,
+            registers,
+            kxq,
+            hip_accum: 0.0,
+            hip_valid,
+        }
+    }
+
+    /// Recomputes the `kxq` sum from the registers (after bulk register changes).
+    fn recompute_kxq(&mut self) {
+        self.kxq = self
+            .registers
+            .iter()
+            .map(|&r| 2.0_f64.powi(-(r as i32)))
+            .sum();
+    }
+
+    /// Returns the HIP (Historic Inverse Probability / martingale) cardinality estimate.
+    ///
+    /// For a single-stream insertion-only sketch this estimator has provably lower variance
+    /// than the standard one (≈ half), at no extra memory. Returns `None` after [`merge`] or
+    /// deserialization, which destroy the insertion history HIP requires; use
+    /// [`estimate`](Sketch::estimate) there.
+    ///
+    /// [`merge`]: crate::common::Mergeable::merge
+    pub fn estimate_hip(&self) -> Option<f64> {
+        if self.hip_valid {
+            Some(self.hip_accum)
+        } else {
+            None
+        }
+    }
     /// Creates a new UltraLogLog sketch
     ///
     /// # Arguments
@@ -91,10 +138,7 @@ impl UltraLogLog {
         let m = 1 << precision; // 2^precision
         let registers = vec![0u8; m];
 
-        Ok(UltraLogLog {
-            precision,
-            registers,
-        })
+        Ok(Self::from_registers(precision, registers, true))
     }
 
     /// Returns the number of registers (m = 2^precision)
@@ -229,9 +273,17 @@ impl UltraLogLog {
         let hash = self.hash_item(item);
         let (register_index, leading_zeros) = self.extract_register_and_zeros_64(hash);
         // SAFETY: register_index is bounded by precision which is validated
-        unsafe {
-            let reg = self.registers.get_unchecked_mut(register_index);
-            *reg = (*reg).max(leading_zeros);
+        let old = unsafe { *self.registers.get_unchecked(register_index) };
+        if leading_zeros > old {
+            // HIP/martingale update before adjusting kxq (see HyperLogLog::update_hash).
+            if self.hip_valid {
+                self.hip_accum += self.registers.len() as f64 / self.kxq;
+            }
+            self.kxq += 2.0_f64.powi(-(leading_zeros as i32)) - 2.0_f64.powi(-(old as i32));
+            // SAFETY: same bounded index as above.
+            unsafe {
+                *self.registers.get_unchecked_mut(register_index) = leading_zeros;
+            }
         }
     }
 }
@@ -284,10 +336,8 @@ impl Sketch for UltraLogLog {
 
         let registers = bytes[1..].to_vec();
 
-        Ok(UltraLogLog {
-            precision,
-            registers,
-        })
+        // Deserialized: HIP history lost.
+        Ok(Self::from_registers(precision, registers, false))
     }
 }
 
@@ -307,6 +357,10 @@ impl Mergeable for UltraLogLog {
         for (i, &other_reg) in other.registers.iter().enumerate() {
             self.registers[i] = self.registers[i].max(other_reg);
         }
+
+        // Merging destroys the single-stream history HIP depends on.
+        self.hip_valid = false;
+        self.recompute_kxq();
 
         Ok(())
     }
@@ -348,5 +402,51 @@ mod tests {
 
         // Remaining 52 bits are all zeros, so leading_zeros = 52 + 1 = 53
         assert_eq!(zeros, 53);
+    }
+
+    #[test]
+    fn test_hip_estimate_accurate_single_stream() {
+        let mut ull = UltraLogLog::new(14).unwrap();
+        let n = 50_000u64;
+        for i in 0..n {
+            ull.add(&i);
+        }
+        let hip = ull.estimate_hip().expect("HIP valid for single stream");
+        let err = (hip - n as f64).abs() / n as f64;
+        assert!(err < 0.03, "HIP relative error {err} too high (hip={hip})");
+    }
+
+    #[test]
+    fn test_hip_idempotent_updates() {
+        let mut ull = UltraLogLog::new(12).unwrap();
+        for _ in 0..1000 {
+            ull.add(&"same");
+        }
+        assert!(ull.estimate_hip().unwrap() < 2.0);
+    }
+
+    #[test]
+    fn test_hip_invalid_after_merge() {
+        let mut a = UltraLogLog::new(12).unwrap();
+        let mut b = UltraLogLog::new(12).unwrap();
+        for i in 0..100u64 {
+            a.add(&i);
+        }
+        for i in 100..200u64 {
+            b.add(&i);
+        }
+        assert!(a.estimate_hip().is_some());
+        a.merge(&b).unwrap();
+        assert!(a.estimate_hip().is_none());
+    }
+
+    #[test]
+    fn test_hip_invalid_after_roundtrip() {
+        let mut ull = UltraLogLog::new(12).unwrap();
+        for i in 0..500u64 {
+            ull.add(&i);
+        }
+        let restored = UltraLogLog::deserialize(&ull.serialize()).unwrap();
+        assert!(restored.estimate_hip().is_none());
     }
 }

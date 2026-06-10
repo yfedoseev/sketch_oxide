@@ -11,12 +11,12 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
-- **HyperLogLog martingale/HIP estimator (`HyperLogLog::estimate_hip`).** The Historic
-  Inverse Probability estimator gives provably lower variance (~0.833/√m vs 1.04/√m, ≈ half)
-  for insertion-only single-stream workloads, at no extra memory — maintained incrementally
-  during inserts. Returns `None` after `merge` or deserialization (which destroy the
-  single-stream history HIP requires); use `estimate()` there. Serialization format
-  unchanged.
+- **Martingale/HIP estimator for HyperLogLog and UltraLogLog (`estimate_hip`).** The
+  Historic Inverse Probability estimator gives provably lower variance (~0.833/√m vs
+  1.04/√m, ≈ half) for insertion-only single-stream workloads, at no extra memory —
+  maintained incrementally during inserts. Returns `None` after `merge` or deserialization
+  (which destroy the single-stream history HIP requires); use `estimate()` there.
+  Serialization formats unchanged.
 - **`privacy` module — differential-privacy substrate.** `privacy::mechanisms` ships the
   **discrete** Laplace and Gaussian mechanisms (Canonne–Kamath–Steinke exact samplers, so
   floating-point rounding cannot break the guarantee — unlike naive continuous Laplace),
