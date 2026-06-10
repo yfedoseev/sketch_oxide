@@ -11,6 +11,11 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`streaming::ForwardDecay` — exponential time-decay aggregation.** Forward decay (Cormode
+  et al., ICDE 2009) measures item age forward from a landmark, so only running sums are kept
+  and nothing is re-aged per query. Provides decayed count, decayed sum, and a
+  decay-invariant average; the landmark is pinned to the latest timestamp so accumulators
+  stay bounded on unbounded streams. Handles out-of-order data.
 - **`cardinality::TupleSketch<S: Summary>` — Theta sketch with per-key summaries.** The
   Apache DataSketches workhorse for reach/frequency and A/B testing: count distinct keys and
   aggregate a per-key value (impressions, spend, …) over the same sampled population, with
