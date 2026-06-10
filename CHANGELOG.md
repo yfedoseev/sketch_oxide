@@ -11,6 +11,11 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`sampling::WeightedReservoirSampling` — weighted reservoir (Efraimidis–Spirakis A-Res).**
+  One-pass, bounded-memory weighted sampling without replacement: each item's chance of being
+  kept scales with its weight (key `u^(1/w)`, keep top-`k`). Generic over the item type,
+  mergeable (top-`k` of the union), seedable for reproducibility. Closes the most-visible
+  sampling gap vs other ecosystems.
 - **`quantiles::UddSketch` — bounded-bucket DDSketch with a preserved guarantee.** Unlike
   plain bucket collapsing (which silently voids the relative-error guarantee for the extreme
   values), UDDSketch's *uniform* collapse merges every adjacent bucket pair at once

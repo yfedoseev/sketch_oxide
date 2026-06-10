@@ -21,6 +21,8 @@
 
 pub mod reservoir;
 pub mod varopt;
+pub mod weighted_reservoir;
 
 pub use reservoir::ReservoirSampling;
 pub use varopt::VarOptSampling;
+pub use weighted_reservoir::WeightedReservoirSampling;
