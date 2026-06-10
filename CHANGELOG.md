@@ -37,6 +37,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   8-bit row while heavy keys are carried by the wider rows. Estimate is the min over
   non-saturated rows, preserving Count-Min's no-underestimate guarantee at lower memory for
   skewed data.
+- **`graph::Triest` — streaming triangle counting (TRIÈST-BASE).** Estimates the number of
+  triangles in a graph edge stream with only a reservoir of `m` edges (Stefani et al., KDD
+  2016): reservoir-sample edges, adjust the triangle count by the triangles each sampled edge
+  closes, and scale by ξ(t). Exact while the stream fits in the reservoir, unbiased
+  thereafter. `add_edge`/`estimate`.
 - **`graph` module with `TcmSketch` (graph-stream summary).** A Count-Min sketch over graph
   *edges*: `depth` independent `width×width` matrices answer edge-weight, out-degree, and
   in-degree queries in sublinear space (Tang et al., SIGMOD 2016). Mergeable and serializable.

@@ -4,5 +4,7 @@
 //! node-degree, and (in later waves) reachability and subgraph queries in sublinear space.
 
 mod tcm;
+mod triest;
 
 pub use tcm::TcmSketch;
+pub use triest::Triest;
