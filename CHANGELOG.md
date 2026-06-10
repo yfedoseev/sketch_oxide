@@ -56,6 +56,12 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   2016): reservoir-sample edges, adjust the triangle count by the triangles each sampled edge
   closes, and scale by ξ(t). Exact while the stream fits in the reservoir, unbiased
   thereafter. `add_edge`/`estimate`.
+- **`matrix` module with `JohnsonLindenstrauss` — distance-preserving random projection.**
+  Embeds high-dimensional vectors into `O(log n/ε²)` dimensions preserving distances and inner
+  products within `1±ε` (JL lemma) via a ±1 Rademacher projection generated on the fly from a
+  seed (no stored matrix). Shrinks embeddings before nearest-neighbour search and is the
+  sketching step for sketch-and-solve. (New `matrix` module — future home of Frequent
+  Directions / TensorSketch.)
 - **`graph` module with `TcmSketch` (graph-stream summary).** A Count-Min sketch over graph
   *edges*: `depth` independent `width×width` matrices answer edge-weight, out-degree, and
   in-degree queries in sublinear space (Tang et al., SIGMOD 2016). Mergeable and serializable.

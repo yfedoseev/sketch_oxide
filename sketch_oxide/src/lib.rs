@@ -11,6 +11,7 @@ pub mod common;
 pub mod frequency;
 pub mod graph;
 pub mod learned;
+pub mod matrix;
 pub mod membership;
 pub mod privacy;
 pub mod quantiles;
