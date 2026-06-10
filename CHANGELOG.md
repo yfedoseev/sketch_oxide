@@ -11,6 +11,12 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`learned` module with the oracle/score-function interface.** New `Oracle` trait (the
+  single way a user model scores keys for learned sketches) plus `ClosureOracle` (wrap a
+  Rust `Fn`) and `PrecomputedOracle` (host-computed scores supplied as data — the
+  FFI-friendly path where the model never crosses the boundary). Substrate for PLBF,
+  Ada-BF/Sandwiched learned Bloom filters, and learned Count-Min/Count-Sketch in later
+  waves.
 - **Keyed/salted hashing (`common::hash::keyed_hash`, `Salt`)** — opt-in adversarially
   robust hashing for sketches. A secret `Salt` mixed into the hash makes outputs
   unpredictable, defending against crafted-collision and HLL parameter-extraction attacks.

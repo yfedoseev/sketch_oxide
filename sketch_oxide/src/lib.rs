@@ -9,6 +9,7 @@
 pub mod cardinality;
 pub mod common;
 pub mod frequency;
+pub mod learned;
 pub mod membership;
 pub mod quantiles;
 pub mod range_filters;
