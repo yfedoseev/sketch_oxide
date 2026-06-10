@@ -22,6 +22,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   full set operations that fold summaries. Built on the `ThetaCore<S>` substrate;
   `estimated_column_sums()` scales the retained sample up to a population estimate. Closes the
   biggest functional gap vs DataSketches.
+- **`frequency::SpaceSavingPlusMinus` — frequent items under bounded deletions.** The Double
+  Space-Saving construction: one Space-Saving sketch over insertions, one over deletions, net
+  frequency = the difference. Solves frequent-items / frequency-estimation in the
+  bounded-deletion model (GDPR erasure, materialized views) that plain Space-Saving can't
+  handle. `insert`/`delete`/`estimate`/`heavy_hitters`.
 - **`frequency::TowerSketch` — tiered-width Count-Min.** Stacks 8/16/32-bit counter rows at
   equal bytes per row (so the narrow row holds 4× the counters): the long tail packs into the
   8-bit row while heavy keys are carried by the wider rows. Estimate is the min over

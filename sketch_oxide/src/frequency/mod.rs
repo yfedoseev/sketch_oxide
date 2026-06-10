@@ -10,6 +10,7 @@ mod nitrosketch;
 pub mod removable_sketch;
 pub mod salsa;
 mod space_saving;
+mod space_saving_pm;
 mod tower_sketch;
 
 pub use conservative_count_min::ConservativeCountMin;
@@ -22,4 +23,5 @@ pub use nitrosketch::{NitroSketch, NitroSketchStats};
 pub use removable_sketch::RemovableUniversalSketch;
 pub use salsa::SALSA;
 pub use space_saving::SpaceSaving;
+pub use space_saving_pm::SpaceSavingPlusMinus;
 pub use tower_sketch::TowerSketch;
