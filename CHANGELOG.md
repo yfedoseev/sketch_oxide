@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 0.2.0 (in development)
+
+Development toward holistic 2026 coverage. See the phased roadmap (internal) for the
+full plan. This release is being built on the `releases/v0.2.0` branch.
+
+### Changed
+- **Reconciliation: `RatelessIBLT` renamed to `Iblt`.** The old name was a misnomer —
+  this is a classic fixed-rate Invertible Bloom Lookup Table, not the SIGCOMM 2024
+  rateless construction. `RatelessIBLT` / `RatelessIBLTStats` remain as `#[deprecated]`
+  aliases and will be removed in a future release. Language bindings keep their existing
+  class/symbol names for now (a deprecation path lands with the FFI follow-up).
+
+### Fixed
+- **IBLT decode correctness (key-check hash).** Cells now accumulate a key-check hash so
+  singleton detection verifies the recovered key instead of trusting `count == ±1` alone.
+  Collisions that previously produced a *false* singleton (e.g. two insertions plus a
+  deletion of a third key summing to count 1) are now rejected: decode returns correct
+  pairs or reports the IBLT as undecodable, never garbage.
+
 ## [0.1.6] - 2025-12-13
 
 ### Major Features

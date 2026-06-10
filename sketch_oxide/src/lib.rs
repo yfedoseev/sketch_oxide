@@ -38,6 +38,8 @@ pub use frequency::{
 pub use membership::{LearnedBloomFilter, LearnedBloomStats, VacuumFilter, VacuumFilterStats};
 pub use quantiles::{KllSketch, SplineSketch, TDigest};
 pub use range_filters::{GRFStats, Grafite, GrafiteStats, MementoFilter, MementoStats, GRF};
+pub use reconciliation::{Iblt, IbltStats};
+#[allow(deprecated)]
 pub use reconciliation::{RatelessIBLT, RatelessIBLTStats};
 pub use sampling::{ReservoirSampling, VarOptSampling};
 pub use similarity::{MinHash, SimHash};

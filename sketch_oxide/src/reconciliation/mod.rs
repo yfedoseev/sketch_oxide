@@ -12,7 +12,7 @@
 //!
 //! # Available Algorithms
 //!
-//! - [`RatelessIBLT`] - Invertible Bloom Lookup Table for set reconciliation
+//! - [`Iblt`] - Invertible Bloom Lookup Table (classic, fixed-rate) for set reconciliation
 //!
 //! # Theory
 //!
@@ -26,11 +26,11 @@
 //!
 //! # Example
 //! ```
-//! use sketch_oxide::reconciliation::RatelessIBLT;
+//! use sketch_oxide::reconciliation::Iblt;
 //! use sketch_oxide::common::Reconcilable;
 //!
-//! let mut alice = RatelessIBLT::new(100, 32).unwrap();
-//! let mut bob = RatelessIBLT::new(100, 32).unwrap();
+//! let mut alice = Iblt::new(100, 32).unwrap();
+//! let mut bob = Iblt::new(100, 32).unwrap();
 //!
 //! alice.insert(b"shared1", b"value1").unwrap();
 //! alice.insert(b"shared2", b"value2").unwrap();
@@ -49,9 +49,14 @@
 //! // set_diff.to_remove contains items Bob should remove
 //! ```
 
-mod rateless_iblt;
+mod iblt;
 
-pub use rateless_iblt::{RatelessIBLT, RatelessIBLTStats};
+pub use iblt::{Iblt, IbltStats};
+
+// Deprecated aliases kept for backwards compatibility with the pre-0.2.0 names.
+// `RatelessIBLT` was a misnomer (this is a classic fixed-rate IBLT). Prefer `Iblt`.
+#[allow(deprecated)]
+pub use iblt::{RatelessIBLT, RatelessIBLTStats};
 
 #[cfg(test)]
 mod tests {
@@ -60,7 +65,7 @@ mod tests {
     #[test]
     fn test_module_exports() {
         // Verify module exports work
-        let iblt = RatelessIBLT::new(10, 32);
+        let iblt = Iblt::new(10, 32);
         assert!(iblt.is_ok());
     }
 }
