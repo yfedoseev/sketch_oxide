@@ -67,6 +67,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   maintained incrementally during inserts. Returns `None` after `merge` or deserialization
   (which destroy the single-stream history HIP requires); use `estimate()` there.
   Serialization formats unchanged.
+- **`privacy::DpContinualCounter` — DP continual counting (binary-tree mechanism).** Releases
+  a running count after every event with only polylogarithmic noise (`O((log T)^1.5/ε)`)
+  instead of the linear noise the naive Laplace mechanism would need under continual
+  observation (Dwork et al. 2010; Chan–Shi–Song 2011). Streaming `insert`/`count`; built on
+  the discrete-Laplace sampler.
 - **`privacy::DpCountMin` — differentially private Count-Min.** Build a Count-Min sketch
   exactly, then `privatize(ε, rng)` releases a `PrivateCountMin` with discrete-Laplace noise
   (scale `depth/ε`, matching the L1 sensitivity) added to every counter; point queries are
