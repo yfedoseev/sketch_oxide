@@ -11,6 +11,12 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`quantiles::UddSketch` — bounded-bucket DDSketch with a preserved guarantee.** Unlike
+  plain bucket collapsing (which silently voids the relative-error guarantee for the extreme
+  values), UDDSketch's *uniform* collapse merges every adjacent bucket pair at once
+  (`γ → γ²`, `α → 2α/(1+α²)`), so `|v'−v| ≤ α·v` still holds everywhere — only the current,
+  queryable `α` grows. Bounded `max_buckets`, mergeable (aligns collapse levels), handles
+  negatives/zeros, serializable. (Italiano et al., 2020.)
 - **Martingale/HIP estimator for HyperLogLog and UltraLogLog (`estimate_hip`).** The
   Historic Inverse Probability estimator gives provably lower variance (~0.833/√m vs
   1.04/√m, ≈ half) for insertion-only single-stream workloads, at no extra memory —

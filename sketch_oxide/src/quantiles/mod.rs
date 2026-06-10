@@ -85,9 +85,11 @@ mod kll;
 pub mod req;
 mod spline_sketch;
 mod tdigest;
+mod udd_sketch;
 
 pub use ddsketch::DDSketch;
 pub use kll::{KllFloatSketch, KllSketch};
 pub use req::{ReqMode, ReqSketch};
 pub use spline_sketch::SplineSketch;
 pub use tdigest::TDigest;
+pub use udd_sketch::UddSketch;
