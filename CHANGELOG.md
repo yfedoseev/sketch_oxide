@@ -89,6 +89,10 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   low `b` bits of each MinHash minimum, bit-packed, shrinking signatures up to 64× (`b=1`) at
   a quantified accuracy cost. Jaccard is recovered with the Li–König estimator
   `(P − 2^-b)/(1 − 2^-b)`. The regime that matters at trillion-token dedup scale.
+- **`similarity::SimHashLsh` — Hamming-LSH index for SimHash.** The SimHash counterpart to
+  MinHash-LSH: bands a 64-bit fingerprint into `r` blocks and indexes by block pattern, so a
+  query returns near-duplicates (small Hamming distance) sublinearly. Plus a `hamming_distance`
+  helper. Completes the LSH family for sublinear near-duplicate search.
 - **`similarity::OnePermutationHash` — OPH MinHash with densification.** Builds MinHash
   signatures in O(1)-amortized per element (one hash split into `k` bins) instead of MinHash's
   O(k), with rotation densification filling bins left empty by sparse inputs (Li et al.,
