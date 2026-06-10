@@ -29,6 +29,7 @@
 //!   (SODA 2002)
 
 use crate::common::{Mergeable, Result, Sketch, SketchError};
+use crate::streaming::eh_core::{EhBucket, EhCore};
 
 // ============================================================================
 // TESTS FIRST (TDD Approach)
@@ -488,19 +489,12 @@ mod tests {
 // IMPLEMENTATION
 // ============================================================================
 
-/// A bucket in the exponential histogram
-#[derive(Clone, Debug)]
-struct EHBucket {
-    /// Timestamp when this bucket was created
-    timestamp: u64,
-    /// Count of events in this bucket (always a power of 2)
-    count: u64,
-}
-
 /// Exponential Histogram with formal error bounds
 ///
 /// Maintains an approximate count over a sliding time window with guaranteed
-/// relative error bounded by epsilon.
+/// relative error bounded by epsilon. A thin wrapper over the shared
+/// [`EhCore`](crate::streaming) bucket engine plus a last-seen timestamp used by the
+/// [`Sketch`] trait's parameterless `estimate`.
 ///
 /// # Examples
 ///
@@ -520,15 +514,9 @@ struct EHBucket {
 /// ```
 #[derive(Clone, Debug)]
 pub struct ExponentialHistogram {
-    /// Buckets sorted by timestamp (newest first)
-    buckets: Vec<EHBucket>,
-    /// Window size in time units
-    window_size: u64,
-    /// Error bound (epsilon)
-    epsilon: f64,
-    /// Maximum buckets per level: k = ceil(1/epsilon)
-    k: usize,
-    /// Last timestamp seen (for monotonicity tracking)
+    /// Shared bucket engine (buckets, window, epsilon, k).
+    core: EhCore,
+    /// Last timestamp seen, used for the trait-level parameterless estimate.
     last_timestamp: u64,
 }
 
@@ -555,30 +543,8 @@ impl ExponentialHistogram {
     /// let eh = ExponentialHistogram::new(3600, 0.05).unwrap();
     /// ```
     pub fn new(window_size: u64, epsilon: f64) -> Result<Self> {
-        if window_size == 0 {
-            return Err(SketchError::InvalidParameter {
-                param: "window_size".to_string(),
-                value: "0".to_string(),
-                constraint: "must be > 0".to_string(),
-            });
-        }
-
-        if epsilon <= 0.0 || epsilon >= 1.0 {
-            return Err(SketchError::InvalidParameter {
-                param: "epsilon".to_string(),
-                value: epsilon.to_string(),
-                constraint: "must be in (0, 1)".to_string(),
-            });
-        }
-
-        // k = ceil(1/epsilon) determines max buckets per level
-        let k = (1.0_f64 / epsilon).ceil() as usize;
-
         Ok(ExponentialHistogram {
-            buckets: Vec::new(),
-            window_size,
-            epsilon,
-            k,
+            core: EhCore::new(window_size, epsilon)?,
             last_timestamp: 0,
         })
     }
@@ -586,25 +552,25 @@ impl ExponentialHistogram {
     /// Returns the window size
     #[inline]
     pub fn window_size(&self) -> u64 {
-        self.window_size
+        self.core.window_size
     }
 
     /// Returns the error bound (epsilon)
     #[inline]
     pub fn epsilon(&self) -> f64 {
-        self.epsilon
+        self.core.epsilon
     }
 
     /// Returns k value (max buckets per level)
     #[inline]
     pub fn k(&self) -> usize {
-        self.k
+        self.core.k
     }
 
     /// Returns the number of buckets
     #[inline]
     pub fn num_buckets(&self) -> usize {
-        self.buckets.len()
+        self.core.num_buckets()
     }
 
     /// Inserts an event at the given timestamp with the specified count
@@ -627,102 +593,9 @@ impl ExponentialHistogram {
         if count == 0 {
             return;
         }
-
-        // Track timestamp for monotonicity
+        // Track timestamp for the parameterless estimate.
         self.last_timestamp = self.last_timestamp.max(timestamp);
-
-        // Decompose count into powers of 2 and add buckets
-        let mut remaining = count;
-        while remaining > 0 {
-            // Find the largest power of 2 <= remaining
-            let power = 63 - remaining.leading_zeros();
-            let bucket_count = 1u64 << power;
-
-            // Insert bucket at the front (newest first)
-            self.buckets.insert(
-                0,
-                EHBucket {
-                    timestamp,
-                    count: bucket_count,
-                },
-            );
-
-            remaining -= bucket_count;
-        }
-
-        // Compress buckets to maintain l-canonical form
-        self.compress();
-    }
-
-    /// Compresses buckets to maintain l-canonical form
-    ///
-    /// Ensures at most k+1 buckets of each size (power of 2).
-    /// When exceeded, merges the two oldest buckets of that size.
-    fn compress(&mut self) {
-        if self.buckets.len() < 2 {
-            return;
-        }
-
-        // Sort buckets by count (ascending) then by timestamp (descending within same count)
-        // This groups same-sized buckets together
-        let mut changed = true;
-        while changed {
-            changed = false;
-
-            // Group buckets by their count and check invariant
-            let mut i = 0;
-            while i < self.buckets.len() {
-                let current_count = self.buckets[i].count;
-
-                // Find all consecutive buckets with same count
-                // Note: buckets may not be perfectly sorted, so scan all
-                let same_count_indices: Vec<usize> = (0..self.buckets.len())
-                    .filter(|&j| self.buckets[j].count == current_count)
-                    .collect();
-
-                if same_count_indices.len() > self.k + 1 {
-                    // Too many buckets of this size
-                    // Find the two oldest (smallest timestamps)
-                    let mut indices_by_time: Vec<(usize, u64)> = same_count_indices
-                        .iter()
-                        .map(|&idx| (idx, self.buckets[idx].timestamp))
-                        .collect();
-                    indices_by_time.sort_by_key(|&(_, ts)| ts);
-
-                    // Merge the two oldest
-                    let oldest_idx = indices_by_time[0].0;
-                    let second_oldest_idx = indices_by_time[1].0;
-
-                    // Keep the older timestamp, double the count
-                    let older_timestamp = self.buckets[oldest_idx]
-                        .timestamp
-                        .min(self.buckets[second_oldest_idx].timestamp);
-                    let merged_count = current_count * 2;
-
-                    // Update the first one, remove the second
-                    let (keep_idx, remove_idx) = if oldest_idx < second_oldest_idx {
-                        (oldest_idx, second_oldest_idx)
-                    } else {
-                        (second_oldest_idx, oldest_idx)
-                    };
-
-                    self.buckets[keep_idx] = EHBucket {
-                        timestamp: older_timestamp,
-                        count: merged_count,
-                    };
-                    self.buckets.remove(remove_idx);
-
-                    changed = true;
-                    break; // Restart the scan
-                }
-
-                // Move to next different count
-                i += 1;
-                while i < self.buckets.len() && self.buckets[i].count == current_count {
-                    i += 1;
-                }
-            }
-        }
+        self.core.insert(timestamp, count);
     }
 
     /// Returns the count estimate with bounds for the window ending at current_time
@@ -751,42 +624,7 @@ impl ExponentialHistogram {
     /// println!("Count: {} in [{}, {}]", est, lower, upper);
     /// ```
     pub fn count(&self, current_time: u64) -> (u64, u64, u64) {
-        if self.buckets.is_empty() {
-            return (0, 0, 0);
-        }
-
-        let window_start = current_time.saturating_sub(self.window_size);
-
-        let mut total = 0u64;
-        let mut oldest_partial_count = 0u64;
-
-        for bucket in &self.buckets {
-            if bucket.timestamp > current_time {
-                // Future bucket, skip
-                continue;
-            }
-
-            if bucket.timestamp >= window_start {
-                // Fully within window
-                total += bucket.count;
-            } else {
-                // Partially outside window - this is the oldest relevant bucket
-                // We count half of it (approximation)
-                oldest_partial_count = bucket.count;
-                break;
-            }
-        }
-
-        // Estimate: count full buckets + half of partial bucket
-        let estimate = total + oldest_partial_count / 2;
-
-        // Lower bound: only fully in-window buckets
-        let lower = total;
-
-        // Upper bound: all buckets including full partial bucket
-        let upper = total + oldest_partial_count;
-
-        (estimate, lower, upper)
+        self.core.count_with_bounds(current_time)
     }
 
     /// Expires old buckets outside the window
@@ -798,38 +636,24 @@ impl ExponentialHistogram {
     ///
     /// * `current_time` - The current time
     pub fn expire(&mut self, current_time: u64) {
-        let window_start = current_time.saturating_sub(self.window_size);
-
-        // Keep track of whether we've found one outside bucket to keep
-        let mut found_outside = false;
-
-        self.buckets.retain(|bucket| {
-            if bucket.timestamp >= window_start {
-                true // Fully in window
-            } else if !found_outside {
-                found_outside = true;
-                true // Keep one straddling bucket
-            } else {
-                false // Remove older buckets
-            }
-        });
+        self.core.expire(current_time);
     }
 
     /// Clears all buckets
     pub fn clear(&mut self) {
-        self.buckets.clear();
+        self.core.clear();
         self.last_timestamp = 0;
     }
 
     /// Returns the theoretical error bound
     #[inline]
     pub fn error_bound(&self) -> f64 {
-        self.epsilon
+        self.core.epsilon
     }
 
     /// Returns memory usage in bytes (approximate)
     pub fn memory_usage(&self) -> usize {
-        std::mem::size_of::<Self>() + self.buckets.len() * std::mem::size_of::<EHBucket>()
+        std::mem::size_of::<Self>() + self.core.num_buckets() * std::mem::size_of::<EhBucket>()
     }
 }
 
@@ -852,21 +676,21 @@ impl Sketch for ExponentialHistogram {
     }
 
     fn is_empty(&self) -> bool {
-        self.buckets.is_empty()
+        self.core.num_buckets() == 0
     }
 
     fn serialize(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
-        // Header
-        bytes.extend_from_slice(&self.window_size.to_le_bytes());
-        bytes.extend_from_slice(&self.epsilon.to_le_bytes());
-        bytes.extend_from_slice(&(self.k as u64).to_le_bytes());
+        // Header (format unchanged across the EhCore refactor for FFI compatibility)
+        bytes.extend_from_slice(&self.core.window_size.to_le_bytes());
+        bytes.extend_from_slice(&self.core.epsilon.to_le_bytes());
+        bytes.extend_from_slice(&(self.core.k as u64).to_le_bytes());
         bytes.extend_from_slice(&self.last_timestamp.to_le_bytes());
-        bytes.extend_from_slice(&(self.buckets.len() as u64).to_le_bytes());
+        bytes.extend_from_slice(&(self.core.num_buckets() as u64).to_le_bytes());
 
         // Buckets
-        for bucket in &self.buckets {
+        for bucket in &self.core.buckets {
             bytes.extend_from_slice(&bucket.timestamp.to_le_bytes());
             bytes.extend_from_slice(&bucket.count.to_le_bytes());
         }
@@ -885,7 +709,7 @@ impl Sketch for ExponentialHistogram {
 
         let window_size = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
         let epsilon = f64::from_le_bytes(bytes[8..16].try_into().unwrap());
-        let k = u64::from_le_bytes(bytes[16..24].try_into().unwrap()) as usize;
+        // bytes[16..24] held `k`; it is recomputed from epsilon by EhCore.
         let last_timestamp = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
         let num_buckets = u64::from_le_bytes(bytes[32..40].try_into().unwrap()) as usize;
 
@@ -904,15 +728,12 @@ impl Sketch for ExponentialHistogram {
         for _ in 0..num_buckets {
             let timestamp = u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
             let count = u64::from_le_bytes(bytes[offset + 8..offset + 16].try_into().unwrap());
-            buckets.push(EHBucket { timestamp, count });
+            buckets.push(EhBucket { timestamp, count });
             offset += 16;
         }
 
         Ok(ExponentialHistogram {
-            buckets,
-            window_size,
-            epsilon,
-            k,
+            core: EhCore::from_parts(window_size, epsilon, buckets),
             last_timestamp,
         })
     }
@@ -924,37 +745,8 @@ impl Sketch for ExponentialHistogram {
 
 impl Mergeable for ExponentialHistogram {
     fn merge(&mut self, other: &Self) -> Result<()> {
-        // Check compatibility
-        if self.window_size != other.window_size {
-            return Err(SketchError::IncompatibleSketches {
-                reason: format!(
-                    "Window size mismatch: {} vs {}",
-                    self.window_size, other.window_size
-                ),
-            });
-        }
-
-        if (self.epsilon - other.epsilon).abs() > 1e-10 {
-            return Err(SketchError::IncompatibleSketches {
-                reason: format!("Epsilon mismatch: {} vs {}", self.epsilon, other.epsilon),
-            });
-        }
-
-        // Merge buckets from other
-        for bucket in &other.buckets {
-            self.buckets.push(bucket.clone());
-        }
-
-        // Update last timestamp
+        self.core.merge_from(&other.core)?;
         self.last_timestamp = self.last_timestamp.max(other.last_timestamp);
-
-        // Sort by timestamp (newest first) for consistent ordering
-        self.buckets
-            .sort_by_key(|bucket| std::cmp::Reverse(bucket.timestamp));
-
-        // Compress to maintain invariant
-        self.compress();
-
         Ok(())
     }
 }

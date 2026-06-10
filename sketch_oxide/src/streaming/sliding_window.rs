@@ -46,15 +46,7 @@
 //! ```
 
 use crate::common::SketchError;
-
-/// A bucket in the exponential histogram
-#[derive(Clone, Debug)]
-struct Bucket {
-    /// Timestamp when this bucket was created
-    timestamp: u64,
-    /// Count of events in this bucket (always a power of 2)
-    count: u64,
-}
+use crate::streaming::eh_core::{EhBucket, EhCore};
 
 /// Sliding Window Counter using Exponential Histogram
 ///
@@ -78,15 +70,9 @@ struct Bucket {
 /// ```
 #[derive(Clone, Debug)]
 pub struct SlidingWindowCounter {
-    /// Buckets ordered by timestamp (newest first)
-    buckets: Vec<Bucket>,
-    /// Window size in time units
-    window_size: u64,
-    /// Error bound (epsilon)
-    epsilon: f64,
-    /// Maximum buckets per level (k = ceil(1/epsilon))
-    k: usize,
-    /// Total count (may include expired items)
+    /// Shared Exponential Histogram bucket engine.
+    core: EhCore,
+    /// Total count ever recorded (may include expired items).
     total: u64,
 }
 
@@ -111,42 +97,20 @@ impl SlidingWindowCounter {
     /// let counter = SlidingWindowCounter::new(3600, 0.05).unwrap();
     /// ```
     pub fn new(window_size: u64, epsilon: f64) -> Result<Self, SketchError> {
-        if window_size == 0 {
-            return Err(SketchError::InvalidParameter {
-                param: "window_size".to_string(),
-                value: "0".to_string(),
-                constraint: "must be > 0".to_string(),
-            });
-        }
-
-        if epsilon <= 0.0 || epsilon >= 1.0 {
-            return Err(SketchError::InvalidParameter {
-                param: "epsilon".to_string(),
-                value: epsilon.to_string(),
-                constraint: "must be in (0, 1)".to_string(),
-            });
-        }
-
-        // k = ceil(1/epsilon) determines max buckets per level
-        let k = (1.0 / epsilon).ceil() as usize;
-
         Ok(SlidingWindowCounter {
-            buckets: Vec::new(),
-            window_size,
-            epsilon,
-            k,
+            core: EhCore::new(window_size, epsilon)?,
             total: 0,
         })
     }
 
     /// Returns the window size
     pub fn window_size(&self) -> u64 {
-        self.window_size
+        self.core.window_size
     }
 
     /// Returns the error bound
     pub fn epsilon(&self) -> f64 {
-        self.epsilon
+        self.core.epsilon
     }
 
     /// Increments the counter at the given timestamp
@@ -178,72 +142,8 @@ impl SlidingWindowCounter {
         if count == 0 {
             return;
         }
-
         self.total += count;
-
-        // Add new bucket(s) for the count
-        // We need to decompose count into powers of 2
-        let mut remaining = count;
-        while remaining > 0 {
-            // Find the largest power of 2 <= remaining
-            let power = 63 - remaining.leading_zeros();
-            let bucket_count = 1u64 << power;
-
-            self.buckets.insert(
-                0,
-                Bucket {
-                    timestamp,
-                    count: bucket_count,
-                },
-            );
-
-            remaining -= bucket_count;
-        }
-
-        // Merge buckets if needed to maintain invariant
-        self.merge_buckets();
-    }
-
-    /// Merges buckets to maintain the exponential histogram invariant
-    /// (at most k+1 buckets of each size, except possibly the largest)
-    fn merge_buckets(&mut self) {
-        if self.buckets.len() < 2 {
-            return;
-        }
-
-        // Process from smallest to largest buckets
-        // Group buckets by their count (power of 2)
-        let mut i = 0;
-        while i < self.buckets.len() {
-            let current_count = self.buckets[i].count;
-
-            // Count consecutive buckets with same count
-            let mut same_count = 1;
-            while i + same_count < self.buckets.len()
-                && self.buckets[i + same_count].count == current_count
-            {
-                same_count += 1;
-            }
-
-            // If too many buckets of this size, merge the oldest two
-            while same_count > self.k + 1 {
-                // Merge the two oldest (last in this group)
-                let merge_idx = i + same_count - 2;
-                let older_timestamp = self.buckets[merge_idx + 1].timestamp;
-
-                // Create merged bucket with double count
-                self.buckets[merge_idx] = Bucket {
-                    timestamp: older_timestamp,
-                    count: current_count * 2,
-                };
-
-                // Remove the oldest of the pair
-                self.buckets.remove(merge_idx + 1);
-                same_count -= 1;
-            }
-
-            i += same_count;
-        }
+        self.core.insert(timestamp, count);
     }
 
     /// Returns the approximate count within the window ending at the given timestamp
@@ -269,29 +169,8 @@ impl SlidingWindowCounter {
     /// assert!(counter.count(100) >= 1);
     /// ```
     pub fn count(&self, current_time: u64) -> u64 {
-        let window_start = current_time.saturating_sub(self.window_size);
-
-        let mut total = 0u64;
-        let mut last_partial = 0u64;
-
-        for bucket in &self.buckets {
-            if bucket.timestamp > current_time {
-                // Future bucket, skip
-                continue;
-            }
-
-            if bucket.timestamp >= window_start {
-                // Fully within window
-                total += bucket.count;
-            } else {
-                // Partially outside window - this is the oldest relevant bucket
-                // We count half of it (approximation)
-                last_partial = bucket.count / 2;
-                break;
-            }
-        }
-
-        total + last_partial
+        // Estimate = full in-window buckets + half the straddling bucket.
+        self.core.count_with_bounds(current_time).0
     }
 
     /// Returns the count for a specific time range
@@ -301,21 +180,7 @@ impl SlidingWindowCounter {
     /// * `start` - Start of the range (inclusive)
     /// * `end` - End of the range (inclusive)
     pub fn count_range(&self, start: u64, end: u64) -> u64 {
-        let mut total = 0u64;
-
-        for bucket in &self.buckets {
-            if bucket.timestamp > end {
-                continue;
-            }
-            if bucket.timestamp < start {
-                // Partially before range
-                total += bucket.count / 2;
-                break;
-            }
-            total += bucket.count;
-        }
-
-        total
+        self.core.count_range(start, end)
     }
 
     /// Expires old buckets outside the window
@@ -326,57 +191,44 @@ impl SlidingWindowCounter {
     ///
     /// * `current_time` - The current time
     pub fn expire(&mut self, current_time: u64) {
-        let window_start = current_time.saturating_sub(self.window_size);
-
-        // Remove buckets entirely outside the window
-        // Keep one bucket that might be partially in the window
-        let mut found_outside = false;
-        self.buckets.retain(|bucket| {
-            if bucket.timestamp >= window_start {
-                true
-            } else if !found_outside {
-                found_outside = true;
-                true // Keep one partial bucket
-            } else {
-                false
-            }
-        });
+        self.core.expire(current_time);
     }
 
     /// Clears all buckets
     pub fn clear(&mut self) {
-        self.buckets.clear();
+        self.core.clear();
         self.total = 0;
     }
 
     /// Returns the number of buckets (for diagnostics)
     pub fn num_buckets(&self) -> usize {
-        self.buckets.len()
+        self.core.num_buckets()
     }
 
     /// Returns the theoretical error bound
     ///
     /// The actual count is within (1 ± epsilon) * returned_count
     pub fn error_bound(&self) -> f64 {
-        self.epsilon
+        self.core.epsilon
     }
 
     /// Returns memory usage in bytes (approximate)
     pub fn memory_usage(&self) -> usize {
-        std::mem::size_of::<Self>() + self.buckets.len() * std::mem::size_of::<Bucket>()
+        std::mem::size_of::<Self>() + self.core.num_buckets() * std::mem::size_of::<EhBucket>()
     }
 
     /// Serializes the counter to bytes
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
-        bytes.extend_from_slice(&self.window_size.to_le_bytes());
-        bytes.extend_from_slice(&self.epsilon.to_le_bytes());
-        bytes.extend_from_slice(&(self.k as u64).to_le_bytes());
+        // Format unchanged across the EhCore refactor for FFI compatibility.
+        bytes.extend_from_slice(&self.core.window_size.to_le_bytes());
+        bytes.extend_from_slice(&self.core.epsilon.to_le_bytes());
+        bytes.extend_from_slice(&(self.core.k as u64).to_le_bytes());
         bytes.extend_from_slice(&self.total.to_le_bytes());
-        bytes.extend_from_slice(&(self.buckets.len() as u64).to_le_bytes());
+        bytes.extend_from_slice(&(self.core.num_buckets() as u64).to_le_bytes());
 
-        for bucket in &self.buckets {
+        for bucket in &self.core.buckets {
             bytes.extend_from_slice(&bucket.timestamp.to_le_bytes());
             bytes.extend_from_slice(&bucket.count.to_le_bytes());
         }
@@ -394,7 +246,7 @@ impl SlidingWindowCounter {
 
         let window_size = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
         let epsilon = f64::from_le_bytes(bytes[8..16].try_into().unwrap());
-        let k = u64::from_le_bytes(bytes[16..24].try_into().unwrap()) as usize;
+        // bytes[16..24] held `k`; it is recomputed from epsilon by EhCore.
         let total = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
         let num_buckets = u64::from_le_bytes(bytes[32..40].try_into().unwrap()) as usize;
 
@@ -413,15 +265,12 @@ impl SlidingWindowCounter {
         for _ in 0..num_buckets {
             let timestamp = u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
             let count = u64::from_le_bytes(bytes[offset + 8..offset + 16].try_into().unwrap());
-            buckets.push(Bucket { timestamp, count });
+            buckets.push(EhBucket { timestamp, count });
             offset += 16;
         }
 
         Ok(SlidingWindowCounter {
-            buckets,
-            window_size,
-            epsilon,
-            k,
+            core: EhCore::from_parts(window_size, epsilon, buckets),
             total,
         })
     }

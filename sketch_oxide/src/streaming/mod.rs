@@ -8,6 +8,7 @@
 //! - [`ExponentialHistogram`]: Enhanced exponential histogram with formal error bounds
 //! - [`SlidingHyperLogLog`]: Time-windowed cardinality estimation with HyperLogLog
 
+mod eh_core;
 mod exponential_histogram;
 mod sliding_hll;
 mod sliding_window;

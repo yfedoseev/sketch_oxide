@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Development toward holistic 2026 coverage. See the phased roadmap (internal) for the
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
+### Internal / Infrastructure
+- **Unified Exponential Histogram engine.** `ExponentialHistogram` and
+  `SlidingWindowCounter` were two near-duplicate implementations of the Datar 2002
+  EH algorithm; both now delegate to one shared `EhCore` bucket engine (the substrate
+  for upcoming windowed sketches — ECM-Sketch, APBF, EH-of-sketch aggregation). Public
+  APIs and serialization formats are unchanged. `SlidingWindowCounter` picks up the more
+  robust canonical-form compression as a side effect.
+
 ### Changed
 - **Reconciliation: `RatelessIBLT` renamed to `Iblt`.** The old name was a misnomer —
   this is a classic fixed-rate Invertible Bloom Lookup Table, not the SIGCOMM 2024
