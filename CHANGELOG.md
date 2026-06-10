@@ -22,6 +22,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   full set operations that fold summaries. Built on the `ThetaCore<S>` substrate;
   `estimated_column_sums()` scales the retained sample up to a population estimate. Closes the
   biggest functional gap vs DataSketches.
+- **`frequency::TowerSketch` — tiered-width Count-Min.** Stacks 8/16/32-bit counter rows at
+  equal bytes per row (so the narrow row holds 4× the counters): the long tail packs into the
+  8-bit row while heavy keys are carried by the wider rows. Estimate is the min over
+  non-saturated rows, preserving Count-Min's no-underestimate guarantee at lower memory for
+  skewed data.
 - **`graph` module with `TcmSketch` (graph-stream summary).** A Count-Min sketch over graph
   *edges*: `depth` independent `width×width` matrices answer edge-weight, out-degree, and
   in-degree queries in sublinear space (Tang et al., SIGMOD 2016). Mergeable and serializable.
