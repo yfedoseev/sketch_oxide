@@ -89,6 +89,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   and `SumDoubles` (ArrayOfDoubles-style, element-wise sum). `ThetaSketch` is now a thin
   wrapper over `ThetaCore<NoSummary>` — identical public API and estimates (hashing stays
   in the wrapper). This is the substrate the Tuple Sketch builds on.
+- **`learned::SandwichedLearnedBloom` — sandwiched learned Bloom filter.** Wraps an oracle
+  between an initial and a backup Bloom filter (Mitzenmacher, NeurIPS 2018): the initial
+  filter screens true negatives, the model classifies survivors, and the backup holds the
+  positives the model misses — so there are **no false negatives**. Static filter built from a
+  positive set + trained oracle; independent internal filters.
 - **`learned::LearnedCountMin` — oracle-augmented frequency sketch.** Routes oracle-predicted
   heavy keys to an exact side-table and everything else to a Count-Min back-end, removing the
   heavy-key collision error that dominates plain Count-Min (Hsu et al., ICLR 2019). First
