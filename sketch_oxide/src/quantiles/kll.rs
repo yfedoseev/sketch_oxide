@@ -395,6 +395,8 @@ impl KllSketch {
     }
 
     /// Serializes the KLL Sketch to bytes
+    // Takes `&mut self` because serialization compacts buffers lazily first.
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_bytes(&mut self) -> Vec<u8> {
         self.ensure_sorted();
 

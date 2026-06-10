@@ -257,19 +257,17 @@ impl CpcSketch {
         // Simplified flavor transition logic
         // Full implementation would have more sophisticated thresholds
         match self.flavor {
-            Flavor::Hybrid => {
+            Flavor::Hybrid
                 // Transition to Pinned when we have many surprising values
-                if self.surprising_values.len() as u32 > self.k / 2 {
+                if self.surprising_values.len() as u32 > self.k / 2 => {
                     self.flavor = Flavor::Pinned;
                 }
-            }
-            Flavor::Pinned => {
+            Flavor::Pinned
                 // Transition to Sliding when window is full enough
                 // This is where compression kicks in
-                if self.surprising_values.len() as u32 > (3 * self.k) / 4 {
+                if self.surprising_values.len() as u32 > (3 * self.k) / 4 => {
                     self.flavor = Flavor::Sliding;
                 }
-            }
             _ => {}
         }
     }

@@ -484,6 +484,8 @@ impl TDigest {
     }
 
     /// Serializes the T-Digest to bytes
+    // Takes `&mut self` because serialization processes buffered points first.
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_bytes(&mut self) -> Vec<u8> {
         self.flush();
 

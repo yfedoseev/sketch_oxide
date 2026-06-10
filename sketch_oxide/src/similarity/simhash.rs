@@ -325,6 +325,8 @@ impl SimHash {
     }
 
     /// Serializes the SimHash to bytes
+    // Takes `&mut self` to finalize internal state before serialization.
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_bytes(&mut self) -> Vec<u8> {
         let fp = self.fingerprint();
         let mut bytes = Vec::with_capacity(8 + 8 + 1 + Self::BITS * 8);

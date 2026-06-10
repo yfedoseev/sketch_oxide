@@ -41,6 +41,7 @@ use crate::frequency::CountMinSketch;
 /// Wraps CountMinSketch to provide adaptive counter management. When frequencies
 /// approach overflow, SALSA automatically adjusts parameters to maintain accuracy.
 #[derive(Clone, Debug)]
+#[allow(clippy::upper_case_acronyms)] // SALSA is the published algorithm name
 pub struct SALSA {
     /// Inner CountMinSketch for frequency estimation
     inner: CountMinSketch,

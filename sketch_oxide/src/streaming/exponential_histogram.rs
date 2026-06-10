@@ -949,7 +949,8 @@ impl Mergeable for ExponentialHistogram {
         self.last_timestamp = self.last_timestamp.max(other.last_timestamp);
 
         // Sort by timestamp (newest first) for consistent ordering
-        self.buckets.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        self.buckets
+            .sort_by_key(|bucket| std::cmp::Reverse(bucket.timestamp));
 
         // Compress to maintain invariant
         self.compress();

@@ -335,7 +335,7 @@ impl<T: Hash + Eq + Clone> SpaceSaving<T> {
             .collect();
 
         // Sort by upper bound (count) descending
-        result.sort_by(|a, b| b.2.cmp(&a.2));
+        result.sort_by_key(|e| std::cmp::Reverse(e.2));
         result
     }
 
@@ -374,7 +374,7 @@ impl<T: Hash + Eq + Clone> SpaceSaving<T> {
             .collect();
 
         // Sort by upper bound (count) descending
-        result.sort_by(|a, b| b.2.cmp(&a.2));
+        result.sort_by_key(|e| std::cmp::Reverse(e.2));
         result.truncate(k);
         result
     }

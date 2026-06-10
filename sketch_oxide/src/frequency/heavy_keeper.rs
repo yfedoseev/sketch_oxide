@@ -339,7 +339,7 @@ impl HeavyKeeper {
             .collect();
 
         // Sort by count descending
-        entries.sort_by(|a, b| b.1.cmp(&a.1));
+        entries.sort_by_key(|e| std::cmp::Reverse(e.1));
 
         entries
     }
@@ -558,7 +558,7 @@ impl HeavyKeeper {
         }
 
         // Sort by count descending and take top k
-        candidates.sort_by(|a, b| b.0.cmp(&a.0));
+        candidates.sort_by_key(|e| std::cmp::Reverse(e.0));
         candidates.truncate(self.k);
 
         // Populate heap

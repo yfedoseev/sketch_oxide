@@ -96,6 +96,7 @@ use crate::common::{hash::xxhash, RangeFilter, SketchError};
 /// println!("Segments: {}, Space: {} bits", stats.segment_count, stats.total_bits);
 /// ```
 #[derive(Clone, Debug)]
+#[allow(clippy::upper_case_acronyms)] // GRF is the published algorithm name
 pub struct GRF {
     /// Sorted unique keys in the filter
     keys: Vec<u64>,
