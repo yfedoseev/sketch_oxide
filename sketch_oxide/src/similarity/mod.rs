@@ -19,9 +19,11 @@
 pub mod bbit_minhash;
 pub mod minhash;
 pub mod minhash_lsh;
+pub mod oph;
 pub mod simhash;
 
 pub use bbit_minhash::BBitMinHash;
 pub use minhash::MinHash;
 pub use minhash_lsh::MinHashLsh;
+pub use oph::OnePermutationHash;
 pub use simhash::SimHash;

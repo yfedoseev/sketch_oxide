@@ -74,6 +74,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   low `b` bits of each MinHash minimum, bit-packed, shrinking signatures up to 64× (`b=1`) at
   a quantified accuracy cost. Jaccard is recovered with the Li–König estimator
   `(P − 2^-b)/(1 − 2^-b)`. The regime that matters at trillion-token dedup scale.
+- **`similarity::OnePermutationHash` — OPH MinHash with densification.** Builds MinHash
+  signatures in O(1)-amortized per element (one hash split into `k` bins) instead of MinHash's
+  O(k), with rotation densification filling bins left empty by sparse inputs (Li et al.,
+  NeurIPS 2012; Shrivastava & Li). Estimates Jaccard as the fraction of agreeing bins — the
+  default fast path for large-scale dedup. `update`/`signature`/`jaccard`.
 - **`similarity::MinHashLsh` — LSH banding index for near-duplicate search.** Turns MinHash
   from a pairwise *scorer* into a sublinear near-duplicate *search/dedup* engine: split each
   `b·r` signature into `b` bands, index by band buckets, and a query returns the small
