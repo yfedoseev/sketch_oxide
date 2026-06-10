@@ -58,6 +58,10 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   maintained incrementally during inserts. Returns `None` after `merge` or deserialization
   (which destroy the single-stream history HIP requires); use `estimate()` there.
   Serialization formats unchanged.
+- **`privacy::DpCountMin` — differentially private Count-Min.** Build a Count-Min sketch
+  exactly, then `privatize(ε, rng)` releases a `PrivateCountMin` with discrete-Laplace noise
+  (scale `depth/ε`, matching the L1 sensitivity) added to every counter; point queries are
+  then `ε`-DP by post-processing. First consumer of the `privacy` substrate.
 - **`privacy` module — differential-privacy substrate.** `privacy::mechanisms` ships the
   **discrete** Laplace and Gaussian mechanisms (Canonne–Kamath–Steinke exact samplers, so
   floating-point rounding cannot break the guarantee — unlike naive continuous Laplace),
