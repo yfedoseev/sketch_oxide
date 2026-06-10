@@ -130,6 +130,81 @@ impl ForwardDecay {
     }
 }
 
+/// Polynomial forward-decay aggregator, `g(x) = (x − landmark)^β`.
+///
+/// Unlike the exponential variant, polynomial decay uses a **fixed** landmark (e.g. the
+/// stream's start), so weights grow only polynomially in time — recent data is emphasised
+/// gently and old data never fully vanishes. Good for "weight by recency but keep history"
+/// aggregates. Accumulators grow as `t^β`; for very long streams with large `β` prefer the
+/// exponential variant to avoid overflow.
+#[derive(Debug, Clone)]
+pub struct PolynomialForwardDecay {
+    beta: f64,
+    landmark: u64,
+    weight: f64,
+    weighted_sum: f64,
+    count: u64,
+}
+
+impl PolynomialForwardDecay {
+    /// Creates a polynomial-decay aggregator with exponent `beta` and origin `landmark`
+    /// (the time from which age is measured; usually the stream start).
+    ///
+    /// # Errors
+    /// [`SketchError::InvalidParameter`] if `beta` is not finite and positive.
+    pub fn new(beta: f64, landmark: u64) -> Result<Self> {
+        if !beta.is_finite() || beta <= 0.0 {
+            return Err(SketchError::InvalidParameter {
+                param: "beta".to_string(),
+                value: beta.to_string(),
+                constraint: "must be a finite value > 0".to_string(),
+            });
+        }
+        Ok(Self {
+            beta,
+            landmark,
+            weight: 0.0,
+            weighted_sum: 0.0,
+            count: 0,
+        })
+    }
+
+    /// Records `value` observed at `timestamp` (must be `>=` the landmark; earlier
+    /// timestamps are recorded at the landmark, weight `0`).
+    pub fn update(&mut self, value: f64, timestamp: u64) {
+        self.count += 1;
+        let age = timestamp.saturating_sub(self.landmark) as f64;
+        let w = age.powf(self.beta);
+        self.weight += w;
+        self.weighted_sum += value * w;
+    }
+
+    /// Decayed count as of `now`: `Σ g(t_i − L) / g(now − L)`.
+    pub fn decayed_count(&self, now: u64) -> f64 {
+        let denom = (now.saturating_sub(self.landmark) as f64).powf(self.beta);
+        if denom == 0.0 {
+            0.0
+        } else {
+            self.weight / denom
+        }
+    }
+
+    /// Decay-weighted average value (landmark-independent). `None` if empty or all weights
+    /// are zero (e.g. only the landmark instant was observed).
+    pub fn average(&self) -> Option<f64> {
+        if self.weight == 0.0 {
+            None
+        } else {
+            Some(self.weighted_sum / self.weight)
+        }
+    }
+
+    /// Total number of updates (undecayed).
+    pub fn count(&self) -> u64 {
+        self.count
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -196,5 +271,44 @@ mod tests {
             after > before && after < before + 1.0,
             "before {before} after {after}"
         );
+    }
+
+    #[test]
+    fn polynomial_rejects_bad_beta() {
+        assert!(PolynomialForwardDecay::new(0.0, 0).is_err());
+        assert!(PolynomialForwardDecay::new(-1.0, 0).is_err());
+        assert!(PolynomialForwardDecay::new(2.0, 0).is_ok());
+    }
+
+    #[test]
+    fn polynomial_recent_weighs_more() {
+        let mut d = PolynomialForwardDecay::new(2.0, 0).unwrap();
+        // Value 1 at time 10 (age 10, weight 100) vs value 1 at time 100 (age 100, w 10000).
+        d.update(1.0, 10);
+        d.update(1.0, 100);
+        // Decayed count at now=100: (100 + 10000) / 100^2 = 10100/10000 = 1.01.
+        let c = d.decayed_count(100);
+        assert!((c - 1.01).abs() < 1e-6, "decayed count {c}");
+    }
+
+    #[test]
+    fn polynomial_average_recency_weighted() {
+        let mut d = PolynomialForwardDecay::new(2.0, 0).unwrap();
+        d.update(0.0, 10); // small weight
+        d.update(100.0, 100); // large weight
+        let avg = d.average().unwrap();
+        assert!(avg > 99.0, "recency-weighted average {avg}");
+    }
+
+    #[test]
+    fn polynomial_grows_slower_than_exponential() {
+        // Polynomial keeps more history: decayed count of many old items stays substantial.
+        let mut d = PolynomialForwardDecay::new(1.0, 0).unwrap();
+        for t in 1..=1000u64 {
+            d.update(1.0, t);
+        }
+        let c = d.decayed_count(1000);
+        // Σ t for t=1..1000 = 500500; / 1000 = 500.5 -> retains ~half the linear-weighted mass.
+        assert!(c > 400.0, "polynomial retains history: {c}");
     }
 }
