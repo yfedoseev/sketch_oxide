@@ -14,6 +14,7 @@ mod eh_core;
 mod exponential_histogram;
 mod forward_decay;
 mod sliding_hll;
+mod sliding_sketch;
 mod sliding_window;
 mod windowed_aggregator;
 
@@ -22,6 +23,7 @@ pub use ecm_sketch::EcmSketch;
 pub use exponential_histogram::ExponentialHistogram;
 pub use forward_decay::{ForwardDecay, PolynomialForwardDecay};
 pub use sliding_hll::{SlidingHLLStats, SlidingHyperLogLog};
+pub use sliding_sketch::SlidingSketch;
 pub use sliding_window::SlidingWindowCounter;
 pub use windowed_aggregator::WindowedAggregator;
 
