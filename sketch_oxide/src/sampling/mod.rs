@@ -19,10 +19,12 @@
 //! - **Reservoir**: Uniform sampling, all items equally likely
 //! - **VarOpt**: Weighted sampling, higher-weight items more likely
 
+pub mod l0_sampler;
 pub mod reservoir;
 pub mod varopt;
 pub mod weighted_reservoir;
 
+pub use l0_sampler::L0Sampler;
 pub use reservoir::ReservoirSampling;
 pub use varopt::VarOptSampling;
 pub use weighted_reservoir::WeightedReservoirSampling;

@@ -84,6 +84,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   `b·r` signature into `b` bands, index by band buckets, and a query returns the small
   candidate set sharing a band (S-curve threshold `(1/b)^(1/r)`). Generic over the item id;
   signature-source agnostic.
+- **`sampling::L0Sampler` — turnstile (deletion-capable) uniform sampler.** Returns a
+  near-uniform random element from the support of a fully dynamic stream — insertions *and
+  deletions* — via geometric levels of 1-sparse recovery (Cormode & Firmani, 2014). The
+  canonical deletion-capable sampler and the primitive behind graph sketching and dynamic
+  dedup. `insert`/`delete`/`update`/`sample`.
 - **`sampling::WeightedReservoirSampling` — weighted reservoir (Efraimidis–Spirakis A-Res).**
   One-pass, bounded-memory weighted sampling without replacement: each item's chance of being
   kept scales with its weight (key `u^(1/w)`, keep top-`k`). Generic over the item type,
