@@ -12,10 +12,12 @@ mod eh_core;
 mod exponential_histogram;
 mod sliding_hll;
 mod sliding_window;
+mod windowed_aggregator;
 
 pub use exponential_histogram::ExponentialHistogram;
 pub use sliding_hll::{SlidingHLLStats, SlidingHyperLogLog};
 pub use sliding_window::SlidingWindowCounter;
+pub use windowed_aggregator::WindowedAggregator;
 
 #[cfg(test)]
 mod tests {

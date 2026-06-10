@@ -11,6 +11,13 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`streaming::WindowedAggregator<S>` — sliding-window aggregation over any `Mergeable`
+  sketch.** Keep the last `W` per-pane sketches and query the merge of everything in the
+  window — windowed Theta/CPC/HLL/KLL/t-digest/Count-Min with no per-sketch windowing
+  code. Uses the two-stack FIFO monoid aggregator (O(1) push, O(1) amortized evict, O(1)
+  query; FIFO-order-correct for any associative merge). Count-based panes today; drive it
+  from `common::time` for time windows. DABA/FiBA worst-case + out-of-order variants land
+  later.
 - **`common::time` — shared time/watermark convention** for windowed and time-decayed
   sketches. Defines `Timestamp` (caller-chosen `u64` units, no hidden wall clock),
   `TimeDomain` (event vs processing time), a monotonic `Watermark` with configurable
