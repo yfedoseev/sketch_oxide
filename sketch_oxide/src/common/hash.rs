@@ -6,6 +6,75 @@
 use std::hash::{Hash, Hasher};
 use twox_hash::XxHash64;
 
+/// Seed used to derive a [`Salt`] from arbitrary key material.
+const SALT_DERIVATION_SEED: u64 = 0x5361_6c74_4465_7276; // "SaltDerv"
+
+/// A secret salt for keyed, adversarially-robust hashing.
+///
+/// Plain seeded hashing (e.g. [`xxhash`]) is deterministic and public: an adversary who
+/// knows the seed can craft inputs that collide in a sketch's cells, degrading its
+/// accuracy, or probe a cardinality sketch to extract its parameters. Mixing a *secret*
+/// salt into the hash closes that gap — outputs become unpredictable without the salt.
+///
+/// # Policy
+///
+/// - **Opt-in.** Sketches hash without a salt by default so results stay reproducible
+///   across runs and across language bindings. Pass a salt only when you need robustness
+///   against adversarial inputs or per-tenant isolation.
+/// - **Stable for a sketch's lifetime.** The same salt must be used for every operation on
+///   a sketch, and any sketches merged together must share the same salt — otherwise their
+///   cells are not comparable.
+/// - **Keep it secret.** For real robustness draw the secret from a CSPRNG (e.g. via the
+///   privacy module's randomness) and never derive it from attacker-visible data. A salt
+///   the attacker can guess provides no protection.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Salt(u64);
+
+impl Salt {
+    /// Creates a salt from a 64-bit secret.
+    #[inline]
+    pub const fn new(secret: u64) -> Self {
+        Self(secret)
+    }
+
+    /// Derives a salt from arbitrary secret key material (e.g. a passphrase or token).
+    pub fn from_bytes(key_material: &[u8]) -> Self {
+        Self(xxhash(key_material, SALT_DERIVATION_SEED))
+    }
+
+    /// The raw 64-bit secret.
+    #[inline]
+    pub const fn value(self) -> u64 {
+        self.0
+    }
+}
+
+/// Keyed 64-bit hash: a function of `data`, a `seed` (for independent hash functions),
+/// and a secret [`Salt`].
+///
+/// Use in place of [`xxhash`] when adversarial robustness is required. The construction is
+/// endianness-stable (the seed is mixed in as little-endian bytes), so it is reproducible
+/// across platforms and language bindings given the same salt.
+///
+/// Note that `keyed_hash(data, seed, Salt::new(0))` is *not* equal to `xxhash(data, seed)`
+/// — keyed hashing is a distinct, opt-in construction.
+///
+/// # Examples
+/// ```
+/// use sketch_oxide::common::hash::{keyed_hash, Salt};
+///
+/// let salt = Salt::from_bytes(b"per-tenant-secret");
+/// let h0 = keyed_hash(b"user-42", 0, salt);
+/// let h1 = keyed_hash(b"user-42", 1, salt); // independent hash function
+/// assert_ne!(h0, h1);
+/// ```
+pub fn keyed_hash(data: &[u8], seed: u64, salt: Salt) -> u64 {
+    let mut hasher = XxHash64::with_seed(salt.0);
+    hasher.write(&seed.to_le_bytes());
+    hasher.write(data);
+    hasher.finish()
+}
+
 /// MurmurHash3 32-bit implementation
 ///
 /// MurmurHash3 is a non-cryptographic hash function designed by Austin Appleby.
@@ -186,5 +255,44 @@ mod tests {
     fn test_hash_value_basic() {
         let hash = hash_value(&42u64, 0);
         assert!(hash > 0);
+    }
+
+    #[test]
+    fn keyed_hash_is_deterministic() {
+        let salt = Salt::new(0xDEAD_BEEF);
+        assert_eq!(keyed_hash(b"hello", 3, salt), keyed_hash(b"hello", 3, salt));
+    }
+
+    #[test]
+    fn keyed_hash_varies_with_salt_seed_and_data() {
+        let a = Salt::new(1);
+        let b = Salt::new(2);
+        assert_ne!(
+            keyed_hash(b"x", 0, a),
+            keyed_hash(b"x", 0, b),
+            "salt matters"
+        );
+        assert_ne!(
+            keyed_hash(b"x", 0, a),
+            keyed_hash(b"x", 1, a),
+            "seed matters"
+        );
+        assert_ne!(
+            keyed_hash(b"x", 0, a),
+            keyed_hash(b"y", 0, a),
+            "data matters"
+        );
+    }
+
+    #[test]
+    fn keyed_hash_differs_from_plain_xxhash() {
+        // Salt 0 is still the keyed construction, not bare xxhash.
+        assert_ne!(keyed_hash(b"abc", 0, Salt::new(0)), xxhash(b"abc", 0));
+    }
+
+    #[test]
+    fn salt_from_bytes_is_stable() {
+        assert_eq!(Salt::from_bytes(b"secret"), Salt::from_bytes(b"secret"));
+        assert_ne!(Salt::from_bytes(b"secret"), Salt::from_bytes(b"other"));
     }
 }

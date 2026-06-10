@@ -8,6 +8,7 @@ mod types;
 pub mod validation;
 
 pub use error::{Result, SketchError};
+pub use hash::{keyed_hash, Salt};
 pub use time::{Admission, LateDataPolicy, Temporal, TimeDomain, Timestamp, Watermark};
 pub use traits::{Mergeable, RangeFilter, Reconcilable, Sketch, WindowedSketch};
 pub use types::SetDifference;

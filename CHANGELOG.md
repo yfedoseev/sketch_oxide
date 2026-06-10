@@ -11,6 +11,12 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **Keyed/salted hashing (`common::hash::keyed_hash`, `Salt`)** — opt-in adversarially
+  robust hashing for sketches. A secret `Salt` mixed into the hash makes outputs
+  unpredictable, defending against crafted-collision and HLL parameter-extraction attacks.
+  Endianness-stable (reproducible across platforms/bindings given the same salt); plain
+  seeded hashing remains the default for reproducibility. Per-sketch wiring lands with the
+  DP cardinality wrapper that consumes it.
 - **`streaming::WindowedAggregator<S>` — sliding-window aggregation over any `Mergeable`
   sketch.** Keep the last `W` per-pane sketches and query the merge of everything in the
   window — windowed Theta/CPC/HLL/KLL/t-digest/Count-Min with no per-sketch windowing
