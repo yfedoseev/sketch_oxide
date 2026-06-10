@@ -143,6 +143,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   and `SumDoubles` (ArrayOfDoubles-style, element-wise sum). `ThetaSketch` is now a thin
   wrapper over `ThetaCore<NoSummary>` — identical public API and estimates (hashing stays
   in the wrapper). This is the substrate the Tuple Sketch builds on.
+- **`learned::FeatureHasher` — feature hashing (the hashing trick).** Maps an unbounded
+  string-keyed feature space into a fixed-dimension vector with no vocabulary (Weinberger et
+  al., ICML 2009): each feature hashes to a coordinate and a ±1 sign, values accumulate, and
+  collisions cancel in expectation so inner products are preserved. The standard input layer
+  for online learning (VW) and the scikit-learn `FeatureHasher`. `add`/`vector`/`transform`.
 - **`learned::SandwichedLearnedBloom` — sandwiched learned Bloom filter.** Wraps an oracle
   between an initial and a backup Bloom filter (Mitzenmacher, NeurIPS 2018): the initial
   filter screens true negatives, the model classifies survivors, and the backup holds the

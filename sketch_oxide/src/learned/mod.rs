@@ -12,10 +12,12 @@
 //! it — PLBF / Fast-PLBF, Sandwiched and Ada-BF learned Bloom filters, learned Count-Min /
 //! Count-Sketch, learning-augmented Misra-Gries — land in later roadmap waves.
 
+mod feature_hashing;
 mod learned_count_min;
 pub mod oracle;
 mod sandwiched_bloom;
 
+pub use feature_hashing::FeatureHasher;
 pub use learned_count_min::LearnedCountMin;
 pub use oracle::{ClosureOracle, Oracle, PrecomputedOracle, Score};
 pub use sandwiched_bloom::SandwichedLearnedBloom;
