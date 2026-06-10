@@ -717,7 +717,10 @@ pub unsafe extern "C" fn vacuum_filter_clear(ptr: *mut VacuumFilter) {
 // Membership - BloomFilter
 // ============================================================================
 
-use sketch_oxide::membership::{BloomFilter, BlockedBloomFilter, CountingBloomFilter, CuckooFilter, RibbonFilter, StableBloomFilter};
+use sketch_oxide::membership::{
+    BlockedBloomFilter, BloomFilter, CountingBloomFilter, CuckooFilter, RibbonFilter,
+    StableBloomFilter,
+};
 
 /// Creates a new BloomFilter
 #[no_mangle]
@@ -746,7 +749,11 @@ pub unsafe extern "C" fn bloom_insert(ptr: *mut BloomFilter, data: *const u8, le
 
 /// Checks if an element may be in BloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn bloom_contains(ptr: *const BloomFilter, data: *const u8, len: usize) -> bool {
+pub unsafe extern "C" fn bloom_contains(
+    ptr: *const BloomFilter,
+    data: *const u8,
+    len: usize,
+) -> bool {
     if ptr.is_null() || data.is_null() {
         return false;
     }
@@ -756,7 +763,10 @@ pub unsafe extern "C" fn bloom_contains(ptr: *const BloomFilter, data: *const u8
 
 /// Serializes a BloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn bloom_serialize(_ptr: *const BloomFilter, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn bloom_serialize(
+    _ptr: *const BloomFilter,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
@@ -787,7 +797,11 @@ pub unsafe extern "C" fn blockedbloom_free(ptr: *mut BlockedBloomFilter) {
 
 /// Inserts an element into BlockedBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn blockedbloom_insert(ptr: *mut BlockedBloomFilter, data: *const u8, len: usize) {
+pub unsafe extern "C" fn blockedbloom_insert(
+    ptr: *mut BlockedBloomFilter,
+    data: *const u8,
+    len: usize,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -797,7 +811,11 @@ pub unsafe extern "C" fn blockedbloom_insert(ptr: *mut BlockedBloomFilter, data:
 
 /// Checks if an element may be in BlockedBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn blockedbloom_contains(ptr: *const BlockedBloomFilter, data: *const u8, len: usize) -> bool {
+pub unsafe extern "C" fn blockedbloom_contains(
+    ptr: *const BlockedBloomFilter,
+    data: *const u8,
+    len: usize,
+) -> bool {
     if ptr.is_null() || data.is_null() {
         return false;
     }
@@ -807,13 +825,19 @@ pub unsafe extern "C" fn blockedbloom_contains(ptr: *const BlockedBloomFilter, d
 
 /// Serializes a BlockedBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn blockedbloom_serialize(_ptr: *const BlockedBloomFilter, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn blockedbloom_serialize(
+    _ptr: *const BlockedBloomFilter,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes a BlockedBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn blockedbloom_deserialize(_data: *const u8, _len: usize) -> *mut BlockedBloomFilter {
+pub unsafe extern "C" fn blockedbloom_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut BlockedBloomFilter {
     std::ptr::null_mut()
 }
 
@@ -838,7 +862,11 @@ pub unsafe extern "C" fn countingbloom_free(ptr: *mut CountingBloomFilter) {
 
 /// Inserts an element into CountingBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn countingbloom_insert(ptr: *mut CountingBloomFilter, data: *const u8, len: usize) {
+pub unsafe extern "C" fn countingbloom_insert(
+    ptr: *mut CountingBloomFilter,
+    data: *const u8,
+    len: usize,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -848,7 +876,11 @@ pub unsafe extern "C" fn countingbloom_insert(ptr: *mut CountingBloomFilter, dat
 
 /// Checks if an element may be in CountingBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn countingbloom_contains(ptr: *const CountingBloomFilter, data: *const u8, len: usize) -> bool {
+pub unsafe extern "C" fn countingbloom_contains(
+    ptr: *const CountingBloomFilter,
+    data: *const u8,
+    len: usize,
+) -> bool {
     if ptr.is_null() || data.is_null() {
         return false;
     }
@@ -858,7 +890,11 @@ pub unsafe extern "C" fn countingbloom_contains(ptr: *const CountingBloomFilter,
 
 /// Removes an element from CountingBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn countingbloom_remove(ptr: *mut CountingBloomFilter, data: *const u8, len: usize) -> bool {
+pub unsafe extern "C" fn countingbloom_remove(
+    ptr: *mut CountingBloomFilter,
+    data: *const u8,
+    len: usize,
+) -> bool {
     if ptr.is_null() || data.is_null() {
         return false;
     }
@@ -868,13 +904,19 @@ pub unsafe extern "C" fn countingbloom_remove(ptr: *mut CountingBloomFilter, dat
 
 /// Serializes a CountingBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn countingbloom_serialize(_ptr: *const CountingBloomFilter, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn countingbloom_serialize(
+    _ptr: *const CountingBloomFilter,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes a CountingBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn countingbloom_deserialize(_data: *const u8, _len: usize) -> *mut CountingBloomFilter {
+pub unsafe extern "C" fn countingbloom_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut CountingBloomFilter {
     std::ptr::null_mut()
 }
 
@@ -901,7 +943,11 @@ pub unsafe extern "C" fn cuckoo_free(ptr: *mut CuckooFilter) {
 
 /// Inserts an element into CuckooFilter
 #[no_mangle]
-pub unsafe extern "C" fn cuckoo_insert(ptr: *mut CuckooFilter, data: *const u8, len: usize) -> bool {
+pub unsafe extern "C" fn cuckoo_insert(
+    ptr: *mut CuckooFilter,
+    data: *const u8,
+    len: usize,
+) -> bool {
     if ptr.is_null() || data.is_null() {
         return false;
     }
@@ -914,7 +960,11 @@ pub unsafe extern "C" fn cuckoo_insert(ptr: *mut CuckooFilter, data: *const u8, 
 
 /// Checks if an element may be in CuckooFilter
 #[no_mangle]
-pub unsafe extern "C" fn cuckoo_contains(ptr: *const CuckooFilter, data: *const u8, len: usize) -> bool {
+pub unsafe extern "C" fn cuckoo_contains(
+    ptr: *const CuckooFilter,
+    data: *const u8,
+    len: usize,
+) -> bool {
     if ptr.is_null() || data.is_null() {
         return false;
     }
@@ -924,7 +974,11 @@ pub unsafe extern "C" fn cuckoo_contains(ptr: *const CuckooFilter, data: *const 
 
 /// Removes an element from CuckooFilter
 #[no_mangle]
-pub unsafe extern "C" fn cuckoo_remove(ptr: *mut CuckooFilter, data: *const u8, len: usize) -> bool {
+pub unsafe extern "C" fn cuckoo_remove(
+    ptr: *mut CuckooFilter,
+    data: *const u8,
+    len: usize,
+) -> bool {
     if ptr.is_null() || data.is_null() {
         return false;
     }
@@ -934,7 +988,10 @@ pub unsafe extern "C" fn cuckoo_remove(ptr: *mut CuckooFilter, data: *const u8, 
 
 /// Serializes a CuckooFilter
 #[no_mangle]
-pub unsafe extern "C" fn cuckoo_serialize(_ptr: *const CuckooFilter, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn cuckoo_serialize(
+    _ptr: *const CuckooFilter,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
@@ -952,7 +1009,11 @@ use sketch_oxide::membership::BinaryFuseFilter;
 
 /// Creates a new BinaryFuseFilter from u64 items
 #[no_mangle]
-pub unsafe extern "C" fn binaryfuse_new(items: *const u64, items_len: usize, bits_per_entry: u8) -> *mut BinaryFuseFilter {
+pub unsafe extern "C" fn binaryfuse_new(
+    items: *const u64,
+    items_len: usize,
+    bits_per_entry: u8,
+) -> *mut BinaryFuseFilter {
     if items.is_null() {
         return std::ptr::null_mut();
     }
@@ -982,13 +1043,19 @@ pub unsafe extern "C" fn binaryfuse_contains(ptr: *const BinaryFuseFilter, item:
 
 /// Serializes a BinaryFuseFilter
 #[no_mangle]
-pub unsafe extern "C" fn binaryfuse_serialize(_ptr: *const BinaryFuseFilter, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn binaryfuse_serialize(
+    _ptr: *const BinaryFuseFilter,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes a BinaryFuseFilter
 #[no_mangle]
-pub unsafe extern "C" fn binaryfuse_deserialize(_data: *const u8, _len: usize) -> *mut BinaryFuseFilter {
+pub unsafe extern "C" fn binaryfuse_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut BinaryFuseFilter {
     std::ptr::null_mut()
 }
 
@@ -1032,7 +1099,11 @@ pub unsafe extern "C" fn ribbon_finalize(ptr: *mut RibbonFilter) {
 
 /// Checks if an element may be in RibbonFilter
 #[no_mangle]
-pub unsafe extern "C" fn ribbon_contains(ptr: *const RibbonFilter, data: *const u8, len: usize) -> bool {
+pub unsafe extern "C" fn ribbon_contains(
+    ptr: *const RibbonFilter,
+    data: *const u8,
+    len: usize,
+) -> bool {
     if ptr.is_null() || data.is_null() {
         return false;
     }
@@ -1042,7 +1113,10 @@ pub unsafe extern "C" fn ribbon_contains(ptr: *const RibbonFilter, data: *const 
 
 /// Serializes a RibbonFilter
 #[no_mangle]
-pub unsafe extern "C" fn ribbon_serialize(_ptr: *const RibbonFilter, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn ribbon_serialize(
+    _ptr: *const RibbonFilter,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
@@ -1058,7 +1132,10 @@ pub unsafe extern "C" fn ribbon_deserialize(_data: *const u8, _len: usize) -> *m
 
 /// Creates a new StableBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn stablebloom_new(expected_items: usize, fpr: f64) -> *mut StableBloomFilter {
+pub unsafe extern "C" fn stablebloom_new(
+    expected_items: usize,
+    fpr: f64,
+) -> *mut StableBloomFilter {
     match StableBloomFilter::new(expected_items, fpr) {
         Ok(sf) => Box::into_raw(Box::new(sf)),
         Err(_) => std::ptr::null_mut(),
@@ -1075,7 +1152,11 @@ pub unsafe extern "C" fn stablebloom_free(ptr: *mut StableBloomFilter) {
 
 /// Inserts an element into StableBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn stablebloom_insert(ptr: *mut StableBloomFilter, data: *const u8, len: usize) {
+pub unsafe extern "C" fn stablebloom_insert(
+    ptr: *mut StableBloomFilter,
+    data: *const u8,
+    len: usize,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -1085,7 +1166,11 @@ pub unsafe extern "C" fn stablebloom_insert(ptr: *mut StableBloomFilter, data: *
 
 /// Checks if an element may be in StableBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn stablebloom_contains(ptr: *const StableBloomFilter, data: *const u8, len: usize) -> bool {
+pub unsafe extern "C" fn stablebloom_contains(
+    ptr: *const StableBloomFilter,
+    data: *const u8,
+    len: usize,
+) -> bool {
     if ptr.is_null() || data.is_null() {
         return false;
     }
@@ -1095,13 +1180,19 @@ pub unsafe extern "C" fn stablebloom_contains(ptr: *const StableBloomFilter, dat
 
 /// Serializes a StableBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn stablebloom_serialize(_ptr: *const StableBloomFilter, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn stablebloom_serialize(
+    _ptr: *const StableBloomFilter,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes a StableBloomFilter
 #[no_mangle]
-pub unsafe extern "C" fn stablebloom_deserialize(_data: *const u8, _len: usize) -> *mut StableBloomFilter {
+pub unsafe extern "C" fn stablebloom_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut StableBloomFilter {
     std::ptr::null_mut()
 }
 
@@ -1184,7 +1275,10 @@ pub unsafe extern "C" fn ddsketch_merge(ptr1: *mut DDSketch, ptr2: *const DDSket
 
 /// Serializes a DDSketch
 #[no_mangle]
-pub unsafe extern "C" fn ddsketch_serialize(_ptr: *const DDSketch, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn ddsketch_serialize(
+    _ptr: *const DDSketch,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
@@ -1431,7 +1525,10 @@ pub unsafe extern "C" fn spline_merge(ptr1: *mut SplineSketch, ptr2: *const Spli
 
 /// Serializes a SplineSketch
 #[no_mangle]
-pub unsafe extern "C" fn spline_serialize(_ptr: *const SplineSketch, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn spline_serialize(
+    _ptr: *const SplineSketch,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
@@ -1539,11 +1636,14 @@ pub unsafe extern "C" fn tdigest_deserialize(_data: *const u8, _len: usize) -> *
 // Streaming - SlidingWindowCounter, ExponentialHistogram, SlidingHyperLogLog
 // ============================================================================
 
-use sketch_oxide::streaming::{SlidingWindowCounter, ExponentialHistogram};
+use sketch_oxide::streaming::{ExponentialHistogram, SlidingWindowCounter};
 
 /// Creates a new SlidingWindowCounter
 #[no_mangle]
-pub unsafe extern "C" fn slidingwindow_new(window_size: u64, epsilon: f64) -> *mut SlidingWindowCounter {
+pub unsafe extern "C" fn slidingwindow_new(
+    window_size: u64,
+    epsilon: f64,
+) -> *mut SlidingWindowCounter {
     match SlidingWindowCounter::new(window_size, epsilon) {
         Ok(swc) => Box::into_raw(Box::new(swc)),
         Err(_) => std::ptr::null_mut(),
@@ -1569,7 +1669,10 @@ pub unsafe extern "C" fn slidingwindow_increment(ptr: *mut SlidingWindowCounter,
 
 /// Gets count within window from SlidingWindowCounter
 #[no_mangle]
-pub unsafe extern "C" fn slidingwindow_count(ptr: *const SlidingWindowCounter, current_time: u64) -> u64 {
+pub unsafe extern "C" fn slidingwindow_count(
+    ptr: *const SlidingWindowCounter,
+    current_time: u64,
+) -> u64 {
     if ptr.is_null() {
         return 0;
     }
@@ -1591,7 +1694,10 @@ pub unsafe extern "C" fn slidingwindow_window_size(ptr: *const SlidingWindowCoun
 
 /// Creates a new ExponentialHistogram
 #[no_mangle]
-pub unsafe extern "C" fn exphistogram_new(window_size: u64, epsilon: f64) -> *mut ExponentialHistogram {
+pub unsafe extern "C" fn exphistogram_new(
+    window_size: u64,
+    epsilon: f64,
+) -> *mut ExponentialHistogram {
     match ExponentialHistogram::new(window_size, epsilon) {
         Ok(eh) => Box::into_raw(Box::new(eh)),
         Err(_) => std::ptr::null_mut(),
@@ -1608,7 +1714,11 @@ pub unsafe extern "C" fn exphistogram_free(ptr: *mut ExponentialHistogram) {
 
 /// Inserts into ExponentialHistogram
 #[no_mangle]
-pub unsafe extern "C" fn exphistogram_insert(ptr: *mut ExponentialHistogram, timestamp: u64, count: u64) {
+pub unsafe extern "C" fn exphistogram_insert(
+    ptr: *mut ExponentialHistogram,
+    timestamp: u64,
+    count: u64,
+) {
     if ptr.is_null() {
         return;
     }
@@ -1617,7 +1727,10 @@ pub unsafe extern "C" fn exphistogram_insert(ptr: *mut ExponentialHistogram, tim
 
 /// Gets count within window from ExponentialHistogram
 #[no_mangle]
-pub unsafe extern "C" fn exphistogram_count(ptr: *const ExponentialHistogram, current_time: u64) -> u64 {
+pub unsafe extern "C" fn exphistogram_count(
+    ptr: *const ExponentialHistogram,
+    current_time: u64,
+) -> u64 {
     if ptr.is_null() {
         return 0;
     }
@@ -1640,7 +1753,10 @@ pub unsafe extern "C" fn exphistogram_window_size(ptr: *const ExponentialHistogr
 
 /// Creates a new SlidingHyperLogLog
 #[no_mangle]
-pub unsafe extern "C" fn slidinghll_new(precision: u8, max_window_seconds: u64) -> *mut SlidingHyperLogLog {
+pub unsafe extern "C" fn slidinghll_new(
+    precision: u8,
+    max_window_seconds: u64,
+) -> *mut SlidingHyperLogLog {
     match SlidingHyperLogLog::new(precision, max_window_seconds) {
         Ok(shll) => Box::into_raw(Box::new(shll)),
         Err(_) => std::ptr::null_mut(),
@@ -1657,7 +1773,12 @@ pub unsafe extern "C" fn slidinghll_free(ptr: *mut SlidingHyperLogLog) {
 
 /// Updates SlidingHyperLogLog
 #[no_mangle]
-pub unsafe extern "C" fn slidinghll_update(ptr: *mut SlidingHyperLogLog, data: *const u8, len: usize, timestamp: u64) {
+pub unsafe extern "C" fn slidinghll_update(
+    ptr: *mut SlidingHyperLogLog,
+    data: *const u8,
+    len: usize,
+    timestamp: u64,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -1672,7 +1793,11 @@ pub unsafe extern "C" fn slidinghll_update(ptr: *mut SlidingHyperLogLog, data: *
 
 /// Estimates cardinality within window
 #[no_mangle]
-pub unsafe extern "C" fn slidinghll_estimate_window(ptr: *const SlidingHyperLogLog, current_time: u64, window_seconds: u64) -> f64 {
+pub unsafe extern "C" fn slidinghll_estimate_window(
+    ptr: *const SlidingHyperLogLog,
+    current_time: u64,
+    window_seconds: u64,
+) -> f64 {
     if ptr.is_null() {
         return 0.0;
     }
@@ -1866,7 +1991,10 @@ pub unsafe extern "C" fn reservoir_len(ptr: *const ReservoirSampling<u64>) -> us
 
 /// Merges two ReservoirSamplings
 #[no_mangle]
-pub unsafe extern "C" fn reservoir_merge(ptr1: *mut ReservoirSampling<u64>, ptr2: *const ReservoirSampling<u64>) {
+pub unsafe extern "C" fn reservoir_merge(
+    ptr1: *mut ReservoirSampling<u64>,
+    ptr2: *const ReservoirSampling<u64>,
+) {
     if ptr1.is_null() || ptr2.is_null() {
         return;
     }
@@ -1941,7 +2069,10 @@ pub unsafe extern "C" fn varopt_estimate_total_weight(ptr: *const VarOptSampling
 
 /// Merges two VarOptSamplings
 #[no_mangle]
-pub unsafe extern "C" fn varopt_merge(ptr1: *mut VarOptSampling<u64>, ptr2: *const VarOptSampling<u64>) {
+pub unsafe extern "C" fn varopt_merge(
+    ptr1: *mut VarOptSampling<u64>,
+    ptr2: *const VarOptSampling<u64>,
+) {
     if ptr1.is_null() || ptr2.is_null() {
         return;
     }
@@ -2412,7 +2543,7 @@ pub unsafe extern "C" fn learned_bloom_fpr(ptr: *const LearnedBloomFilter) -> f6
 // Cardinality - UltraLogLog
 // ============================================================================
 
-use sketch_oxide::cardinality::{UltraLogLog, CpcSketch, QSketch, ThetaSketch};
+use sketch_oxide::cardinality::{CpcSketch, QSketch, ThetaSketch, UltraLogLog};
 
 /// Creates a new UltraLogLog sketch
 #[no_mangle]
@@ -2551,10 +2682,7 @@ pub unsafe extern "C" fn cpc_merge(ptr1: *mut CpcSketch, ptr2: *const CpcSketch)
 
 /// Serializes a CpcSketch
 #[no_mangle]
-pub unsafe extern "C" fn cpc_serialize(
-    ptr: *const CpcSketch,
-    out_len: *mut usize,
-) -> *mut u8 {
+pub unsafe extern "C" fn cpc_serialize(ptr: *const CpcSketch, out_len: *mut usize) -> *mut u8 {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -2644,10 +2772,7 @@ pub unsafe extern "C" fn qsketch_merge(ptr1: *mut QSketch, ptr2: *const QSketch)
 
 /// Serializes a QSketch
 #[no_mangle]
-pub unsafe extern "C" fn qsketch_serialize(
-    ptr: *const QSketch,
-    out_len: *mut usize,
-) -> *mut u8 {
+pub unsafe extern "C" fn qsketch_serialize(ptr: *const QSketch, out_len: *mut usize) -> *mut u8 {
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -2722,7 +2847,10 @@ pub unsafe extern "C" fn theta_estimate(ptr: *const ThetaSketch) -> f64 {
 // Frequency Algorithms (Stub implementations)
 // ============================================================================
 
-use sketch_oxide::frequency::{CountSketch, ConservativeCountMin, ElasticSketch, SALSA, FrequentItems, RemovableUniversalSketch, SpaceSaving};
+use sketch_oxide::frequency::{
+    ConservativeCountMin, CountSketch, ElasticSketch, FrequentItems, RemovableUniversalSketch,
+    SpaceSaving, SALSA,
+};
 
 /// CountMinSketch - Creates a new sketch
 #[no_mangle]
@@ -2758,7 +2886,11 @@ pub unsafe extern "C" fn countmin_update(ptr: *mut CountMinSketch, data: *const 
 
 /// Estimates count in CountMinSketch
 #[no_mangle]
-pub unsafe extern "C" fn countmin_estimate(ptr: *const CountMinSketch, data: *const u8, len: usize) -> u64 {
+pub unsafe extern "C" fn countmin_estimate(
+    ptr: *const CountMinSketch,
+    data: *const u8,
+    len: usize,
+) -> u64 {
     if ptr.is_null() || data.is_null() {
         return 0;
     }
@@ -2782,7 +2914,10 @@ pub unsafe extern "C" fn countmin_merge(ptr1: *mut CountMinSketch, ptr2: *const 
 
 /// Serializes CountMinSketch
 #[no_mangle]
-pub unsafe extern "C" fn countmin_serialize(ptr: *const CountMinSketch, out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn countmin_serialize(
+    ptr: *const CountMinSketch,
+    out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
@@ -2815,7 +2950,12 @@ pub unsafe extern "C" fn countsketch_free(ptr: *mut CountSketch) {
 
 /// Updates CountSketch
 #[no_mangle]
-pub unsafe extern "C" fn countsketch_update(ptr: *mut CountSketch, data: *const u8, len: usize, weight: i64) {
+pub unsafe extern "C" fn countsketch_update(
+    ptr: *mut CountSketch,
+    data: *const u8,
+    len: usize,
+    weight: i64,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -2830,7 +2970,11 @@ pub unsafe extern "C" fn countsketch_update(ptr: *mut CountSketch, data: *const 
 
 /// Estimates count in CountSketch
 #[no_mangle]
-pub unsafe extern "C" fn countsketch_estimate(ptr: *const CountSketch, data: *const u8, len: usize) -> i64 {
+pub unsafe extern "C" fn countsketch_estimate(
+    ptr: *const CountSketch,
+    data: *const u8,
+    len: usize,
+) -> i64 {
     if ptr.is_null() || data.is_null() {
         return 0;
     }
@@ -2854,13 +2998,19 @@ pub unsafe extern "C" fn countsketch_merge(ptr1: *mut CountSketch, ptr2: *const 
 
 /// Serializes CountSketch
 #[no_mangle]
-pub unsafe extern "C" fn countsketch_serialize(_ptr: *const CountSketch, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn countsketch_serialize(
+    _ptr: *const CountSketch,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes CountSketch
 #[no_mangle]
-pub unsafe extern "C" fn countsketch_deserialize(_data: *const u8, _len: usize) -> *mut CountSketch {
+pub unsafe extern "C" fn countsketch_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut CountSketch {
     std::ptr::null_mut()
 }
 
@@ -2870,7 +3020,10 @@ pub unsafe extern "C" fn countsketch_deserialize(_data: *const u8, _len: usize) 
 
 /// Creates a new ConservativeCountMin
 #[no_mangle]
-pub unsafe extern "C" fn conservativecountmin_new(epsilon: f64, delta: f64) -> *mut ConservativeCountMin {
+pub unsafe extern "C" fn conservativecountmin_new(
+    epsilon: f64,
+    delta: f64,
+) -> *mut ConservativeCountMin {
     match ConservativeCountMin::new(epsilon, delta) {
         Ok(ccm) => Box::into_raw(Box::new(ccm)),
         Err(_) => std::ptr::null_mut(),
@@ -2887,7 +3040,11 @@ pub unsafe extern "C" fn conservativecountmin_free(ptr: *mut ConservativeCountMi
 
 /// Updates ConservativeCountMin
 #[no_mangle]
-pub unsafe extern "C" fn conservativecountmin_update(ptr: *mut ConservativeCountMin, data: *const u8, len: usize) {
+pub unsafe extern "C" fn conservativecountmin_update(
+    ptr: *mut ConservativeCountMin,
+    data: *const u8,
+    len: usize,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -2902,7 +3059,11 @@ pub unsafe extern "C" fn conservativecountmin_update(ptr: *mut ConservativeCount
 
 /// Estimates count in ConservativeCountMin
 #[no_mangle]
-pub unsafe extern "C" fn conservativecountmin_estimate(ptr: *const ConservativeCountMin, data: *const u8, len: usize) -> u64 {
+pub unsafe extern "C" fn conservativecountmin_estimate(
+    ptr: *const ConservativeCountMin,
+    data: *const u8,
+    len: usize,
+) -> u64 {
     if ptr.is_null() || data.is_null() {
         return 0;
     }
@@ -2917,7 +3078,10 @@ pub unsafe extern "C" fn conservativecountmin_estimate(ptr: *const ConservativeC
 
 /// Merges ConservativeCountMin
 #[no_mangle]
-pub unsafe extern "C" fn conservativecountmin_merge(ptr1: *mut ConservativeCountMin, ptr2: *const ConservativeCountMin) {
+pub unsafe extern "C" fn conservativecountmin_merge(
+    ptr1: *mut ConservativeCountMin,
+    ptr2: *const ConservativeCountMin,
+) {
     if ptr1.is_null() || ptr2.is_null() {
         return;
     }
@@ -2926,13 +3090,19 @@ pub unsafe extern "C" fn conservativecountmin_merge(ptr1: *mut ConservativeCount
 
 /// Serializes ConservativeCountMin
 #[no_mangle]
-pub unsafe extern "C" fn conservativecountmin_serialize(_ptr: *const ConservativeCountMin, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn conservativecountmin_serialize(
+    _ptr: *const ConservativeCountMin,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes ConservativeCountMin
 #[no_mangle]
-pub unsafe extern "C" fn conservativecountmin_deserialize(_data: *const u8, _len: usize) -> *mut ConservativeCountMin {
+pub unsafe extern "C" fn conservativecountmin_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut ConservativeCountMin {
     std::ptr::null_mut()
 }
 
@@ -2959,7 +3129,11 @@ pub unsafe extern "C" fn spacesaving_free(ptr: *mut SpaceSaving<u64>) {
 
 /// Updates SpaceSaving
 #[no_mangle]
-pub unsafe extern "C" fn spacesaving_update(ptr: *mut SpaceSaving<u64>, data: *const u8, len: usize) {
+pub unsafe extern "C" fn spacesaving_update(
+    ptr: *mut SpaceSaving<u64>,
+    data: *const u8,
+    len: usize,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -2974,7 +3148,10 @@ pub unsafe extern "C" fn spacesaving_update(ptr: *mut SpaceSaving<u64>, data: *c
 
 /// Merges SpaceSaving
 #[no_mangle]
-pub unsafe extern "C" fn spacesaving_merge(ptr1: *mut SpaceSaving<u64>, ptr2: *const SpaceSaving<u64>) {
+pub unsafe extern "C" fn spacesaving_merge(
+    ptr1: *mut SpaceSaving<u64>,
+    ptr2: *const SpaceSaving<u64>,
+) {
     if ptr1.is_null() || ptr2.is_null() {
         return;
     }
@@ -2983,13 +3160,19 @@ pub unsafe extern "C" fn spacesaving_merge(ptr1: *mut SpaceSaving<u64>, ptr2: *c
 
 /// Serializes SpaceSaving
 #[no_mangle]
-pub unsafe extern "C" fn spacesaving_serialize(_ptr: *const SpaceSaving<u64>, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn spacesaving_serialize(
+    _ptr: *const SpaceSaving<u64>,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes SpaceSaving
 #[no_mangle]
-pub unsafe extern "C" fn spacesaving_deserialize(_data: *const u8, _len: usize) -> *mut SpaceSaving<u64> {
+pub unsafe extern "C" fn spacesaving_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut SpaceSaving<u64> {
     std::ptr::null_mut()
 }
 
@@ -3016,7 +3199,11 @@ pub unsafe extern "C" fn frequentitems_free(ptr: *mut FrequentItems<u64>) {
 
 /// Updates FrequentItems
 #[no_mangle]
-pub unsafe extern "C" fn frequentitems_update(ptr: *mut FrequentItems<u64>, data: *const u8, len: usize) {
+pub unsafe extern "C" fn frequentitems_update(
+    ptr: *mut FrequentItems<u64>,
+    data: *const u8,
+    len: usize,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -3031,7 +3218,10 @@ pub unsafe extern "C" fn frequentitems_update(ptr: *mut FrequentItems<u64>, data
 
 /// Merges FrequentItems
 #[no_mangle]
-pub unsafe extern "C" fn frequentitems_merge(ptr1: *mut FrequentItems<u64>, ptr2: *const FrequentItems<u64>) {
+pub unsafe extern "C" fn frequentitems_merge(
+    ptr1: *mut FrequentItems<u64>,
+    ptr2: *const FrequentItems<u64>,
+) {
     if ptr1.is_null() || ptr2.is_null() {
         return;
     }
@@ -3040,13 +3230,19 @@ pub unsafe extern "C" fn frequentitems_merge(ptr1: *mut FrequentItems<u64>, ptr2
 
 /// Serializes FrequentItems
 #[no_mangle]
-pub unsafe extern "C" fn frequentitems_serialize(_ptr: *const FrequentItems<u64>, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn frequentitems_serialize(
+    _ptr: *const FrequentItems<u64>,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes FrequentItems
 #[no_mangle]
-pub unsafe extern "C" fn frequentitems_deserialize(_data: *const u8, _len: usize) -> *mut FrequentItems<u64> {
+pub unsafe extern "C" fn frequentitems_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut FrequentItems<u64> {
     std::ptr::null_mut()
 }
 
@@ -3056,7 +3252,10 @@ pub unsafe extern "C" fn frequentitems_deserialize(_data: *const u8, _len: usize
 
 /// Creates a new ElasticSketch
 #[no_mangle]
-pub unsafe extern "C" fn elasticsketch_new(bucket_count: usize, depth: usize) -> *mut ElasticSketch {
+pub unsafe extern "C" fn elasticsketch_new(
+    bucket_count: usize,
+    depth: usize,
+) -> *mut ElasticSketch {
     match ElasticSketch::new(bucket_count, depth) {
         Ok(es) => Box::into_raw(Box::new(es)),
         Err(_) => std::ptr::null_mut(),
@@ -3073,7 +3272,12 @@ pub unsafe extern "C" fn elasticsketch_free(ptr: *mut ElasticSketch) {
 
 /// Updates ElasticSketch
 #[no_mangle]
-pub unsafe extern "C" fn elasticsketch_update(ptr: *mut ElasticSketch, data: *const u8, len: usize, count: u64) {
+pub unsafe extern "C" fn elasticsketch_update(
+    ptr: *mut ElasticSketch,
+    data: *const u8,
+    len: usize,
+    count: u64,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -3083,7 +3287,11 @@ pub unsafe extern "C" fn elasticsketch_update(ptr: *mut ElasticSketch, data: *co
 
 /// Estimates count in ElasticSketch
 #[no_mangle]
-pub unsafe extern "C" fn elasticsketch_estimate(ptr: *const ElasticSketch, data: *const u8, len: usize) -> u64 {
+pub unsafe extern "C" fn elasticsketch_estimate(
+    ptr: *const ElasticSketch,
+    data: *const u8,
+    len: usize,
+) -> u64 {
     if ptr.is_null() || data.is_null() {
         return 0;
     }
@@ -3102,13 +3310,19 @@ pub unsafe extern "C" fn elasticsketch_merge(ptr1: *mut ElasticSketch, ptr2: *co
 
 /// Serializes ElasticSketch
 #[no_mangle]
-pub unsafe extern "C" fn elasticsketch_serialize(_ptr: *const ElasticSketch, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn elasticsketch_serialize(
+    _ptr: *const ElasticSketch,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes ElasticSketch
 #[no_mangle]
-pub unsafe extern "C" fn elasticsketch_deserialize(_data: *const u8, _len: usize) -> *mut ElasticSketch {
+pub unsafe extern "C" fn elasticsketch_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut ElasticSketch {
     std::ptr::null_mut()
 }
 
@@ -3191,7 +3405,10 @@ pub unsafe extern "C" fn salsa_deserialize(_data: *const u8, _len: usize) -> *mu
 
 /// Creates a new RemovableUniversalSketch
 #[no_mangle]
-pub unsafe extern "C" fn removableuniversalsketch_new(epsilon: f64, delta: f64) -> *mut RemovableUniversalSketch {
+pub unsafe extern "C" fn removableuniversalsketch_new(
+    epsilon: f64,
+    delta: f64,
+) -> *mut RemovableUniversalSketch {
     match RemovableUniversalSketch::new(epsilon, delta) {
         Ok(rus) => Box::into_raw(Box::new(rus)),
         Err(_) => std::ptr::null_mut(),
@@ -3208,7 +3425,12 @@ pub unsafe extern "C" fn removableuniversalsketch_free(ptr: *mut RemovableUniver
 
 /// Updates RemovableUniversalSketch
 #[no_mangle]
-pub unsafe extern "C" fn removableuniversalsketch_update(ptr: *mut RemovableUniversalSketch, data: *const u8, len: usize, delta: i32) {
+pub unsafe extern "C" fn removableuniversalsketch_update(
+    ptr: *mut RemovableUniversalSketch,
+    data: *const u8,
+    len: usize,
+    delta: i32,
+) {
     if ptr.is_null() || data.is_null() {
         return;
     }
@@ -3223,7 +3445,11 @@ pub unsafe extern "C" fn removableuniversalsketch_update(ptr: *mut RemovableUniv
 
 /// Estimates count in RemovableUniversalSketch
 #[no_mangle]
-pub unsafe extern "C" fn removableuniversalsketch_estimate(ptr: *const RemovableUniversalSketch, data: *const u8, len: usize) -> u64 {
+pub unsafe extern "C" fn removableuniversalsketch_estimate(
+    ptr: *const RemovableUniversalSketch,
+    data: *const u8,
+    len: usize,
+) -> u64 {
     if ptr.is_null() || data.is_null() {
         return 0;
     }
@@ -3238,7 +3464,10 @@ pub unsafe extern "C" fn removableuniversalsketch_estimate(ptr: *const Removable
 
 /// Merges RemovableUniversalSketch
 #[no_mangle]
-pub unsafe extern "C" fn removableuniversalsketch_merge(ptr1: *mut RemovableUniversalSketch, ptr2: *const RemovableUniversalSketch) {
+pub unsafe extern "C" fn removableuniversalsketch_merge(
+    ptr1: *mut RemovableUniversalSketch,
+    ptr2: *const RemovableUniversalSketch,
+) {
     if ptr1.is_null() || ptr2.is_null() {
         return;
     }
@@ -3247,12 +3476,18 @@ pub unsafe extern "C" fn removableuniversalsketch_merge(ptr1: *mut RemovableUniv
 
 /// Serializes RemovableUniversalSketch
 #[no_mangle]
-pub unsafe extern "C" fn removableuniversalsketch_serialize(_ptr: *const RemovableUniversalSketch, _out_len: *mut usize) -> *mut u8 {
+pub unsafe extern "C" fn removableuniversalsketch_serialize(
+    _ptr: *const RemovableUniversalSketch,
+    _out_len: *mut usize,
+) -> *mut u8 {
     std::ptr::null_mut()
 }
 
 /// Deserializes RemovableUniversalSketch
 #[no_mangle]
-pub unsafe extern "C" fn removableuniversalsketch_deserialize(_data: *const u8, _len: usize) -> *mut RemovableUniversalSketch {
+pub unsafe extern "C" fn removableuniversalsketch_deserialize(
+    _data: *const u8,
+    _len: usize,
+) -> *mut RemovableUniversalSketch {
     std::ptr::null_mut()
 }
