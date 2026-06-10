@@ -41,6 +41,10 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   `max_buckets` (exactly as the OTel SDKs do), positive/negative/zero buckets, sum/min/max,
   and OTLP-shaped accessors (`scale`, `positive_offset`/`positive_counts`, …) for direct
   `ExponentialHistogramDataPoint` encoding. Mergeable (aligns scales) and serializable.
+- **`similarity::BBitMinHash` — b-bit minwise hashing (compact signatures).** Keeps only the
+  low `b` bits of each MinHash minimum, bit-packed, shrinking signatures up to 64× (`b=1`) at
+  a quantified accuracy cost. Jaccard is recovered with the Li–König estimator
+  `(P − 2^-b)/(1 − 2^-b)`. The regime that matters at trillion-token dedup scale.
 - **`similarity::MinHashLsh` — LSH banding index for near-duplicate search.** Turns MinHash
   from a pairwise *scorer* into a sublinear near-duplicate *search/dedup* engine: split each
   `b·r` signature into `b` bands, index by band buckets, and a query returns the small

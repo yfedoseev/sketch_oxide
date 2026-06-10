@@ -16,10 +16,12 @@
 //! | **Speed** | O(k) per comparison | O(1) per comparison |
 //! | **Weights** | No | Yes (weighted features) |
 
+pub mod bbit_minhash;
 pub mod minhash;
 pub mod minhash_lsh;
 pub mod simhash;
 
+pub use bbit_minhash::BBitMinHash;
 pub use minhash::MinHash;
 pub use minhash_lsh::MinHashLsh;
 pub use simhash::SimHash;
