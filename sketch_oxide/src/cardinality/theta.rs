@@ -41,8 +41,8 @@
 //! - Paper: "Theta Sketch Framework" (Apache DataSketches)
 //! - Source: https://datasketches.apache.org/docs/Theta/ThetaSketchFramework.html
 
+use crate::cardinality::theta_core::{NoSummary, ThetaCore};
 use crate::error::{Result, SketchError};
-use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 /// Theta Sketch for cardinality estimation with set operations.
@@ -74,27 +74,14 @@ use std::hash::{Hash, Hasher};
 /// ```
 #[derive(Clone, Debug)]
 pub struct ThetaSketch {
-    /// log2(k) - nominal entries capacity
-    lg_k: u8,
+    /// Generic Theta engine with the empty summary (plain set behaviour).
+    core: ThetaCore<NoSummary>,
 
-    /// Nominal entries (k = 2^lg_k)
-    k: usize,
-
-    /// Hash values < theta (retained entries)
-    entries: HashSet<u64>,
-
-    /// Sampling threshold (initially u64::MAX, decreases with sampling)
-    theta: u64,
-
-    /// Hash seed for consistency across operations
+    /// Hash seed for consistency across operations.
     seed: u64,
 }
 
 impl ThetaSketch {
-    /// Valid range for lg_k parameter
-    const MIN_LG_K: u8 = 4;
-    const MAX_LG_K: u8 = 26;
-
     /// Default hash seed (same as Apache DataSketches)
     const DEFAULT_SEED: u64 = 9001;
 
@@ -126,21 +113,8 @@ impl ThetaSketch {
     /// let sketch = ThetaSketch::new(12).unwrap();
     /// ```
     pub fn new(lg_k: u8) -> Result<Self> {
-        if !(Self::MIN_LG_K..=Self::MAX_LG_K).contains(&lg_k) {
-            return Err(SketchError::InvalidParameter {
-                param: "lg_k".to_string(),
-                value: lg_k.to_string(),
-                constraint: format!("must be in range [{}, {}]", Self::MIN_LG_K, Self::MAX_LG_K),
-            });
-        }
-
-        let k = 1_usize << lg_k; // 2^lg_k
-
         Ok(Self {
-            lg_k,
-            k,
-            entries: HashSet::with_capacity(k),
-            theta: u64::MAX,
+            core: ThetaCore::new(lg_k)?,
             seed: Self::DEFAULT_SEED,
         })
     }
@@ -166,16 +140,7 @@ impl ThetaSketch {
     /// ```
     pub fn update<T: Hash>(&mut self, item: &T) {
         let hash = self.hash_item(item);
-
-        // Only consider hashes below theta (sampling)
-        if hash < self.theta {
-            self.entries.insert(hash);
-
-            // Check if we need to reduce theta (enforce capacity)
-            if self.entries.len() > self.k {
-                self.rebuild_with_lower_theta();
-            }
-        }
+        self.core.update(hash, NoSummary);
     }
 
     /// Estimates the cardinality.
@@ -198,29 +163,17 @@ impl ThetaSketch {
     /// assert!((estimate - 1000.0).abs() < 20.0);
     /// ```
     pub fn estimate(&self) -> f64 {
-        if self.entries.is_empty() {
-            return 0.0;
-        }
-
-        if self.theta == u64::MAX {
-            // Exact mode (no sampling)
-            self.entries.len() as f64
-        } else {
-            // Sampling mode: scale by sampling rate
-            let count = self.entries.len() as f64;
-            let scale = u64::MAX as f64 / self.theta as f64;
-            count * scale
-        }
+        self.core.estimate()
     }
 
     /// Returns true if the sketch is empty.
     pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
+        self.core.is_empty()
     }
 
     /// Returns the number of retained entries.
     pub fn num_retained(&self) -> usize {
-        self.entries.len()
+        self.core.num_retained()
     }
 
     /// Returns the current theta value.
@@ -228,12 +181,12 @@ impl ThetaSketch {
     /// - u64::MAX: No sampling (exact mode)
     /// - < u64::MAX: Sampling active
     pub fn get_theta(&self) -> u64 {
-        self.theta
+        self.core.theta()
     }
 
     /// Returns the nominal capacity (k).
     pub fn capacity(&self) -> usize {
-        self.k
+        self.core.capacity()
     }
 
     /// Computes union with another sketch: |A ∪ B|
@@ -275,28 +228,9 @@ impl ThetaSketch {
     /// assert!((union.estimate() - 100.0).abs() < 5.0);
     /// ```
     pub fn union(&self, other: &Self) -> Result<Self> {
-        self.check_compatibility(other)?;
-
-        let new_theta = self.theta.min(other.theta);
-        let mut new_entries = HashSet::with_capacity(self.k);
-
-        // Merge entries from both sketches
-        for &hash in &self.entries {
-            if hash < new_theta {
-                new_entries.insert(hash);
-            }
-        }
-        for &hash in &other.entries {
-            if hash < new_theta {
-                new_entries.insert(hash);
-            }
-        }
-
+        self.check_seed(other)?;
         Ok(Self {
-            lg_k: self.lg_k,
-            k: self.k,
-            entries: new_entries,
-            theta: new_theta,
+            core: self.core.union(&other.core)?,
             seed: self.seed,
         })
     }
@@ -334,23 +268,9 @@ impl ThetaSketch {
     /// assert!((intersection.estimate() - 50.0).abs() < 5.0);
     /// ```
     pub fn intersect(&self, other: &Self) -> Result<Self> {
-        self.check_compatibility(other)?;
-
-        let new_theta = self.theta.min(other.theta);
-        let mut new_entries = HashSet::with_capacity(self.k);
-
-        // Keep only common entries
-        for &hash in &self.entries {
-            if hash < new_theta && other.entries.contains(&hash) {
-                new_entries.insert(hash);
-            }
-        }
-
+        self.check_seed(other)?;
         Ok(Self {
-            lg_k: self.lg_k,
-            k: self.k,
-            entries: new_entries,
-            theta: new_theta,
+            core: self.core.intersect(&other.core)?,
             seed: self.seed,
         })
     }
@@ -389,23 +309,9 @@ impl ThetaSketch {
     /// assert!((difference.estimate() - 25.0).abs() < 5.0);
     /// ```
     pub fn difference(&self, other: &Self) -> Result<Self> {
-        self.check_compatibility(other)?;
-
-        let new_theta = self.theta.min(other.theta);
-        let mut new_entries = HashSet::with_capacity(self.k);
-
-        // Keep entries in self but not in other
-        for &hash in &self.entries {
-            if hash < new_theta && !other.entries.contains(&hash) {
-                new_entries.insert(hash);
-            }
-        }
-
+        self.check_seed(other)?;
         Ok(Self {
-            lg_k: self.lg_k,
-            k: self.k,
-            entries: new_entries,
-            theta: new_theta,
+            core: self.core.difference(&other.core)?,
             seed: self.seed,
         })
     }
@@ -414,20 +320,13 @@ impl ThetaSketch {
     // Private Methods
     // ============================================================================
 
-    /// Checks if two sketches are compatible for operations.
-    fn check_compatibility(&self, other: &Self) -> Result<()> {
-        if self.lg_k != other.lg_k {
-            return Err(SketchError::IncompatibleSketches {
-                reason: format!("lg_k mismatch: {} vs {}", self.lg_k, other.lg_k),
-            });
-        }
-
+    /// Checks that two sketches share a hash seed (capacity/`lg_k` is checked by the core).
+    fn check_seed(&self, other: &Self) -> Result<()> {
         if self.seed != other.seed {
             return Err(SketchError::IncompatibleSketches {
                 reason: format!("seed mismatch: {} vs {}", self.seed, other.seed),
             });
         }
-
         Ok(())
     }
 
@@ -440,31 +339,6 @@ impl ThetaSketch {
         item.hash(&mut hasher);
         hasher.finish()
     }
-
-    /// Reduces theta to enforce capacity constraint.
-    ///
-    /// # Algorithm
-    ///
-    /// 1. Sort entries
-    /// 2. Find new theta at position k (kth smallest)
-    /// 3. Remove entries >= new theta
-    ///
-    /// This maintains uniform sampling property.
-    fn rebuild_with_lower_theta(&mut self) {
-        // Sort entries to find new threshold
-        let mut sorted_entries: Vec<u64> = self.entries.iter().copied().collect();
-        sorted_entries.sort_unstable();
-
-        // New theta is the (k+1)th smallest entry
-        // This ensures we keep exactly k entries
-        if sorted_entries.len() > self.k {
-            let new_theta = sorted_entries[self.k - 1];
-
-            // Remove entries >= new_theta
-            self.entries.retain(|&hash| hash < new_theta);
-            self.theta = new_theta;
-        }
-    }
 }
 
 #[cfg(test)]
@@ -474,9 +348,8 @@ mod tests {
     #[test]
     fn test_basic_creation() {
         let sketch = ThetaSketch::new(12).unwrap();
-        assert_eq!(sketch.lg_k, 12);
-        assert_eq!(sketch.k, 4096);
-        assert_eq!(sketch.theta, u64::MAX);
+        assert_eq!(sketch.capacity(), 4096); // k = 2^12
+        assert_eq!(sketch.get_theta(), u64::MAX);
         assert!(sketch.is_empty());
     }
 

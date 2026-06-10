@@ -11,6 +11,12 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **Generic Theta core (`cardinality::ThetaCore<S: Summary>`).** Factored the Theta
+  set-operation engine out of `ThetaSketch` and made it generic over a per-key `Summary`
+  (folded on repeat keys and on union/intersection). Ships `NoSummary` (plain Theta set)
+  and `SumDoubles` (ArrayOfDoubles-style, element-wise sum). `ThetaSketch` is now a thin
+  wrapper over `ThetaCore<NoSummary>` — identical public API and estimates (hashing stays
+  in the wrapper). This is the substrate the Tuple Sketch builds on.
 - **`learned` module with the oracle/score-function interface.** New `Oracle` trait (the
   single way a user model scores keys for learned sketches) plus `ClosureOracle` (wrap a
   Rust `Fn`) and `PrecomputedOracle` (host-computed scores supplied as data — the
