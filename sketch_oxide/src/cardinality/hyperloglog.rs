@@ -82,6 +82,18 @@ pub struct HyperLogLog {
     /// Register array: 2^p registers, 8-bit each
     /// Each register stores the maximum rho (leading zeros + 1) seen for its bucket
     registers: Vec<u8>,
+
+    /// Running sum of `2^{-register}` over all registers, maintained incrementally for the
+    /// HIP (Historic Inverse Probability / martingale) estimator.
+    kxq: f64,
+
+    /// HIP estimator accumulator: the running martingale cardinality estimate. Valid only
+    /// while the sketch has been built by a single sequence of inserts (see `estimate_hip`).
+    hip_accum: f64,
+
+    /// Whether `hip_accum` is a valid HIP estimate. Cleared by `merge` and by
+    /// deserialization, which destroy the single-stream insertion history HIP relies on.
+    hip_valid: bool,
 }
 
 impl HyperLogLog {
@@ -133,10 +145,30 @@ impl HyperLogLog {
         let m = 1usize << precision;
         let registers = vec![0u8; m];
 
-        Ok(HyperLogLog {
+        // Fresh sketch: HIP starts valid (single-stream history begins here).
+        Ok(Self::from_registers(precision, registers, true))
+    }
+
+    /// Builds a sketch from existing registers, deriving the HIP `kxq` sum and setting
+    /// whether the HIP estimate should be considered valid.
+    fn from_registers(precision: u8, registers: Vec<u8>, hip_valid: bool) -> Self {
+        let kxq = registers.iter().map(|&r| 2.0_f64.powi(-(r as i32))).sum();
+        HyperLogLog {
             precision,
             registers,
-        })
+            kxq,
+            hip_accum: 0.0,
+            hip_valid,
+        }
+    }
+
+    /// Recomputes the `kxq` sum from the registers (used after bulk register changes).
+    fn recompute_kxq(&mut self) {
+        self.kxq = self
+            .registers
+            .iter()
+            .map(|&r| 2.0_f64.powi(-(r as i32)))
+            .sum();
     }
 
     /// Returns the precision parameter
@@ -205,8 +237,46 @@ impl HyperLogLog {
         let w = hash << self.precision | (1u64 << (self.precision - 1));
         let rho = (w.leading_zeros() + 1) as u8;
 
-        if rho > self.registers[idx] {
+        let old = self.registers[idx];
+        if rho > old {
+            // HIP/martingale update: accumulate the inverse of the probability that a new
+            // distinct item changes the sketch (m / kxq), using kxq *before* this change.
+            if self.hip_valid {
+                self.hip_accum += self.num_registers() as f64 / self.kxq;
+            }
+            self.kxq += 2.0_f64.powi(-(rho as i32)) - 2.0_f64.powi(-(old as i32));
             self.registers[idx] = rho;
+        }
+    }
+
+    /// Returns the HIP (Historic Inverse Probability / martingale) cardinality estimate.
+    ///
+    /// For a sketch built by a single sequence of inserts, the HIP estimator has provably
+    /// lower variance than the standard estimator (≈ half — `0.833/√m` vs `1.04/√m`), at no
+    /// extra memory. It is the recommended estimate for insertion-only workloads.
+    ///
+    /// Returns `None` if the estimate is not valid — specifically after [`merge`] or after
+    /// deserialization, which destroy the single-stream insertion history HIP requires. In
+    /// those cases use [`estimate`](Sketch::estimate) instead.
+    ///
+    /// [`merge`]: crate::common::Mergeable::merge
+    ///
+    /// # Examples
+    /// ```
+    /// use sketch_oxide::cardinality::HyperLogLog;
+    ///
+    /// let mut hll = HyperLogLog::new(14).unwrap();
+    /// for i in 0..10_000u64 {
+    ///     hll.update(&i);
+    /// }
+    /// let hip = hll.estimate_hip().unwrap();
+    /// assert!((hip - 10_000.0).abs() < 400.0);
+    /// ```
+    pub fn estimate_hip(&self) -> Option<f64> {
+        if self.hip_valid {
+            Some(self.hip_accum)
+        } else {
+            None
         }
     }
 
@@ -307,10 +377,8 @@ impl HyperLogLog {
 
         let registers = bytes[1..].to_vec();
 
-        Ok(HyperLogLog {
-            precision,
-            registers,
-        })
+        // Deserialized sketch: HIP history is lost, so the HIP estimate is invalid.
+        Ok(Self::from_registers(precision, registers, false))
     }
 
     /// Imports from Redis HyperLogLog sparse format
@@ -368,10 +436,8 @@ impl HyperLogLog {
             }
         }
 
-        Ok(HyperLogLog {
-            precision,
-            registers,
-        })
+        // Imported from Redis: no single-stream history, so HIP is invalid.
+        Ok(Self::from_registers(precision, registers, false))
     }
 
     /// Exports to Redis-compatible format
@@ -510,6 +576,11 @@ impl Mergeable for HyperLogLog {
             }
         }
 
+        // Merging destroys the single-stream insertion history HIP depends on: invalidate
+        // it and resync kxq with the merged registers.
+        self.hip_valid = false;
+        self.recompute_kxq();
+
         Ok(())
     }
 }
@@ -628,5 +699,69 @@ mod tests {
             estimate < 2.0,
             "Duplicate updates should not increase count"
         );
+    }
+
+    #[test]
+    fn test_hip_estimate_accurate_single_stream() {
+        let mut hll = HyperLogLog::new(14).unwrap();
+        let n = 50_000u64;
+        for i in 0..n {
+            hll.update(&i);
+        }
+        let hip = hll.estimate_hip().expect("HIP valid for single stream");
+        let err = (hip - n as f64).abs() / n as f64;
+        // HIP standard error ~0.833/sqrt(m) = 0.833/128 ~0.65%; allow generous slack.
+        assert!(err < 0.03, "HIP relative error {err} too high (hip={hip})");
+    }
+
+    #[test]
+    fn test_hip_small_counts_near_exact() {
+        let mut hll = HyperLogLog::new(12).unwrap();
+        for i in 0..3u64 {
+            hll.update(&i);
+        }
+        // With very few distinct items the martingale estimate tracks the count closely.
+        let hip = hll.estimate_hip().unwrap();
+        assert!((hip - 3.0).abs() < 0.5, "hip={hip}");
+    }
+
+    #[test]
+    fn test_hip_idempotent_updates_dont_accumulate() {
+        let mut hll = HyperLogLog::new(12).unwrap();
+        for _ in 0..1000 {
+            hll.update(&"same");
+        }
+        // Only one distinct item: HIP should be ~1, not ~1000.
+        assert!(hll.estimate_hip().unwrap() < 2.0);
+    }
+
+    #[test]
+    fn test_hip_invalid_after_merge() {
+        let mut a = HyperLogLog::new(12).unwrap();
+        let mut b = HyperLogLog::new(12).unwrap();
+        for i in 0..100u64 {
+            a.update(&i);
+        }
+        for i in 100..200u64 {
+            b.update(&i);
+        }
+        assert!(a.estimate_hip().is_some());
+        a.merge(&b).unwrap();
+        assert!(a.estimate_hip().is_none(), "HIP invalid after merge");
+    }
+
+    #[test]
+    fn test_hip_invalid_after_roundtrip() {
+        let mut hll = HyperLogLog::new(12).unwrap();
+        for i in 0..500u64 {
+            hll.update(&i);
+        }
+        let restored = HyperLogLog::from_bytes(&hll.to_bytes()).unwrap();
+        assert!(
+            restored.estimate_hip().is_none(),
+            "HIP invalid after deserialize"
+        );
+        // Standard estimate still works on the restored sketch.
+        assert!((restored.estimate() - 500.0).abs() < 50.0);
     }
 }
