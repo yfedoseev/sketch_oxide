@@ -11,6 +11,12 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`cardinality::TupleSketch<S: Summary>` — Theta sketch with per-key summaries.** The
+  Apache DataSketches workhorse for reach/frequency and A/B testing: count distinct keys and
+  aggregate a per-key value (impressions, spend, …) over the same sampled population, with
+  full set operations that fold summaries. Built on the `ThetaCore<S>` substrate;
+  `estimated_column_sums()` scales the retained sample up to a population estimate. Closes the
+  biggest functional gap vs DataSketches.
 - **`graph` module with `TcmSketch` (graph-stream summary).** A Count-Min sketch over graph
   *edges*: `depth` independent `width×width` matrices answer edge-weight, out-degree, and
   in-degree queries in sublinear space (Tang et al., SIGMOD 2016). Mergeable and serializable.

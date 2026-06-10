@@ -17,6 +17,7 @@ mod hyperloglog;
 mod qsketch;
 mod theta;
 mod theta_core;
+mod tuple_sketch;
 mod ultraloglog;
 
 pub use cpc::CpcSketch;
@@ -24,6 +25,7 @@ pub use hyperloglog::HyperLogLog;
 pub use qsketch::QSketch;
 pub use theta::ThetaSketch;
 pub use theta_core::{NoSummary, SumDoubles, Summary, ThetaCore};
+pub use tuple_sketch::TupleSketch;
 pub use ultraloglog::UltraLogLog;
 
 #[cfg(test)]
