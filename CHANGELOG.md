@@ -40,6 +40,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 - **`graph` module with `TcmSketch` (graph-stream summary).** A Count-Min sketch over graph
   *edges*: `depth` independent `width×width` matrices answer edge-weight, out-degree, and
   in-degree queries in sublinear space (Tang et al., SIGMOD 2016). Mergeable and serializable.
+- **`streaming::Apbf` — Age-Partitioned Bloom Filter (windowed membership).** "Have I seen
+  this recently?" with a false-positive guarantee over the last `n` insertions (Shtul et al.,
+  2021): `k+l` Bloom slices, insert into the front `k`, shift on each filled batch; an element
+  ages out after one window automatically. Precise insertion-count window, unlike Stable
+  Bloom. `insert`/`contains`.
 - **`streaming::EcmSketch` — Exponential Count-Min (windowed per-key frequency).** A
   Count-Min sketch whose counters are exponential histograms, so a point query returns a
   key's approximate count *within the last `window` time units* rather than its lifetime
