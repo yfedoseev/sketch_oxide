@@ -11,6 +11,7 @@ pub mod common;
 pub mod frequency;
 pub mod learned;
 pub mod membership;
+pub mod privacy;
 pub mod quantiles;
 pub mod range_filters;
 pub mod reconciliation;

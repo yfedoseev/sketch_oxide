@@ -11,6 +11,13 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`privacy` module — differential-privacy substrate.** `privacy::mechanisms` ships the
+  **discrete** Laplace and Gaussian mechanisms (Canonne–Kamath–Steinke exact samplers, so
+  floating-point rounding cannot break the guarantee — unlike naive continuous Laplace),
+  randomized response for local DP, and `gaussian_sigma` calibration. `privacy::accountant`
+  tracks an `(ε, δ)` budget under sequential composition and refuses over-budget spends.
+  RNG is explicit and must be a CSPRNG (`secure_rng`). Substrate for DP cardinality release,
+  DP-Count-Min, continual counting, and LDP oracles in later waves.
 - **Generic Theta core (`cardinality::ThetaCore<S: Summary>`).** Factored the Theta
   set-operation engine out of `ThetaSketch` and made it generic over a per-key `Summary`
   (folded on repeat keys and on union/intersection). Ships `NoSummary` (plain Theta set)
