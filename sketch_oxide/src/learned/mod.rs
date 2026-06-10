@@ -12,6 +12,8 @@
 //! it — PLBF / Fast-PLBF, Sandwiched and Ada-BF learned Bloom filters, learned Count-Min /
 //! Count-Sketch, learning-augmented Misra-Gries — land in later roadmap waves.
 
+mod learned_count_min;
 pub mod oracle;
 
+pub use learned_count_min::LearnedCountMin;
 pub use oracle::{ClosureOracle, Oracle, PrecomputedOracle, Score};
