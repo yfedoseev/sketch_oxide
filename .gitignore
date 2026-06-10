@@ -51,5 +51,10 @@ perf.data.old
 # Documentation
 docs/_build/
 
+# Internal planning / research (kept local, not published)
+docs/research/
+GITHUB_PROFILE.md
+v0.1.5_to_v0.1.6_MIGRATION.md
+
 # Claude
 .claude/
