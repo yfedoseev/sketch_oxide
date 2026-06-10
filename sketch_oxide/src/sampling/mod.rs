@@ -20,11 +20,13 @@
 //! - **VarOpt**: Weighted sampling, higher-weight items more likely
 
 pub mod l0_sampler;
+pub mod priority_sampling;
 pub mod reservoir;
 pub mod varopt;
 pub mod weighted_reservoir;
 
 pub use l0_sampler::L0Sampler;
+pub use priority_sampling::PrioritySampling;
 pub use reservoir::ReservoirSampling;
 pub use varopt::VarOptSampling;
 pub use weighted_reservoir::WeightedReservoirSampling;
