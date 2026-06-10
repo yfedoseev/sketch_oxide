@@ -11,6 +11,11 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`streaming::EcmSketch` — Exponential Count-Min (windowed per-key frequency).** A
+  Count-Min sketch whose counters are exponential histograms, so a point query returns a
+  key's approximate count *within the last `window` time units* rather than its lifetime
+  total (Papapetrou et al., VLDB 2012). Built directly on the shared `EhCore` engine, so the
+  per-cell windowing inherits the Datar relative-error guarantee.
 - **`statistics` module with `AmsSketch` (AMS / Fast-AGMS).** Estimates the second frequency
   moment F2 (`Σ f_i²`, self-join size) and inner products / **join sizes** between two streams
   (`Σ a_i·b_i`) from compact sketches, via `depth×width` signed counters with a median-of-rows
