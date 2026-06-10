@@ -22,6 +22,10 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   full set operations that fold summaries. Built on the `ThetaCore<S>` substrate;
   `estimated_column_sums()` scales the retained sample up to a population estimate. Closes the
   biggest functional gap vs DataSketches.
+- **`frequency::SpreadSketch` — superspreader detection.** Count-Min of HyperLogLogs:
+  estimates a key's *spread* (distinct peers — destinations contacted, ports scanned) rather
+  than packet volume, the basis for detecting port scans / DDoS bots / superspreaders (Tang et
+  al., INFOCOM 2020). `update(src, dst)`, `spread(src)` (min over rows), `is_superspreader`.
 - **`frequency::FcmSketch` — hierarchical Count-Min with overflow chaining.** A drop-in
   Count-Min replacement (Song et al., 2020): each row has a wide 8-bit leaf layer and a narrow
   32-bit overflow layer; a key fills its 1-byte leaf then spills into a shared wide counter, so
