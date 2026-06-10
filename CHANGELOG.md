@@ -41,6 +41,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   `max_buckets` (exactly as the OTel SDKs do), positive/negative/zero buckets, sum/min/max,
   and OTLP-shaped accessors (`scale`, `positive_offset`/`positive_counts`, …) for direct
   `ExponentialHistogramDataPoint` encoding. Mergeable (aligns scales) and serializable.
+- **`similarity::MinHashLsh` — LSH banding index for near-duplicate search.** Turns MinHash
+  from a pairwise *scorer* into a sublinear near-duplicate *search/dedup* engine: split each
+  `b·r` signature into `b` bands, index by band buckets, and a query returns the small
+  candidate set sharing a band (S-curve threshold `(1/b)^(1/r)`). Generic over the item id;
+  signature-source agnostic.
 - **`sampling::WeightedReservoirSampling` — weighted reservoir (Efraimidis–Spirakis A-Res).**
   One-pass, bounded-memory weighted sampling without replacement: each item's chance of being
   kept scales with its weight (key `u^(1/w)`, keep top-`k`). Generic over the item type,

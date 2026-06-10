@@ -17,7 +17,9 @@
 //! | **Weights** | No | Yes (weighted features) |
 
 pub mod minhash;
+pub mod minhash_lsh;
 pub mod simhash;
 
 pub use minhash::MinHash;
+pub use minhash_lsh::MinHashLsh;
 pub use simhash::SimHash;
