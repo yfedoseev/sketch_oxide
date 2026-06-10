@@ -88,7 +88,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   aliases and will be removed in a future release. Language bindings keep their existing
   class/symbol names for now (a deprecation path lands with the FFI follow-up).
 
+### Added
+- **`reconciliation::StrataEstimator` — set-difference size estimation.** Estimates `|A △ B|`
+  before reconciliation so a fixed-rate `Iblt` can be sized correctly instead of guessed
+  (Eppstein et al., SIGCOMM 2011). Per-stratum small IBLTs sampled by trailing-zero hash;
+  decodes deepest-first and scales up at the resolution limit.
+
 ### Fixed
+- **IBLT exact key/value length recovery.** Cells now track the XOR of key/value byte lengths,
+  so a decoded singleton is sliced to its exact length. This fixes keys containing **trailing
+  zero bytes** (e.g. little-endian small integers), which the previous trim-trailing-zeros
+  approach silently corrupted — they failed the key-check and broke decoding. Surfaced by the
+  Strata Estimator's integer keys.
 - **IBLT decode correctness (key-check hash).** Cells now accumulate a key-check hash so
   singleton detection verifies the recovered key instead of trusting `count == ±1` alone.
   Collisions that previously produced a *false* singleton (e.g. two insertions plus a

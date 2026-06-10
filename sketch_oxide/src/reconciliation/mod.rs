@@ -50,8 +50,10 @@
 //! ```
 
 mod iblt;
+mod strata_estimator;
 
 pub use iblt::{Iblt, IbltStats};
+pub use strata_estimator::StrataEstimator;
 
 // Deprecated aliases kept for backwards compatibility with the pre-0.2.0 names.
 // `RatelessIBLT` was a misnomer (this is a classic fixed-rate IBLT). Prefer `Iblt`.

@@ -153,6 +153,14 @@ struct IbltCell {
 
     /// XOR of the key-check hash of every key in this cell
     check_sum: u64,
+
+    /// XOR of every key's byte length. For a true singleton this is the key's exact length,
+    /// so the key is recovered precisely — including any trailing zero bytes that a
+    /// trim-trailing-zeros approach would wrongly strip.
+    key_len_sum: u64,
+
+    /// XOR of every value's byte length (exact length recovery for the singleton's value).
+    val_len_sum: u64,
 }
 
 impl IbltCell {
@@ -163,25 +171,35 @@ impl IbltCell {
             count: 0,
             key_sum: vec![0u8; cell_size],
             check_sum: 0,
+            key_len_sum: 0,
+            val_len_sum: 0,
         }
     }
 
     /// Check if this cell is a *verified* singleton.
     ///
     /// A cell is a genuine singleton when its count is `±1` and the key-check hash of
-    /// the recovered key matches the accumulated `check_sum`. The second condition
-    /// rejects false singletons produced by collisions (see module docs).
+    /// the recovered key (sliced to its exact recovered length) matches the accumulated
+    /// `check_sum`. The check rejects false singletons produced by collisions, and the exact
+    /// length makes it correct for keys containing trailing zero bytes.
     fn is_singleton(&self) -> bool {
         if self.count != 1 && self.count != -1 {
             return false;
         }
-        let key = Self::trim_zeros(&self.key_sum);
-        key_check(&key) == self.check_sum
+        let len = self.key_len_sum as usize;
+        if len > self.key_sum.len() {
+            return false;
+        }
+        key_check(&self.key_sum[..len]) == self.check_sum
     }
 
     /// Check if cell is empty
     fn is_empty(&self) -> bool {
-        self.count == 0 && self.check_sum == 0 && self.key_sum.iter().all(|&b| b == 0)
+        self.count == 0
+            && self.check_sum == 0
+            && self.key_len_sum == 0
+            && self.val_len_sum == 0
+            && self.key_sum.iter().all(|&b| b == 0)
     }
 
     /// Add a key-value pair to this cell
@@ -189,6 +207,8 @@ impl IbltCell {
         Self::xor_data(&mut self.key_sum, key);
         Self::xor_data(&mut self.sum, value);
         self.check_sum ^= key_check(key);
+        self.key_len_sum ^= key.len() as u64;
+        self.val_len_sum ^= value.len() as u64;
         self.count += 1;
     }
 
@@ -197,6 +217,8 @@ impl IbltCell {
         Self::xor_data(&mut self.key_sum, key);
         Self::xor_data(&mut self.sum, value);
         self.check_sum ^= key_check(key);
+        self.key_len_sum ^= key.len() as u64;
+        self.val_len_sum ^= value.len() as u64;
         self.count -= 1;
     }
 
@@ -213,22 +235,11 @@ impl IbltCell {
         }
     }
 
-    /// Extract key-value pair from singleton cell
+    /// Extract key-value pair from singleton cell, using the exact recovered lengths.
     fn extract_pair(&self) -> (Vec<u8>, Vec<u8>) {
-        // For singleton cells, key_sum and sum contain the actual key and value
-        // We need to trim trailing zeros
-        let key = Self::trim_zeros(&self.key_sum);
-        let value = Self::trim_zeros(&self.sum);
-        (key, value)
-    }
-
-    /// Trim trailing zeros from a byte vector
-    fn trim_zeros(data: &[u8]) -> Vec<u8> {
-        let mut end = data.len();
-        while end > 0 && data[end - 1] == 0 {
-            end -= 1;
-        }
-        data[..end].to_vec()
+        let klen = (self.key_len_sum as usize).min(self.key_sum.len());
+        let vlen = (self.val_len_sum as usize).min(self.sum.len());
+        (self.key_sum[..klen].to_vec(), self.sum[..vlen].to_vec())
     }
 }
 
@@ -453,8 +464,10 @@ impl Reconcilable for Iblt {
                 cell.key_sum[j] ^= other_cell.key_sum[j];
             }
 
-            // XOR the key-check (XOR is its own inverse, so subtract == add here)
+            // XOR the key-check and length sums (XOR is its own inverse).
             cell.check_sum ^= other_cell.check_sum;
+            cell.key_len_sum ^= other_cell.key_len_sum;
+            cell.val_len_sum ^= other_cell.val_len_sum;
 
             // Subtract counts
             cell.count -= other_cell.count;
@@ -681,6 +694,25 @@ mod tests {
 
         cell.remove(b"key1", b"value1");
         assert_eq!(cell.count, 1);
+    }
+
+    #[test]
+    fn test_keys_with_trailing_zero_bytes_decode() {
+        // Regression: keys ending in zero bytes (e.g. little-endian small integers) must
+        // round-trip. The exact-length tracking recovers them; a trim-trailing-zeros
+        // approach would corrupt them and fail the key-check.
+        let mut iblt = Iblt::new(50, 16).unwrap();
+        let keys: Vec<[u8; 4]> = (0..30u32).map(u32::to_le_bytes).collect();
+        for k in &keys {
+            iblt.insert(k, k).unwrap();
+        }
+        let diff = iblt.decode().unwrap();
+        assert_eq!(diff.to_insert.len(), 30);
+        let recovered: std::collections::HashSet<Vec<u8>> =
+            diff.to_insert.iter().map(|(k, _)| k.clone()).collect();
+        for k in &keys {
+            assert!(recovered.contains(k.as_slice()), "lost key {k:?}");
+        }
     }
 
     #[test]
