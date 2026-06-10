@@ -17,6 +17,7 @@ pub mod range_filters;
 pub mod reconciliation;
 pub mod sampling;
 pub mod similarity;
+pub mod statistics;
 pub mod streaming;
 pub mod universal;
 

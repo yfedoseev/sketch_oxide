@@ -11,6 +11,11 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`statistics` module with `AmsSketch` (AMS / Fast-AGMS).** Estimates the second frequency
+  moment F2 (`Σ f_i²`, self-join size) and inner products / **join sizes** between two streams
+  (`Σ a_i·b_i`) from compact sketches, via `depth×width` signed counters with a median-of-rows
+  estimator. Supports turnstile (negative) updates and is mergeable; row seeds are derived from
+  the row index so equal-shaped sketches are inner-product compatible.
 - **`quantiles::OtelExponentialHistogram` — OpenTelemetry base-2 exponential histogram.** The
   wire format of modern observability (OTel/Prometheus native histograms): base-2 scaled
   buckets with a `scale` parameter, automatic **downscale** when the bucket span exceeds
