@@ -11,6 +11,9 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+- **`graph` module with `TcmSketch` (graph-stream summary).** A Count-Min sketch over graph
+  *edges*: `depth` independent `width×width` matrices answer edge-weight, out-degree, and
+  in-degree queries in sublinear space (Tang et al., SIGMOD 2016). Mergeable and serializable.
 - **`streaming::EcmSketch` — Exponential Count-Min (windowed per-key frequency).** A
   Count-Min sketch whose counters are exponential histograms, so a point query returns a
   key's approximate count *within the last `window` time units* rather than its lifetime
