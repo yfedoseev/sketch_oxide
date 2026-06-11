@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::AdaptiveQuotientFilter` — a filter that *fixes* false positives on feedback (FOCS 2018).**
+  An ordinary AMQ has a fixed FPR and the same non-member false-positives forever. The Adaptive
+  Quotient Filter (Bender, Farach-Colton, Kuszmaul, Pandey et al.) lets a caller **report** a false
+  positive and *adapt*: the colliding fingerprint is **extended** with more bits of its resident's
+  hash until it no longer matches the offending query — so that query stops false-positiving, with
+  no membership ever lost; adapting on a stream of negative feedback drives the *sustained* FPR
+  toward zero. Builds on the Wave 1.3 quotient-filter substrate (`CountingQuotientFilter`). `insert`,
+  `contains`, `adapt`, `adaptations`. The minimal-extension-bit rank/select layout is a documented
+  space follow-up. 5 tests (no false negatives over 5000; adapt fixes a found FP; adapt preserves all
+  members; sustained FPR drops >4× after adapting on negatives) + doctest.
+
+
 - **`statistics::MomentsSketch` — mergeable streaming central moments (Sandia 2008 / SIGMOD 2018).** A
   constant-size summary of a numeric stream's first four central moments — **mean, variance, skewness,
   excess kurtosis** — kept in a numerically stable, fully **mergeable** form via Pébay's online and
