@@ -26,6 +26,24 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::MortonFilter` — a faster, more space-efficient cuckoo filter (Breslow & Jayasena,
+  VLDB 2018).** Re-engineers the cuckoo filter around **compression**, **biasing**, and **decoupled
+  logical sparsity** so lookups/inserts/deletes typically touch a single cache line. Fingerprints are
+  grouped into *blocks*, each storing `B` logical buckets in a compact **Fingerprint Storage Array**
+  whose capacity is below `B·S` logical slots, with a **Fullness Counter Array** recovering the layout
+  in-situ — so the filter is logically underloaded (few comparisons) yet physically dense (little
+  waste). Insertions are **biased** to the primary bucket (`H1`), and a per-block **Overflow Tracking
+  Array** lets negative lookups skip the secondary bucket when its bit is unset. The alternate bucket
+  `H2(β) = β ± offset(fp)` uses a sign chosen by `β`'s parity and an odd `offset = (B+fp mod B)|1 ≥ B`
+  — an **involution** (recoverable during cuckoo displacement without the key) landing in a different
+  block. The OTA is set monotonically on every relocation `β→H2(β)` — exactly the bit a now-secondary
+  item's lookup checks — guaranteeing **no false negatives**. `new(num_blocks, buckets_per_block,
+  slots_per_bucket, fsa_capacity, fingerprint_bits, ota_bits)`, `insert`, `contains`, `remove`, `len`.
+  6 tests (param validation; empty; **alternate is an involution into a different block**; no false
+  negatives at ~80% load; bounded FPR; deletion round-trips without corrupting other items) + doctest.
+  Behaviour-faithful reference layout (explicit per-bucket lists + FSA budget vs the bit-packed
+  FSA/FCA with popcount rank-select). Paper-verified.
+
 - **`membership::AlephFilter` — an expandable filter that grows to infinity in constant time (Dayan,
   Bercea & Pagh, VLDB 2024).** The successor to InfiniFilter: a quotient filter with **variable-length
   fingerprints** that doubles its capacity on demand. An item's hash splits into a `k`-bit bucket
