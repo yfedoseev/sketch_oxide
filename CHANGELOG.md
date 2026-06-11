@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`privacy::GrrFrequencyOracle` — local-DP frequency estimation (Generalized Randomized Response).**
+  Under *local* differential privacy each user perturbs their value before it leaves the device, so
+  the server never sees raw data. GRR (Warner's randomized response generalized to a domain of size
+  `d` — the building block of RAPPOR / Apple analytics) is the canonical `ε`-LDP frequency oracle:
+  report the true value with probability `p = e^ε/(e^ε+d−1)` and a uniformly random other value
+  otherwise, then **debias** `n̂_v = (count_v − n·q)/(p − q)`. `privatize` (client; caller supplies a
+  CSPRNG), `observe`/`submit` (server), `estimate`/`frequency`. 6 tests with a seeded RNG (heavy value
+  within 10%; uniform input → ~10% each; rare value ≈0; reports stay in domain; higher ε is more
+  accurate, averaged over seeds) + doctest.
+
+
 - **`graph::Doulion` — triangle counting by edge sparsification (KDD 2009).** DOULION (Tsourakakis,
   Kang, Miller & Faloutsos) estimates the triangle count of a massive graph by keeping each edge
   with probability `p` and counting triangles only in the sparsified subgraph: a triangle survives
