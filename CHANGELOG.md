@@ -26,6 +26,21 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`matrix::DumpSnapshotsFd` — space-optimal Frequent Directions over a sliding window (Yin et al.,
+  "Optimal Matrix Sketching over Sliding Windows", VLDB 2024, Best Paper nomination).** Sketches a
+  row-stream so the window covariance error is `‖A_WᵀA_W − B_WᵀB_W‖₂ ≤ εN`, in the **optimal `O(d/ε)`**
+  space (vs `O(d/ε²)` for LM-FD and `O(d/ε·log 1/ε)` for DI-FD). Each update runs an FD step (SVD of
+  the small sketch); any direction whose squared singular value exceeds the **dump threshold**
+  `θ = εN` is removed and stored as a snapshot `(σ·v, timestamp)`. A query stacks the residual sketch
+  with the still-in-window snapshots to reconstruct `B_W`; snapshots expire by timestamp, and a
+  **two-sketch double buffer** (main + auxiliary, swapped every `N` steps) bounds stale residual mass
+  — the crux of the Theorem 3.1 guarantee. `new(d, eps, window)`, `update(row)`, `covariance()`,
+  `ell`, `dim`. 4 tests (param/row-length validation; **covariance spectral error ≤ 1.5·εN over the
+  window**; covariance concentrates on the recent rows' axis) + doctest. Basic per-update-SVD
+  algorithm (Algorithm 2 + the Algorithm 4 query) with Gram-matrix Jacobi SVD; the amortised Fast-DS-FD
+  (Algorithm 3) is a follow-up. Distinct from the earlier block-based `SlidingFrequentDirections`.
+  Completes the roadmap watch-list. Paper-verified.
+
 - **`sampling::EbppsSketch` — exact PPS sampling with bounded sample size (Lang, IPL 2023).** Keeps a
   sample of at most `k` items from a weighted stream such that, *at all times*, each item appears with
   probability **exactly proportional to its weight** (capped at 1) — the exact-PPS property — in
