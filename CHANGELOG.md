@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`matrix::RobustFrequentDirections` — Frequent Directions with a regularizer that halves the error
+  (Luo, Chen, Zhang, Li & Zhang, JMLR 2019).** Standard FD's `BᵀB` is low-rank and *underestimates*
+  `AᵀA` — bad for second-order online learning, which needs an invertible, well-conditioned Hessian
+  approximation. RFD accumulates **half of each shrink** into a scalar regularizer `δ` and approximates
+  the covariance by `BᵀB + δI`: splitting the shrinkage **halves** the bound to
+  `‖AᵀA − (BᵀB + δI)‖₂ ≤ ‖A − A_k‖²_F / (2(ℓ−k))` while making the estimate full-rank and invertible —
+  all at the same per-row cost as FD. `new(ell, d)`, `append(row)`, `covariance()` (`BᵀB + δI`),
+  `regularizer()`, `ell`, `dim`. 3 tests (param validation; **error ≤ ‖A‖²_F/(2ℓ) and ≤ plain FD's
+  error**; covariance is full-rank with every eigenvalue ≥ δ) + doctest. Phase-3 Group A item
+  (extends the existing FD). Paper-verified.
+
 - **`cardinality::HyperBitBit` — ultra-compact cardinality estimator (Sedgewick, 2016).** Estimates
   distinct counts in just **128 + 6 bits** (two 64-bit words + a small exponent) yet stays within ~10%
   on practical data up to `2^64`. A minimisation of HyperLogLog: it keeps an exponent `lgN` and a
