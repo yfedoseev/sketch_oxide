@@ -55,12 +55,14 @@
 //! assert!(memento.may_contain_range(40, 50));
 //! ```
 
+mod diva;
 mod grafite;
 mod grf;
 mod memento_filter;
 mod pgm_index;
 mod surf;
 
+pub use diva::DivaFilter;
 pub use grafite::{Grafite, GrafiteStats};
 pub use grf::{GRFStats, GRF};
 pub use memento_filter::{MementoFilter, MementoStats};

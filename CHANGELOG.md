@@ -26,6 +26,19 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`range_filters::DivaFilter` — dynamic range filter for variable-length keys (Diva, VLDB 2025).**
+  The 2025 frontier and the library's first range filter for **variable-length byte-string keys**
+  with **lexicographic** range queries — the dominant real-world key type (RocksDB, object stores,
+  URL/path indexes) that Memento's fixed-width integer keys cannot serve. Fully **dynamic**:
+  `insert` *and* `remove` (with duplicate multiplicity). Each key is reduced to a `resolution`-byte
+  **infix**; a query is answered by an order-preserving scan over the infixes whose covered key
+  interval overlaps it — no false negatives, one-sided error only on a shared infix prefix. Also
+  implements `RangeFilter` over `u64` (big-endian). The sampled-trie routing + rank-select packed
+  infix store is documented as the space/locality follow-up. 9 tests (incl. dynamic delete,
+  duplicate-count survival, lexicographic prefix-of-low edge case, no-FN over 5000 string keys) +
+  doctest.
+
+
 
 - **`membership::BurrFilter` — Bumped Ribbon Retrieval (SEA 2022), near-optimal static AMQ.** A
   real ribbon filter: each key contributes one equation over GF(2) whose support is a contiguous
