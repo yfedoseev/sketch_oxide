@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`matrix::CountSketchEmbedding` — CountSketch sparse subspace embedding (STOC 2013).** The
+  Clarkson–Woodruff input-sparsity-time transform: an `s × n` matrix with one `±1` per column, applied
+  to an `n × d` matrix in `O(nnz(A))` to produce a tiny `s × d` sketch `SA` that is a **subspace
+  embedding** (`‖SAx‖ ≈ ‖Ax‖` once `s = O(d²/ε²)`). Enables **sketch-and-solve** least squares —
+  `sketched_least_squares` sketches the system and solves the small `d × d` normal equations
+  (Gaussian elimination with pivoting). `apply`/`apply_vec`. 6 tests (norm preserved in expectation
+  over seeds; sketched least-squares recovers the true coefficients within 0.15; near-exact with no
+  collisions; shape/singularity errors) + doctest.
+
+
 - **`statistics::KArySketch` — sketch-based heavy-change detection (k-ary sketch, IMC 2003).** A
   linear sketch (Krishnamurthy, Sen, Zhang & Chen) for finding the items whose value *changed* most
   between two snapshots (the "deltoids"). Like Count-Min it keeps `depth × width` buckets and adds
