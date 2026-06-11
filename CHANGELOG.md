@@ -26,6 +26,23 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::TaffyCuckooFilter` — a cuckoo filter that *grows* without rebuilds or fpp inflation
+  (Jim Apple, "Stretching Your Data With Taffy Filters", SP&E 2022).** Ordinary cuckoo/Bloom filters
+  must be sized up front; once full, inserts fail or the false-positive probability doubles. A Taffy
+  Cuckoo Filter starts tiny and **doubles on demand** while keeping fpp bounded by `O(2^-F)`, via two
+  ideas: (1) **quotienting with invertible per-side permutations** so the `a+F` key bits can be
+  *recovered* from `(bucket, fingerprint)` — needed for eviction and growth; and (2) a short **tail**
+  per entry (matched by prefix on lookup) that is **bit-stolen** on each upsize (`a→a+1`) to extend the
+  bucket index, with empty tails splitting into the two candidate keys (one real, one harmless
+  phantom). No false negatives; fpp stays bounded as it grows. `new()` / `with_seed(seed)`,
+  `insert(key)` (infallible, auto-growing), `contains(key)`, `len` / `is_empty` / `capacity` /
+  `log_buckets`. 6 tests (invertible-permutation round-trip; **no false negatives across many automatic
+  upsizes**; grows from a tiny start; **bounded false-positive rate**; duplicate inserts found without
+  runaway growth; empty filter) + doctest. Behaviour-faithful reference: a composed
+  multiply/rotate/xor invertible permutation (with known modular inverse) replaces the paper's Feistel
+  network — permutation quality affects only the fpp constant, not correctness. Phase-3 Group B item.
+  Paper-verified.
+
 - **`similarity::COph` — Circulant One Permutation Hashing (Li & Li, arXiv 2111.09544, 2021).** One
   Permutation Hashing splits one permutation of `[D]` into `K` bins and min-hashes each, but sparse data
   leaves empty bins needing *densification*. C-OPH carries the circulant idea of [`CMinHash`] into OPH:
