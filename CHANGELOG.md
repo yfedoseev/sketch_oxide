@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::StickySampling` — randomized approximate frequency counting (Manku & Motwani, VLDB
+  2002).** The randomized companion to `LossyCounting`: answers "which items exceed an `s` fraction of
+  the stream?" in space *independent of stream length* — `O((1/ε)·log(1/(s·δ)))` — at the cost of a
+  `δ` failure probability. An item already tracked is always counted; a new item is admitted only with
+  the current sampling probability `1/r`. The rate `r` starts at 1 and doubles after `2t, 4t, 8t, …`
+  elements (`t = ⌈(1/ε)·ln(1/(s·δ))⌉`); on each doubling a fair-coin sweep diminishes stored counts to
+  match the lower rate. Counts only ever underestimate (deterministically); with prob `≥ 1 − δ` all
+  items with true freq `≥ sN` are reported. Caller-seedable RNG; generic over `T: Hash + Eq + Clone`.
+  5 tests (param validation; counts never overestimate vs an exact oracle; all heavy hitters found;
+  sampling rate grows on a long stream; empty/absent) + doctest. Pairs with the deterministic
+  `LossyCounting`.
+
 - **`statistics::MorrisCounter` — approximate counting in `O(log log n)` bits (Morris, CACM 1978).**
   The first streaming algorithm: counts up to `n` events storing only a small register `c ≈ log_b n`,
   incrementing it *probabilistically* with probability `b^{−c}` so it tracks the log of the count.
