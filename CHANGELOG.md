@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::UnbiasedSpaceSaving` — heavy hitters with statistically unbiased counts (KDD 2018).**
+  Classic SpaceSaving always hands the evicted minimum's value to the newcomer, which over-counts
+  tail items. Unbiased Space-Saving (Ting, KDD 2018) increments the minimum counter and lets the
+  newcomer take that slot only with probability `1/(min+1)`, making every count an unbiased
+  estimator (`E[estimate] = true count`) — composable into unbiased subset-sum estimates. Generic
+  over `T: Hash + Eq + Clone`; `new`/`with_epsilon`, `update`/`update_owned`, `estimate`, `top_k`,
+  `total_count`. Two checkable invariants: counters always sum to the stream length, and below
+  capacity it is exact. Deterministic-hasher + seeded RNG → reproducible. 6 tests + doctest.
+
+
 - **`range_filters::DivaFilter` — dynamic range filter for variable-length keys (Diva, VLDB 2025).**
   The 2025 frontier and the library's first range filter for **variable-length byte-string keys**
   with **lexicographic** range queries — the dominant real-world key type (RocksDB, object stores,
