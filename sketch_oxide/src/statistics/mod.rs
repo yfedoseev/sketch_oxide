@@ -5,6 +5,7 @@
 //! later waves) entropy, Lp norms, and correlation.
 
 mod ams;
+mod density_sketch;
 mod hll_joint;
 mod k_ary;
 mod moments;
@@ -12,6 +13,7 @@ mod morris;
 mod p_stable;
 
 pub use ams::AmsSketch;
+pub use density_sketch::DensitySketch;
 pub use hll_joint::HllJointEstimator;
 pub use k_ary::KArySketch;
 pub use moments::MomentsSketch;

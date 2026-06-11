@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`statistics::DensitySketch` — streaming kernel density estimation over a reservoir (DataSketches
+  KDE family).** Summarizes the *shape* of a 1-D stream rather than a single statistic: it answers
+  "how dense is the data around `x`?" for anomaly detection, distribution monitoring, and mode
+  finding. It keeps a uniform reservoir sample and evaluates a Gaussian KDE
+  `f̂(x) = 1/(m·h·√(2π))·Σ exp(−½((x−x_i)/h)²)`; reservoir sampling makes the estimate converge to the
+  true density. Silverman's rule-of-thumb bandwidth is available from the current sample.
+  Caller-seedable RNG. `update`, `density`, `silverman_bandwidth`, `count`. 5 tests (param validation;
+  recovers the N(0,1) density at four points within 0.05; near-zero tail density and mode > tail;
+  bounded reservoir + reasonable Silverman bandwidth; empty → 0) + doctest. A callable density
+  function complementing the moment/quantile summaries.
+
 - **`frequency::FrequentDistinctTuples` — keys ranked by distinct associated values (Apache
   DataSketches FDT).** Unlike count-based heavy hitters, FDT answers "which keys associate with the
   *most distinct values*?" — super-spreader detection (source IPs contacting the most distinct
