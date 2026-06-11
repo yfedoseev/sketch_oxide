@@ -171,6 +171,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   al., ICML 2009): each feature hashes to a coordinate and a ±1 sign, values accumulate, and
   collisions cancel in expectation so inner products are preserved. The standard input layer
   for online learning (VW) and the scikit-learn `FeatureHasher`. `add`/`vector`/`transform`.
+- **`membership::ScalableBloomFilter` — Bloom filter for unbounded inserts.** Chains
+  sub-filters: when the active one fills, a larger sub-filter with a geometrically tighter FPR
+  is appended (Almeida et al., IPL 2007), keeping the compounded false-positive rate bounded by
+  the target while absorbing an unknown number of items. `insert`/`contains`; no false
+  negatives.
 - **`membership::StackedFilter` — meta-filter for known-negative workloads.** Layers
   alternating Bloom filters — positives, then the known negatives layer 0 falsely admits, then
   the positives layer 1 falsely admits (Deeds et al., VLDB 2020) — turning prior knowledge of
