@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`similarity::ProbMinHash` — locality-sensitive hashing for the probability Jaccard (Ertl, IEEE
+  TKDE 2019).** Where `WeightedMinHash` (ICWS) targets the generalized weighted Jaccard, ProbMinHash
+  targets the **probability Jaccard** `J_P` (the natural similarity of two discrete distributions) and,
+  for binary weights, reduces exactly to ordinary MinHash. Each element `d` with weight `w(d)` emits an
+  ascending Poisson process of hash points (spacings `Exp(1)/w(d)`); each point lands in a uniformly
+  random register and claims it if it beats the register's minimum, stopping once a point exceeds the
+  current max-of-minima `q_max` (the early termination that makes it `O(1)`/element when balanced). Two
+  signatures agree on a register with probability exactly `J_P`. This is ProbMinHash1 (Algorithm 5),
+  transcribed faithfully. `add`, `jaccard`, `merge` (register-wise min = combined set), `registers`.
+  8 tests (register validation; identical/disjoint; binary weights match ordinary Jaccard within 0.05;
+  order-independence; weighted overlap reflected; merge=union; size-mismatch) + doctest. Paper-verified.
+
 - **`privacy::DpMisraGries` — differentially private heavy hitters via Misra–Gries (Lebeda & Tětek,
   PODS 2023).** A Misra–Gries sketch has `ℓ1`-sensitivity `k`, so the naive DP release needs `Θ(k/ε)`
   noise per counter. Lebeda & Tětek reduce this to `O(1/ε)` by exploiting that, represented as
