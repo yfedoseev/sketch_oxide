@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`matrix::FrequentDirections` — deterministic low-rank matrix sketching (KDD 2013).** The matrix
+  analogue of Misra–Gries: summarizes a stream of `d`-dimensional rows in a tiny `ℓ × d` sketch `B`
+  whose covariance approximates the data's with a **deterministic** bound `‖AᵀA − BᵀB‖₂ ≤ ‖A‖²_F / ℓ`
+  (no randomness, no failure probability). When full it takes the SVD of `B`, subtracts the squared
+  smallest retained singular value from every squared singular value, and zeroes the rows that hit
+  zero. The SVD-shrink uses an in-house cyclic **Jacobi** eigensolver on `BBᵀ` (no linear-algebra
+  dependency). `append`, `sketch`, `covariance`. 5 tests (Jacobi diagonalizes a known matrix;
+  covariance error within the bound over 3000 rows; captures a planted dominant direction with no
+  leak into unused dims; sketch stays ≤ 2ℓ rows) + doctest.
+
+
 - **`privacy::GrrFrequencyOracle` — local-DP frequency estimation (Generalized Randomized Response).**
   Under *local* differential privacy each user perturbs their value before it leaves the device, so
   the server never sees raw data. GRR (Warner's randomized response generalized to a domain of size

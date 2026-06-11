@@ -4,7 +4,9 @@
 //! today, with Frequent Directions, TensorSketch and sketch-and-solve in later waves.
 
 mod count_sketch_embedding;
+mod frequent_directions;
 mod jl;
 
 pub use count_sketch_embedding::CountSketchEmbedding;
+pub use frequent_directions::FrequentDirections;
 pub use jl::JohnsonLindenstrauss;
