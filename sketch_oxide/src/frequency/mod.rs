@@ -3,6 +3,7 @@
 mod conservative_count_min;
 mod count_min;
 mod count_sketch;
+mod cuckoo_heavy_keeper;
 pub mod elastic_sketch;
 mod fcm_sketch;
 pub mod frequent;
@@ -21,6 +22,7 @@ mod waving_sketch;
 pub use conservative_count_min::ConservativeCountMin;
 pub use count_min::CountMinSketch;
 pub use count_sketch::CountSketch;
+pub use cuckoo_heavy_keeper::CuckooHeavyKeeper;
 pub use elastic_sketch::ElasticSketch;
 pub use fcm_sketch::FcmSketch;
 pub use frequent::{ErrorType, FrequentItems};

@@ -12,6 +12,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::CuckooHeavyKeeper` — high-precision top-k (cuckoo placement + HeavyKeeper decay).**
+  Fuses cuckoo hashing with HeavyKeeper's exponential decay: each flow gets its own *exact* counter
+  in one of two candidate cuckoo buckets (`i1`, `i2 = i1 ⊕ h(fingerprint)`), so there is none of the
+  Count-Min cross-flow count merging that plain `HeavyKeeper` inherits from its sketch array. When
+  both candidate buckets are full, the weakest resident counter is decremented only with
+  probability `decay^(−count)` and the newcomer takes the slot only if that knocks the resident to
+  zero — heavy hitters are almost never touched while mouse flows churn. `new`/`with_decay`,
+  `update`, `estimate`, `top_k`. Seeded RNG → reproducible. Explicit slot-array form (cuckoo
+  *relocation* to raise load capacity is a documented follow-up). 7 tests (incl. an elephant kept
+  within 10% amid 40k mouse flows; deterministic-across-instances) + doctest.
+
+
 - **`streaming::FibaAggregator` — out-of-order sliding-window aggregation (FiBA, VLDB 2019).** The
   structure `WindowedAggregator`'s two-stack design cannot do: values keyed by event time, inserted
   and evicted in *any* order. Partial aggregates are cached at every tree node, so the window
