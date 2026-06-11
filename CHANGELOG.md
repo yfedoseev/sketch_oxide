@@ -26,6 +26,21 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`cardinality::ExaLogLog` — space-efficient distinct counting up to the exa-scale (Ertl, EDBT
+  2025).** The latest in the HyperLogLog lineage and successor to `UltraLogLog`: up to 43% less space
+  than HyperLogLog for the same error. It generalises HLL/EHLL/ULL/PCSA with two structural parameters
+  — `t` (replacing the geometric update-value distribution by `ρ_update(k) = 2^{−φ(k)}`, easy to derive
+  from a 64-bit hash) and `d` (extra per-register bits that *memorise* recent update values). Each of
+  the `m = 2^p` registers packs a `(6+t)`-bit max update value plus `d` tracking bits. Insertion is the
+  paper's Algorithm 2 (`k = nlz(a)·2^t + ⟨t low bits⟩ + 1`, shifting/setting tracking bits);
+  cardinality uses the **martingale (HIP) estimator** (Algorithm 4) — accumulating `1/μ` per register
+  change with `μ = Σ_r h(r)` computed exactly from `ρ_update` and the tracking bits — which is simple,
+  unbiased, and optimal for the non-distributed case. `new(p, t, d)`, `add`, `estimate`. 6 tests
+  (param validation; empty → 0; accuracy at 1k/100k/1M for the recommended `t=2,d=20`; HLL-equivalent
+  `t=0,d=0`; **unbiasedness — mean over 40 datasets within 1.5%**, which caught and verified the fix of
+  a tracking-bit shift bug; duplicates) + doctest. Algorithm 2 + martingale estimator transcribed
+  faithfully; the ML estimator is a documented follow-up. Paper-verified.
+
 - **`universal::OmniSketch` — multi-dimensional frequency with arbitrary predicates (Punter et al.,
   VLDB 2024, Best Paper).** A single sketch answers `COUNT(*)` with equality predicates on *any subset*
   of attributes, chosen at query time, over a fast multi-attribute stream. It keeps one Count-Min-like

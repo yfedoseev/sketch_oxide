@@ -14,6 +14,7 @@
 
 mod cpc;
 mod cvm;
+mod exa_log_log;
 mod fm_sketch;
 mod hyperloglog;
 mod kmv;
@@ -28,6 +29,7 @@ mod ultraloglog;
 
 pub use cpc::CpcSketch;
 pub use cvm::CvmSketch;
+pub use exa_log_log::ExaLogLog;
 pub use fm_sketch::FmSketch;
 pub use hyperloglog::HyperLogLog;
 pub use kmv::KmvSketch;
