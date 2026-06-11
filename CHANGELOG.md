@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`privacy::DpQuantile` — differentially private quantiles via the exponential mechanism (STOC 2011).**
+  A quantile's sensitivity is unbounded, so it cannot be privatized by adding noise to the value.
+  Smith's exponential-mechanism solution scores each gap between consecutive sorted points by how
+  close its rank is to the target, samples a gap with probability ∝ `exp(ε·score/2)` weighted by gap
+  width, and returns a uniform point inside — adding/removing one record shifts every rank by ≤ 1, so
+  the score has sensitivity 1 and the mechanism is ε-DP. The public range `[lo, hi]` is a domain bound
+  (values clamped); the caller supplies a CSPRNG. 5 tests with a seeded RNG (median accurate at high
+  ε; percentiles ordered and near truth; output always in range; empty-data fallback) + doctest.
+
+
 - **`reconciliation::CpiSync` — Characteristic Polynomial Interpolation set reconciliation (IEEE-IT 2003).**
   Minsky–Trachtenberg–Zippel reconciliation: each party encodes its set as **power sums**
   `Σ a^k` over a prime field (`GF(2^31−1)`) for `k = 1…2m`; subtracting the two parties' power sums

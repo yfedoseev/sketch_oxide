@@ -23,12 +23,14 @@
 pub mod accountant;
 pub mod dp_continual;
 pub mod dp_count_min;
+pub mod dp_quantile;
 pub mod ldp;
 pub mod mechanisms;
 
 pub use accountant::{Accountant, PrivacyParams};
 pub use dp_continual::DpContinualCounter;
 pub use dp_count_min::{DpCountMin, PrivateCountMin};
+pub use dp_quantile::DpQuantile;
 pub use ldp::GrrFrequencyOracle;
 pub use mechanisms::{
     discrete_gaussian, discrete_laplace, gaussian_mechanism, gaussian_sigma, laplace_mechanism,
