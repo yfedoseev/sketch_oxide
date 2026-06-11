@@ -26,6 +26,21 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::PersistentBloomFilter` — membership testing over the *entire history* (Peng, Guo, Li,
+  Qian & Zhou, SIGMOD 2018).** A plain Bloom filter answers "has `x` ever appeared?"; a Persistent
+  Bloom Filter answers the **temporal** "did `x` appear during `[s, e]`?" (forensic/audit queries). The
+  naive one-test-per-timestamp approach is `O(e−s)` and raises the false-positive probability to the
+  `(e−s)`-th power; PBF-1 fixes both with a **dyadic segment-tree over time**: a binary tree with one
+  Bloom filter per node, where node at level `ℓ` covers a `T/2^ℓ` interval. **Insert** `(x,t)` adds `x`
+  to every Bloom filter on the root→leaf(t) path; **query** `(x,[s,e])` ORs membership over the
+  `O(log T)` dyadic **canonical cover** of `[s,e]` — never the root, which is what yields temporal
+  precision. No false negatives; FPs come from Bloom collisions and the cover OR. `new(t_max,
+  granularity, bits_per_filter, num_hashes)`, `insert(element, timestamp)`, `query(element, start,
+  end)`, `t_max` / `num_filters`. 5 tests (param validation incl. power-of-two; **no false negatives**;
+  **temporal precision excludes other times**; **bounded FPR for absent elements**; granularity groups
+  timestamps) + doctest. PBF-1 (uniform per-node filter size; the paper's per-level sizing and
+  sub-granularity helper noted as refinements). Phase-3 Group A item. Paper-verified.
+
 - **`frequency::DoubleAnonymousSketch` — top-K-*fair* global top-K across disjoint streams (Zhao, Han,
   Zhong, Zhang, Yang & Cui, SIGMOD/PACMMOD 2023).** Merging per-site local top-Ks is biased: top-K
   sketches over-estimate the items they select, so a genuinely hot item in a *light* stream can be
