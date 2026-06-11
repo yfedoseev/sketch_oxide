@@ -26,6 +26,22 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`quantiles::SketchPolymer` — per-item *tail* quantile estimation with one sketch (Guo et al., KDD
+  2023).** Estimates the tail quantile of a *per-item* value distribution (e.g. "the 99th-percentile
+  latency of flow `e`") under tight memory. Two ideas: **Value Splitting and Sharing** replaces each
+  value `t` by its logarithm class `T = ⌊log_a t⌋` (base `a` just above 1; decode via `a^T`), keeping
+  multiplicative error small while collapsing the value range; **Early Filtration** gates rare items
+  out via a Count-Min frequency filter (only items past a threshold `𝒯` reach the quantile machinery).
+  Four stages (Algorithms 9–10): a **Filter Stage** (item-frequency CM); a **Polymer Stage** (CM
+  carrying frequency + the maximum class `T`); a **Splitting Stage** (CM over `(item, T)` pairs with
+  8-bit truncated counters); and a **Verification Filter** (Bloom over `(item, T)` suppressing
+  Splitting-Stage over-counts). A `w`-quantile query reads `(f, T)` from the Polymer Stage, budgets
+  `m = (1−w)·f`, walks classes downward from `T` subtracting each verified class's frequency, and
+  returns `a^(T+1)` once `m` is spent. `new(depth, width, a, threshold)`, `insert(item, value)`,
+  `quantile(item, w)`. 5 tests (param validation; unknown/infrequent → 0; uniform distribution within
+  12% across p50/p90/p95/p99; tail > median monotonicity; two-flow separation) + doctest.
+  Paper-verified.
+
 - **`frequency::StableSketch` — versatile flat sketch for heavy hitters/changers/persistent items
   (Li & Patras, WWW 2024, Best Student Paper).** A single-layer `m × u` table where each bucket holds
   a `(key, value, stability)` triple. **Bucket stability** is the core idea: a bucket whose recorded
