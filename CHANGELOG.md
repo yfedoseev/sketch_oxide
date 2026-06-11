@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`statistics::MorrisCounter` — approximate counting in `O(log log n)` bits (Morris, CACM 1978).**
+  The first streaming algorithm: counts up to `n` events storing only a small register `c ≈ log_b n`,
+  incrementing it *probabilistically* with probability `b^{−c}` so it tracks the log of the count.
+  The estimate `(b^c − 1)/(b − 1)` is **unbiased** for any base `b > 1`, with relative variance
+  exactly `(b − 1)/2` — base near 1 is accurate but lets `c` grow, classic base 2 keeps `c` tiny.
+  Caller-seedable RNG. `increment`, `estimate`, `register`. 5 tests (base validation; zero → 0;
+  register grows logarithmically over 100k increments; unbiasedness — mean over 400 seeds within 8%;
+  smaller base provably reduces empirical variance) + doctest. Counts the first moment `F1`,
+  complementing `AmsSketch` (`F2`) and `PStableLpSketch` (`Lp`).
+
 - **`graph::Mascot` — fixed-probability edge-sampling triangle counting (Lim & Kang, KDD 2015).**
   Where `Triest` keeps a fixed-size reservoir, MASCOT keeps each edge independently with probability
   `p`. For every arriving edge `(u, v)` it counts the triangles closed against the already-sampled
