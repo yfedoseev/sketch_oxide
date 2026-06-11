@@ -301,6 +301,11 @@ impl MinHash {
     pub fn num_perm(&self) -> usize {
         self.num_perm
     }
+
+    /// Returns the MinHash signature: the minimum hash value for each permutation.
+    pub fn hashes(&self) -> &[u64] {
+        &self.hash_values
+    }
 }
 
 impl Sketch for MinHash {

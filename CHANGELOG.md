@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`similarity::LshEnsemble` — domain search by set *containment* (Zhu et al., VLDB 2016).** Jaccard
+  LSH finds *similar* sets; many applications instead want high **containment** `t(Q,X)=|Q∩X|/|Q|`,
+  which is asymmetric and size-dependent (`J = t·|Q|/(|X|+(1−t)|Q|)`), so one Jaccard LSH is badly
+  biased across set sizes. LSH Ensemble **partitions indexed sets by size** into log-scaled bands, each
+  a MinHash LSH, and a containment query probes every band and keeps sets whose estimated containment
+  clears the threshold. `new(num_perm, num_partitions)`, `add(id, signature, size)`, `query(q_sig,
+  q_size, threshold)`. 3 tests (param/length validation; **finds high-containment sets — including a
+  large set with low Jaccard — and rejects unrelated ones**) + doctest. Also adds `MinHash::hashes()`
+  to expose the signature. Maximal-recall LSH per partition + containment filter (the paper's optimal
+  per-partition band tuning is a follow-up). Phase-3 Group B item. Paper-verified.
+
 - **`membership::TelescopingFilter` — a practical *adaptive* filter (Lee, McCauley, Singh & Stein, ESA
   2021).** An adaptive filter fixes a false positive the instant it is detected so the *same* false
   positive never recurs — vital under skewed query workloads. The Telescoping Filter achieves
