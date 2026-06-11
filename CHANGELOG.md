@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::PrefixFilter` — fast two-level approximate-membership filter (VLDB 2023).** The
+  current SOTA Bloom alternative (Even, Even & Morrison): each key is routed by its hash to one of
+  many small cache-local **bins** holding a few fingerprints; a bin that fills sends its overflow to
+  a shared second-level **spare**. Because overflow is rare, bins stay tiny — Bloom-beating speed
+  and space with **no false negatives** and a bounded FPR. `insert`, `contains`, `spare_len`. The
+  bit-packed Pocket Dictionary + cuckoo spare are documented space follow-ups. 6 tests (no-FN over
+  5000 int + 2000 string keys; bounded FPR; forced overflow into the spare with full recovery; empty
+  filter) + doctest.
+
+
 - **`matrix::FrequentDirections` — deterministic low-rank matrix sketching (KDD 2013).** The matrix
   analogue of Misra–Gries: summarizes a stream of `d`-dimensional rows in a tiny `ℓ × d` sketch `B`
   whose covariance approximates the data's with a **deterministic** bound `‖AᵀA − BᵀB‖₂ ≤ ‖A‖²_F / ℓ`
