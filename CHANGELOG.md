@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`graph::HyperAnf` — approximate neighborhood function of a graph (Boldi, Rosa & Vigna, WWW 2011).**
+  The neighborhood function `N(t)` counts node pairs within distance `t` (how Facebook measured "four
+  degrees of separation"); exactly it needs all-pairs BFS. HyperANF gives every node a `HyperLogLog`
+  of the nodes it can reach and grows those sets one BFS ring at a time — at round `t` each node unions
+  its neighbors' round-`t−1` sketches, so its sketch becomes the nodes within distance `t`. Summing the
+  per-node cardinalities gives `N(t)`; one node's cardinality gives its ball size `|B(v, t)|`. HLL's
+  idempotent union means revisits never double-count. `add_edge`, `neighborhood_function`, `ball_size`;
+  `u64` undirected vertices. 5 tests (precision validation; path `N(t)` within 8% of exact BFS for
+  t=0..5; path reaches all pairs past its diameter; middle-node ball size ≈ 2t+1; empty graph) +
+  doctest. Composes `cardinality::HyperLogLog`.
+
 - **`streaming::SlidingWindowUniversal` — windowed L2 / frequency moments over the most recent items
   (PromSketch EHUniv, Zhu et al., VLDB 2025).** The companion to `SlidingWindowQuantiles`: it puts a
   `UnivMon` universal sketch in each block of an exponential-histogram-style window, so one structure
