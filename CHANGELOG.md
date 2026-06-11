@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::Hokusai` — time-adaptive frequency sketches (Matusevych, Smola & Ahmed, UAI 2012).**
+  A single Count-Min sketch counts items but forgets *when*; Hokusai adds a time axis by keeping a
+  logarithmic ladder of Count-Min sketches so that, at any moment, `M_j` summarises frequencies over
+  the **most recent `2^j` time units** — recent windows fine-grained, older ones exponentially coarser,
+  fitting `T` steps in `O(log T)` space. Each `tick()` completes a unit interval and cascades it up the
+  ladder with a **binary-carry swap-accumulate** (paper Theorem 4: amortised `O(1)`/tick); folding past
+  the top level is the intended finite-memory truncation. Windowed counts are Count-Min upper bounds.
+  `new(levels, width, depth)`, `add(item)` / `add_count(item, n)`, `tick()`, `estimate_window(item,
+  level)`, `estimate_current(item)`, `window_span`, `time`, `levels`. 5 tests (param validation;
+  **windows hold exactly `2^j` recent occurrences**; **old observations decay out of recent windows**;
+  windowed counts are upper bounds under collisions; current unit separate from completed windows) +
+  doctest. Time-aggregation ladder (Algorithm 2); item aggregation & resolution extrapolation noted as
+  paper extensions. Phase-3 Group A item. Paper-verified.
+
 - **`range_filters::BloomRf` — range queries in a *single* Bloom filter via prefix hashing (Mößner,
   Riegger, Bernhardt & Petrov, EDBT 2023).** A plain Bloom filter answers only point queries; bloomRF
   inserts each key at several **dyadic prefix levels** (the key with low bits masked off) into *one* bit
