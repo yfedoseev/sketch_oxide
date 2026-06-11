@@ -14,6 +14,7 @@
 
 mod cpc;
 mod hyperloglog;
+mod kmv;
 mod linear_counting;
 mod qsketch;
 mod theta;
@@ -23,6 +24,7 @@ mod ultraloglog;
 
 pub use cpc::CpcSketch;
 pub use hyperloglog::HyperLogLog;
+pub use kmv::KmvSketch;
 pub use linear_counting::LinearCounting;
 pub use qsketch::QSketch;
 pub use theta::ThetaSketch;

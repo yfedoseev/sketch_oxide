@@ -156,6 +156,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   tracks an `(ε, δ)` budget under sequential composition and refuses over-budget spends.
   RNG is explicit and must be a CSPRNG (`secure_rng`). Substrate for DP cardinality release,
   DP-Count-Min, continual counting, and LDP oracles in later waves.
+- **`cardinality::KmvSketch` — K-Minimum-Values cardinality + Jaccard.** Keeps the `k` smallest
+  hash values; `n̂ = (k−1)/v_k` from the k-th smallest. Because the actual minima are kept, the
+  bottom-`k` of a union is exact on the sample, giving unbiased **union cardinality** and
+  **Jaccard** estimates (Beyer et al., SIGMOD 2007). The explicit, mergeable cousin of the
+  Theta sketch. `add`/`estimate`/`union_cardinality`/`jaccard`.
 - **`cardinality::LinearCounting` — bitmap cardinality sketch.** The simplest distinct-count
   sketch (Whang et al., TODS 1990): an `m`-bit bitmap with `n̂ = −m·ln(z/m)` from the zero-bit
   count `z`. More accurate than HLL for small/moderate loads and exact without collisions —
