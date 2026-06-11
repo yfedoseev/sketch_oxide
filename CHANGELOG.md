@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`cardinality::SetSketch` — one sketch for both cardinality and Jaccard (Ertl, VLDB 2021).** Where
+  HyperLogLog estimates cardinality and MinHash estimates Jaccard, SetSketch does both in one mergeable
+  structure that interpolates between them via a base `b` (`b → 1` ≈ MinHash, `b = 2` ≈ HyperLogLog).
+  Each register holds `max_{d∈S} ⌊1 − log_b(h_i(d))⌋` for `h_i(d) ~ Exp(a)`. Inserts use the paper's
+  Algorithm 1 (SetSketch1, exponential spacings): an element emits an ascending exponential point
+  process, each point updating a register drawn without replacement, stopping once it can no longer
+  beat the running lower bound `K_low` — `O(1)` amortized for large sets (via a lazy Fisher–Yates).
+  Cardinality uses the closed-form estimator `n̂ = m(1 − 1/b)/(a·ln(b)·Σ_i b^{−K_i})` (Eq. 12); Jaccard
+  uses inclusion–exclusion over the mergeable cardinality estimates (Eq. 13). `add`,
+  `estimate_cardinality`, `jaccard`, `merge` (register-wise max). 8 tests (param validation; empty ≈ 0;
+  100k cardinality within 10%; 1k within 15%; merge=union; Jaccard 1/3 within 0.08;
+  identical/disjoint extremes; param-mismatch error) + doctest. Paper-verified; complements
+  `HyperLogLog`/`UltraLogLog` and the MinHash family.
+
 - **`similarity::ProbMinHash` — locality-sensitive hashing for the probability Jaccard (Ertl, IEEE
   TKDE 2019).** Where `WeightedMinHash` (ICWS) targets the generalized weighted Jaccard, ProbMinHash
   targets the **probability Jaccard** `J_P` (the natural similarity of two discrete distributions) and,
