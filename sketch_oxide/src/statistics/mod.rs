@@ -7,9 +7,11 @@
 mod ams;
 mod hll_joint;
 mod k_ary;
+mod moments;
 mod p_stable;
 
 pub use ams::AmsSketch;
 pub use hll_joint::HllJointEstimator;
 pub use k_ary::KArySketch;
+pub use moments::MomentsSketch;
 pub use p_stable::PStableLpSketch;

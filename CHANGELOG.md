@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`statistics::MomentsSketch` — mergeable streaming central moments (Sandia 2008 / SIGMOD 2018).** A
+  constant-size summary of a numeric stream's first four central moments — **mean, variance, skewness,
+  excess kurtosis** — kept in a numerically stable, fully **mergeable** form via Pébay's online and
+  parallel formulas, so two sketches combine in O(1) with no loss of accuracy. `update`, `mean`,
+  `variance`, `std_dev`, `skewness`, `kurtosis`, `min`/`max`, `merge`. Underpins the moment-based
+  quantile reconstruction of the Moments Sketch (Gan et al.); the max-entropy solver is a documented
+  follow-up query layer. 6 tests (mean/variance of uniform; zero skew on symmetric data; strong
+  positive skew on a tailed set; merge exactly matches a single pass; empty/identity) + doctest.
+
+
 - **`membership::PrefixFilter` — fast two-level approximate-membership filter (VLDB 2023).** The
   current SOTA Bloom alternative (Even, Even & Morrison): each key is routed by its hash to one of
   many small cache-local **bins** holding a few fingerprints; a bin that fills sends its overflow to
