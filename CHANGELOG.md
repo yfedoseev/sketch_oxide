@@ -26,6 +26,15 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`quantiles::GreenwaldKhanna` — deterministic ε-approximate quantiles (SIGMOD 2001).** The classic
+  Greenwald–Khanna summary: rank/quantile queries within `±εn` using `O((1/ε)·log(εn))` space, with a
+  **deterministic** error bound that holds for every stream regardless of order or adversary (unlike
+  the randomized KLL / t-digest already in the module). Keeps sorted `(value, g, Δ)` tuples under the
+  invariant `g + Δ ≤ 2εn`, with periodic threshold-based compression. `insert`, `quantile`, `min`,
+  `max`, `count`, `num_tuples`. 6 tests (every percentile within the rank bound over 100k shuffled
+  values; exact min/max; sublinear space <5000 tuples for 200k; extreme-quantile clamping) + doctest.
+
+
 - **`reconciliation::RangeReconciler` — Range-Based Set Reconciliation (RBSR / negentropy).** Meyer's
   range-based reconciliation (the basis of Nostr's negentropy) reconciles two sorted sets by
   comparing **range fingerprints** (XOR of per-key hashes + count): a matching range is skipped

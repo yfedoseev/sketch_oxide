@@ -81,6 +81,7 @@
 //! ```
 
 mod ddsketch;
+mod gk;
 mod kll;
 mod otel_histogram;
 pub mod req;
@@ -89,6 +90,7 @@ mod tdigest;
 mod udd_sketch;
 
 pub use ddsketch::DDSketch;
+pub use gk::GreenwaldKhanna;
 pub use kll::{KllFloatSketch, KllSketch};
 pub use otel_histogram::OtelExponentialHistogram;
 pub use req::{ReqMode, ReqSketch};
