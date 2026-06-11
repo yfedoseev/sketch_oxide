@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`privacy::DpMisraGries` — differentially private heavy hitters via Misra–Gries (Lebeda & Tětek,
+  PODS 2023).** A Misra–Gries sketch has `ℓ1`-sensitivity `k`, so the naive DP release needs `Θ(k/ε)`
+  noise per counter. Lebeda & Tětek reduce this to `O(1/ε)` by exploiting that, represented as
+  `(counts − mean, mean)`, neighbouring sketches differ by `< 2` in `ℓ1`: each counter is released as
+  `ĉ_x = c_x + Lap_x + Lap_shared` (independent per-counter noise + one shared sample, both scale
+  `1/ε`), then counters below a threshold are dropped so absent keys stay hidden. Uses the
+  **discrete** Laplace (two-sided geometric) mechanism — the attack-resistant integer variant the
+  paper recommends (§5.2) — with the matching threshold `τ = 1 + 2⌈ln(6e^ε/((e^ε+1)δ))⌉/ε`, giving
+  `(ε, δ)`-DP. Caller-supplied RNG (CSPRNG in production); generic over `T: Hash + Eq + Clone`.
+  `update`, `release`, `raw_counters`. 5 tests (param validation; MG retains heavy hitters; private
+  release recovers the heavy hitter within 100 of 60k at ε=2; threshold grows as δ/ε shrink; tiny
+  counts suppressed and no out-of-input keys) + doctest. Opens DP heavy-hitters alongside the
+  central-DP `DpCountMin` and the local-DP `OlhFrequencyOracle`/`CountMeanSketch`.
+
 - **`similarity::SuperMinHash` — lower-variance MinHash for Jaccard estimation (Ertl, 2017).** Plain
   MinHash draws `m` independent minima (variance `J(1−J)/m`); SuperMinHash produces `m` registers whose
   collision probabilities are each exactly the Jaccard index — still unbiased — but *negatively
