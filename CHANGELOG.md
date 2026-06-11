@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`reconciliation::RangeReconciler` — Range-Based Set Reconciliation (RBSR / negentropy).** Meyer's
+  range-based reconciliation (the basis of Nostr's negentropy) reconciles two sorted sets by
+  comparing **range fingerprints** (XOR of per-key hashes + count): a matching range is skipped
+  entirely, a small differing range is exchanged directly, and a large differing range is split and
+  recursed — so work falls only where the sets differ (`O(d·log n)` for a difference of size `d`).
+  Unlike an IBLT it needs no special decoding and no pre-agreed difference bound, degrading
+  gracefully from tiny to large differences. `reconcile` returns a `RangeDiff` of sorted to-insert /
+  to-remove keys. 7 tests cross-checked against an exact `BTreeSet` difference (identical, half-overlap,
+  3 sparse diffs in 100k, disjoint, one-side-empty, minimum threshold) + doctest.
+
+
 - **New `net` module + `net::BeauCoup` — per-key distinct counting / super-spreader detection
   (SIGCOMM 2020).** BeauCoup (Chen, Liu, Zhao, Braverman & Rexford) finds keys that contact many
   *distinct* values (e.g. source IPs touching many destinations — scanners / super-spreaders) using

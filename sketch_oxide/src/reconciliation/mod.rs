@@ -52,10 +52,12 @@
 
 mod iblt;
 mod pin_sketch;
+mod range_reconcile;
 mod strata_estimator;
 
 pub use iblt::{Iblt, IbltStats};
 pub use pin_sketch::PinSketch;
+pub use range_reconcile::{RangeDiff, RangeReconciler};
 pub use strata_estimator::StrataEstimator;
 
 // Deprecated aliases kept for backwards compatibility with the pre-0.2.0 names.
