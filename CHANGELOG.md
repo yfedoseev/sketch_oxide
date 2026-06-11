@@ -26,6 +26,22 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`reconciliation::RatelessIblt` — set reconciliation with no pre-agreed difference size (Yang, Gilad
+  & Alizadeh, SIGCOMM 2024).** A classic IBLT must be sized for an expected difference `d` — too small
+  fails to decode, too large wastes bandwidth. A **Rateless IBLT** defines an *infinite* stream of
+  coded symbols per set; one side streams symbols, the other subtracts its own and peeling-decodes the
+  running difference, stopping once recovered — on average after `≈ 1.35·d` symbols with **no prior
+  knowledge of `d`** (fulfilling the "true rateless IBLT planned separately" note left when the old
+  fixed-rate `RatelessIBLT` was renamed to `Iblt`). Each `CodedSymbol` carries `sum`/`checksum`/`count`
+  accumulators; streams are linear (`aᵢ − bᵢ` encodes `A △ B`), a cell is *pure* when `|count|=1` and
+  `checksum = hash(sum)`. The mapping probability `ρ(i) = 1/(1+i/2)` is realised in `O(1)` per index by
+  sampling jumps from the closed-form inverse CDF `next = i + ⌈(i+1.5)(1/√(1−r) − 1)⌉` (the paper's
+  `α=0.5`), giving `O(log m)` density. `RatelessIblt::{new, insert, next_coded_symbol, coded_symbols,
+  reconcile, decode}` plus public `CodedSymbol`. 6 tests (**small difference reconciled without knowing
+  `d`**; identical sets → empty; **undersized budget fails, ample budget succeeds**; near-optimal
+  overhead at `d=300`; streaming index-0 invariant; subtract cancels common elements) + doctest.
+  Phase-3 Group A item (reconciliation watch-list). Paper-verified.
+
 - **`quantiles::DyadicCountSketch` — approximate quantiles over *turnstile* streams (insertions and
   deletions).** Comparison-based quantile sketches (GK, KLL, t-digest) assume an append-only stream;
   DCS supports **deletions** via the dyadic-interval framework (Cormode & Muthukrishnan) with the
