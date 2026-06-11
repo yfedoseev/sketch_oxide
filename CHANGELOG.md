@@ -12,6 +12,19 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::BurrFilter` — Bumped Ribbon Retrieval (SEA 2022), near-optimal static AMQ.** A
+  real ribbon filter: each key contributes one equation over GF(2) whose support is a contiguous
+  64-wide band — `⊕ Z[s(x)+j] = fingerprint(x)` — solved by **on-the-fly Gaussian elimination**
+  (one pivot per row position, then back-substitution), so it approaches the information-theoretic
+  `log2(1/fpr)` bits/key. Rows that cannot be placed are **bumped** to the next of a few stacked
+  ribbon layers (each run at 90% load), with a tiny exact fingerprint set catching the final
+  residue — no false negatives, FPR ≈ `2^-r`. `build(keys, fpr)` / `contains`; reports
+  `num_layers`, `fallback_len`, `bits_per_key`. Verified by no-false-negatives over 5000 keys, a
+  bounded-FPR test, and bumping-convergence. (Distinct from the existing `RibbonFilter`, which is a
+  2-hash bit-set; BuRR performs the genuine banded solve.) The bit-packed interleaved `Z` storage
+  is a documented space follow-up. 8 tests + doctest.
+
+
 - **`frequency::CuckooHeavyKeeper` — high-precision top-k (cuckoo placement + HeavyKeeper decay).**
   Fuses cuckoo hashing with HeavyKeeper's exponential decay: each flow gets its own *exact* counter
   in one of two candidate cuckoo buckets (`i1`, `i2 = i1 ⊕ h(fingerprint)`), so there is none of the

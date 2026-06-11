@@ -5,6 +5,7 @@
 mod binary_fuse;
 mod blocked_bloom;
 mod bloom;
+mod burr;
 mod counting_bloom;
 mod counting_quotient_filter;
 mod cuckoo;
@@ -18,6 +19,7 @@ mod vacuum_filter;
 pub use binary_fuse::BinaryFuseFilter;
 pub use blocked_bloom::BlockedBloomFilter;
 pub use bloom::BloomFilter;
+pub use burr::BurrFilter;
 pub use counting_bloom::CountingBloomFilter;
 pub use counting_quotient_filter::CountingQuotientFilter;
 pub use cuckoo::CuckooFilter;
