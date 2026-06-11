@@ -12,6 +12,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`graph::GssSketch` — the Graph Stream Sketch (ICDE 2019).** The accuracy successor to
+  `TcmSketch`: where TCM sums weights into hashed cells and conflates every edge that lands
+  together, GSS stores a **fingerprint** of each endpoint in the cell, so a query only credits a
+  slot whose `(fp(s), fp(d))` match — unrelated edges sharing a cell no longer collide. The few
+  edges whose cell bucket is full spill into an overflow buffer, so no weight is ever lost.
+  Answers edge-weight, out-degree and in-degree queries, all one-sided overestimates (never
+  underestimates). This is the explicit fingerprinted-matrix + buffer form; the paper's
+  square-hashing multi-room placement (which shrinks the buffer) is a documented follow-up that
+  changes only where an edge is stored, not query results. 7 tests + doctest.
+
+
 - **`range_filters::Surf` — the Succinct Range Filter (SIGMOD 2018).** The trie-based filter that
   gave RocksDB practical range filtering: a trie over the keys, pruned to the shortest prefixes
   that still tell them apart. Truncated tails give bounded false positives but **no false
