@@ -26,6 +26,19 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **New `net` module + `net::BeauCoup` — per-key distinct counting / super-spreader detection
+  (SIGCOMM 2020).** BeauCoup (Chen, Liu, Zhao, Braverman & Rexford) finds keys that contact many
+  *distinct* values (e.g. source IPs touching many destinations — scanners / super-spreaders) using
+  the **coupon-collector** principle: each `(key, value)` activates one of `m` coupons only with a
+  small probability `q`, so a key fills its coupons only after many distinct values; the collected
+  fraction inverts to a per-key distinct-count estimate. Activation is keyed on the *pair*, so
+  repeats are idempotent and only distinct values move the estimate; with `q ≪ 1` only a small
+  fraction of observations touch memory. `record`, `estimate_distinct`, `super_spreaders`. 6 tests
+  (distinct-count within 35%; repeats don't inflate; super-spreaders detected and light keys not;
+  smaller `q` resolves larger counts) + doctest. Establishes the `net` module for future
+  network-telemetry sketches.
+
+
 - **`streaming::SmoothHistogramSum` — (1±ε) sliding-window aggregates (Smooth Histograms, FOCS 2007).**
   The Braverman–Ostrovsky framework for approximating *smooth* functions over the last `W` elements
   of a stream. It keeps a sparse set of **checkpoints** (each holding the aggregate from its start to

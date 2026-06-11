@@ -13,6 +13,7 @@ pub mod graph;
 pub mod learned;
 pub mod matrix;
 pub mod membership;
+pub mod net;
 pub mod privacy;
 pub mod quantiles;
 pub mod range_filters;
