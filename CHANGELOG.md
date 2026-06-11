@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::Rhhh` — Randomized Hierarchical Heavy Hitters with O(1) updates (SIGCOMM 2017).**
+  Hierarchical heavy hitters (e.g. source-IP prefixes at /8, /16, /24, /32) normally cost O(H) per
+  packet because every level is updated. RHHH (Ben-Basat, Einziger, Friedman & Kassner) makes
+  updates O(1) by sampling: each item updates a *single* randomly chosen level's Misra–Gries
+  counter, and a level's raw count is scaled by H for an unbiased frequency estimate. Hierarchy is
+  the bit-prefix lattice of a `u64` key (`num_levels × bits_per_level ≤ 64`); `update`, `estimate`,
+  `heavy_hitters`, `prefix`. Built on the existing `FrequentItems`. The full HHH descendant-
+  conditioning of the *reported* set is a documented follow-up. 6 tests (prefix generalization;
+  finest-level estimate within 25%; coarse-prefix aggregation; elephant in heavy-hitters;
+  deterministic) + doctest.
+
+
 - **`streaming::AdaSketch` — time-adaptive Count-Min sketch (Ada-Sketches, SIGMOD 2016).** Makes a
   Count-Min sketch recency-aware with O(1) updates via **pre-emphasis / de-emphasis**: an update at
   logical time `t` adds weight `e^{αt}` instead of 1, and a query divides by the current `e^{αT}`,
