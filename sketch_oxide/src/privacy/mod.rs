@@ -30,6 +30,7 @@ pub mod dpsw_sketch;
 pub mod ldp;
 pub mod mechanisms;
 pub mod olh;
+pub mod person_level_dp;
 
 pub use accountant::{Accountant, PrivacyParams};
 pub use cms::CountMeanSketch;
@@ -44,3 +45,4 @@ pub use mechanisms::{
     randomized_response, randomized_response_truth_prob, secure_rng,
 };
 pub use olh::OlhFrequencyOracle;
+pub use person_level_dp::PersonLevelDp;

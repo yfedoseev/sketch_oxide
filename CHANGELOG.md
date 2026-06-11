@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`privacy::PersonLevelDp` — person-level differential privacy via bounded user contribution (Wilson
+  et al., "Differentially Private SQL with Bounded User Contribution", PETS 2020).** Record-level DP
+  under-protects a **person** who contributes many records. Person-level DP bounds each user before
+  aggregating: **`L0`** caps the distinct keys/groups one user can influence (extra keys dropped) and
+  **`L∞`** clips a user's running total per key to `±L∞`. One user then changes the histogram by at
+  most `L0` keys × `L∞`, so its **L1 sensitivity is `L0·L∞`**, and releasing each key's sum with
+  discrete-Laplace noise of scale `L0·L∞/ε` gives **`ε`-DP at the person level**. Noise uses the crate's
+  discrete [`laplace_mechanism`](crate::privacy::mechanisms) over a **caller-supplied CSPRNG**.
+  `new(max_keys_per_user, max_per_key, epsilon)`, `add(user, key, value)`, `release(rng)`,
+  `true_histogram` (non-private, for testing), `sensitivity`, `num_keys`. 6 tests (param validation;
+  **`L0` bounds distinct keys per user**; **`L∞` clips per-key totals**; sensitivity `= L0·L∞`; **release
+  is close to truth for large counts**; deterministic given the RNG) + doctest. Phase-3 Group A item.
+  Paper-verified.
+
 - **`streaming::PersistentCountMin` — *temporal frequency* queries over the entire history.** The
   counting analog of the Persistent Bloom Filter: a Count-Min sketch answers "how often did `x` occur?",
   this answers "how often did `x` occur during `[s, e]`?" for forensic/audit analytics. Over `[1, T]`
