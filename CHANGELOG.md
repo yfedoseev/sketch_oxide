@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`quantiles::PerKeyQuantiles` — quantile summaries per heavy-hitter key (SQUAD, 2023).** Monitoring
+  often needs a quantile *per key* (p99 latency per endpoint, median size per flow). Tracking every
+  key is infeasible, so SQUAD-style estimation keeps summaries only for the heavy hitters: a
+  capacity-bounded monitored-key set (LFU eviction when full, so established heavy keys keep their
+  summaries under churn) with a Greenwald–Khanna summary per key giving deterministic `±εn` per-key
+  rank error. Generic over `T: Hash + Eq + Clone`; `update`, `quantile`, `count`, `is_monitored`.
+  SQUAD's per-key sampling buffer is a documented follow-up. 5 tests (two keys' medians tracked
+  independently; per-key p10/p95; unmonitored → None; LFU keeps heavy keys through a light-key flood)
+  + doctest. Composes `GreenwaldKhanna`.
+
+
 - **`graph::AgmConnectivity` — graph connectivity from linear sketches (AGM, SODA 2012).** The
   Ahn–Guha–McGregor breakthrough: connectivity, a global property, decided from a *linear* sketch of
   the edge stream in `O(n·polylog n)` space. Each vertex keeps an **L0 sketch** of its incident edges,
