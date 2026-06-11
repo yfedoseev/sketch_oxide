@@ -4,6 +4,8 @@
 //! from a single data structure, significantly reducing memory overhead compared to
 //! maintaining separate specialized sketches.
 
+mod coco_sketch;
 mod univmon;
 
+pub use coco_sketch::CocoSketch;
 pub use univmon::{UnivMon, UnivMonStats};

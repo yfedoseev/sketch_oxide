@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`universal::CocoSketch` — sketching for arbitrary partial-key queries (Zhang et al., SIGCOMM
+  2021).** Network measurement wants flow sizes by *arbitrary* key fields (by source IP, by 5-tuple,
+  by (src,dst)) from one sketch; CocoSketch casts this to subset-sum estimation. It keeps `d` arrays of
+  `l` `(key, value)` buckets updated by **stochastic variance minimization**: for a packet `(e, w)`,
+  if `e` already occupies one of its `d` buckets that bucket's value is incremented by `w`; otherwise
+  the smallest-valued of the `d` buckets is incremented by `w` and its key is replaced by `e` with
+  probability `w/V_new` — Unbiased Space-Saving restricted to `d` buckets per packet (`d ≪ l`), keeping
+  each value an unbiased estimate of its key's flow size with a cheap update. A full-key estimate is
+  the median bucket value holding that key; an arbitrary partial-key estimate sums the estimates of
+  all recorded full keys mapping to it. `insert`, `estimate`, `estimate_partial`, `recorded`. Basic
+  CocoSketch (§4.1), transcribed faithfully. 5 tests (param validation; heavy flow within 5%; three
+  weighted flows within 10–15%; partial-key subset sum within 12%; absent key → 0) + doctest.
+  Paper-verified; complements the multi-metric `UnivMon`.
+
 - **`graph::ThinkD` — triangle counting in *fully dynamic* graph streams with deletions (Shin et al.,
   PKDD 2018).** `Mascot`/`Triest` count triangles in insertion-only streams; ThinkD ("Think before you
   Discard") also handles **edge deletions**, and uses every edge to update the estimate before
