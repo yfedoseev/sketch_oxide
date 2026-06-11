@@ -23,6 +23,7 @@ pub mod l0_sampler;
 pub mod priority_sampling;
 pub mod reservoir;
 pub mod reservoir_l;
+pub mod sliding_window_sample;
 pub mod varopt;
 pub mod weighted_reservoir;
 
@@ -30,5 +31,6 @@ pub use l0_sampler::L0Sampler;
 pub use priority_sampling::PrioritySampling;
 pub use reservoir::ReservoirSampling;
 pub use reservoir_l::ReservoirSamplingL;
+pub use sliding_window_sample::SlidingWindowSample;
 pub use varopt::VarOptSampling;
 pub use weighted_reservoir::WeightedReservoirSampling;

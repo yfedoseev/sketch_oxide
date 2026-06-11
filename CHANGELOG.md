@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`sampling::SlidingWindowSample` — uniform sampling over a moving window (SODA 2002).** Maintains a
+  uniform random sample of the last `W` elements (where the classic reservoir cannot, because the
+  sample can expire). Following Babcock–Datar–Motwani, every element gets a random priority and the
+  in-window minimum-priority element is the sample (uniform, since priorities are i.i.d.); only the
+  elements that could *become* that minimum are retained — a monotonic "staircase" deque whose front
+  is always the current sample, bounded by `W`. `push`, `sample`, `retained`. The `k`-sample variant
+  is a documented follow-up. 6 tests (sample always in window over 100k; staircase ≤ W; mean offset
+  near the window midpoint over 200 seeds → uniformity; deterministic with seed) + doctest.
+
+
 - **`similarity::WeightedMinHash` — Improved Consistent Weighted Sampling (ICWS, ICDM 2010).** Extends
   MinHash from unweighted to **weighted** Jaccard similarity `Σ min(w_A,w_B) / Σ max(w_A,w_B)` — the
   right measure for term frequencies, traffic volumes, histogram bins. Ioffe's ICWS draws a
