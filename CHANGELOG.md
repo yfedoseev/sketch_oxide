@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`graph::AgmConnectivity` — graph connectivity from linear sketches (AGM, SODA 2012).** The
+  Ahn–Guha–McGregor breakthrough: connectivity, a global property, decided from a *linear* sketch of
+  the edge stream in `O(n·polylog n)` space. Each vertex keeps an **L0 sketch** of its incident edges,
+  with edge `(i,j)` (i<j) contributing `+1` to `i` and `−1` to `j` — so summing any vertex subset's
+  sketches **cancels internal edges** and leaves only the edges crossing the cut. Sampling one crossing
+  edge per component and contracting it is one Borůvka round; after `O(log n)` rounds the components
+  emerge — all from the sketches, never re-reading edges. Self-contained leveled `(count, id_sum, id²_sum)`
+  1-sparse cells with `R=4` independent repetitions for reliable recovery. `add_edge`, `components`,
+  `num_components`, `connected`. 6 tests (two triangles → 2 components; path → 1; 5 disjoint edges → 5;
+  larger random graph matches a direct union-find ground truth) + doctest.
+
+
 - **`matrix::SlidingFrequentDirections` — Frequent Directions over a sliding window (DS-FD).** Where
   `FrequentDirections` summarizes all rows ever seen, DS-FD (sliding-window matrix sketching, Wei et
   al., SIGMOD 2016) approximates the covariance of only the **last `W` rows**. It partitions the
