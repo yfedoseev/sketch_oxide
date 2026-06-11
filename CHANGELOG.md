@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`learned::LearnedFrequent` — learning-augmented frequency estimation (LA-Misra-Gries, ICLR 2019).**
+  Classical sketches spread error uniformly, so even the heaviest items carry the Misra–Gries
+  offset. Learning-augmented estimation (Hsu, Indyk, Katabi & Vakilian) uses an `Oracle` to predict
+  which keys are heavy and gives those keys their *own exact counters*, routing only the predicted-
+  light tail into a shared `FrequentItems` (Misra–Gries) sketch — so the heavy hitters that matter
+  are exact and the bounded error falls only on the unimportant tail. Generic over any `Oracle`
+  (learned model, table, or closure); `update`, `estimate`, `heavy_hitters`, `num_heavy`. 6 tests
+  (predicted-heavy exact under heavy tail pollution; light keys sketched; heavy/light don't mix;
+  exact even with tail capacity 4) + doctest.
+
+
 - **`frequency::Rhhh` — Randomized Hierarchical Heavy Hitters with O(1) updates (SIGCOMM 2017).**
   Hierarchical heavy hitters (e.g. source-IP prefixes at /8, /16, /24, /32) normally cost O(H) per
   packet because every level is updated. RHHH (Ben-Basat, Einziger, Friedman & Kassner) makes

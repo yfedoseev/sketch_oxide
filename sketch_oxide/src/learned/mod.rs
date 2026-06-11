@@ -14,12 +14,14 @@
 
 mod feature_hashing;
 mod learned_count_min;
+mod learned_frequent;
 pub mod oracle;
 mod sandwiched_bloom;
 mod sketched_sgd;
 
 pub use feature_hashing::FeatureHasher;
 pub use learned_count_min::LearnedCountMin;
+pub use learned_frequent::LearnedFrequent;
 pub use oracle::{ClosureOracle, Oracle, PrecomputedOracle, Score};
 pub use sandwiched_bloom::SandwichedLearnedBloom;
 pub use sketched_sgd::GradientSketch;
