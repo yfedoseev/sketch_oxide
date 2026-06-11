@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`cardinality::Recordinality` — distinct counting by counting hash "records" (Helmi, Lumbroso,
+  Martínez & Viola, 2012).** Keeps the `k` smallest distinct hashes and a counter `R` of how many
+  elements have ever entered that bottom-`k` set, then estimates `D̂ = k·(1 + 1/k)^(R − k + 1) − 1`,
+  which is **unbiased** for the distinct count. The retained `k` hashes also form a uniform sample of
+  the distinct elements. A genuinely different estimator from `KmvSketch`: it reads the *number of
+  updates* to the bottom-`k` set rather than the *value* of the `k`-th smallest hash. `insert`,
+  `estimate`, `sample`, `records`. 5 tests (k validation; exact below `k`; duplicates yield identical
+  state to the de-duplicated stream; unbiasedness — mean over 64 seeds within 7%; empty → 0) +
+  doctest.
+
 - **`frequency::FilteredSpaceSaving` — memory-tight top-k heavy hitters (Homem & Carvalho, 2010).**
   The algorithm behind Redis's `TOPK`. Plain Space-Saving admits every unmonitored item immediately,
   churning the monitored set under a heavy tail; Filtered Space-Saving interposes a filter array of
