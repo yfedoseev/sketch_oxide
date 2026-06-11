@@ -55,6 +55,7 @@
 //! assert!(memento.may_contain_range(40, 50));
 //! ```
 
+mod arf;
 mod bloom_rf;
 mod diva;
 mod grafite;
@@ -66,6 +67,7 @@ mod radix_spline;
 mod rosetta;
 mod surf;
 
+pub use arf::Arf;
 pub use bloom_rf::BloomRf;
 pub use diva::DivaFilter;
 pub use grafite::{Grafite, GrafiteStats};

@@ -26,6 +26,23 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`range_filters::Arf` — Adaptive Range Filter that learns empty regions from queries (Alexiou,
+  Kossmann & Larson, "Avoiding Trips to Siberia", VLDB 2013).** What a Bloom filter is for point
+  queries, an ARF is for **range** queries — "does the set contain any key in `[lo, hi]`?" — but it is
+  **adaptive**: a binary trie over the key domain whose leaves are `occupied` (maybe-a-key) or *empty*
+  (definitely none), reshaping itself to spend its leaf budget where queries land. A query is positive
+  if any overlapping leaf is occupied. On a confirmed false positive, `learn_empty(lo, hi)` **splits**
+  the offending leaves until `[lo, hi]` aligns to leaf boundaries and marks them empty (dyadic splits
+  store no delimiters); when the trie exceeds its leaf budget it **de-escalates**, merging sibling
+  leaves by a clock/usage policy (least-recently-queried empty leaves evicted first, merged
+  `occupied = a || b`) — trading precision for space while preserving no false negatives. `insert(key)`
+  marks a key's leaf occupied so added keys never cause a false negative. `new(domain_bits, max_leaves)`,
+  `query(lo, hi)`, `learn_empty(lo, hi)`, `insert(key)`, `size`. 6 tests (param validation; **learns to
+  reject a once-false-positive empty range**; **no false negatives after learning many gaps**; insert
+  after learn-empty restores presence; **respects the leaf budget under pressure**; whole-domain-empty
+  collapses to one leaf) + doctest. Single-ARF with clock/usage de-escalation (the paper's ARF-forest
+  embedding and true-positive learning noted as refinements). Phase-3 Group A item. Paper-verified.
+
 - **`streaming::PersistentBloomFilter` — membership testing over the *entire history* (Peng, Guo, Li,
   Qian & Zhou, SIGMOD 2018).** A plain Bloom filter answers "has `x` ever appeared?"; a Persistent
   Bloom Filter answers the **temporal** "did `x` appear during `[s, e]`?" (forensic/audit queries). The
