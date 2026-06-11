@@ -19,6 +19,7 @@
 pub mod bbit_minhash;
 pub mod minhash;
 pub mod minhash_lsh;
+pub mod odd_sketch;
 pub mod oph;
 pub mod simhash;
 pub mod simhash_lsh;
@@ -27,6 +28,7 @@ pub mod weighted_minhash;
 pub use bbit_minhash::BBitMinHash;
 pub use minhash::MinHash;
 pub use minhash_lsh::MinHashLsh;
+pub use odd_sketch::OddSketch;
 pub use oph::OnePermutationHash;
 pub use simhash::SimHash;
 pub use simhash_lsh::{hamming_distance, SimHashLsh};

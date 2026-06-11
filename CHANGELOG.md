@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`similarity::OddSketch` — parity-bit symmetric-difference & Jaccard estimator (Mitzenmacher,
+  Pagh, Pham, WWW 2014).** Each inserted item *toggles* one bit, so bit `i` holds the parity of items
+  hashing there. Two properties make it compact and composable: XOR composes symmetric difference
+  (`odd(A) XOR odd(B) = odd(A △ B)` — shared items cancel), and the set-bit count estimates
+  cardinality via `n̂ = −(m/2)·ln(1 − 2b/m)`. Together they estimate `|A △ B|` from the XOR sketch and
+  Jaccard from the exact set sizes (`J = (|A|+|B|−|A△B|)/(|A|+|B|+|A△B|)`). `insert`, `set_bits`,
+  `estimate_size`, `xor_with`, `symmetric_difference_size`, `jaccard`. 8 tests (zero-bit rejection;
+  double-insert cancels; set-size; symmetric difference of two 1000-sets within 60; identical sets →
+  0; Jaccard within 0.05; disjoint sets; size-mismatch error) + doctest.
+
 - **`privacy::CountMeanSketch` — Apple's Count-Mean-Sketch ε-LDP frequency sketch ("Learning with
   Privacy at Scale", 2017).** Where single-value oracles answer one value at a time, CMS keeps a
   `k × m` sketch matrix so the whole frequency histogram is queryable while each client's report
