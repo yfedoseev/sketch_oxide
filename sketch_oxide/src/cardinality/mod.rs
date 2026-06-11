@@ -14,6 +14,7 @@
 
 mod cpc;
 mod hyperloglog;
+mod linear_counting;
 mod qsketch;
 mod theta;
 mod theta_core;
@@ -22,6 +23,7 @@ mod ultraloglog;
 
 pub use cpc::CpcSketch;
 pub use hyperloglog::HyperLogLog;
+pub use linear_counting::LinearCounting;
 pub use qsketch::QSketch;
 pub use theta::ThetaSketch;
 pub use theta_core::{NoSummary, SumDoubles, Summary, ThetaCore};

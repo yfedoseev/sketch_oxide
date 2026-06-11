@@ -156,6 +156,10 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   tracks an `(ε, δ)` budget under sequential composition and refuses over-budget spends.
   RNG is explicit and must be a CSPRNG (`secure_rng`). Substrate for DP cardinality release,
   DP-Count-Min, continual counting, and LDP oracles in later waves.
+- **`cardinality::LinearCounting` — bitmap cardinality sketch.** The simplest distinct-count
+  sketch (Whang et al., TODS 1990): an `m`-bit bitmap with `n̂ = −m·ln(z/m)` from the zero-bit
+  count `z`. More accurate than HLL for small/moderate loads and exact without collisions —
+  the same estimator HLL uses for its small-range correction. Mergeable (bitwise OR).
 - **Generic Theta core (`cardinality::ThetaCore<S: Summary>`).** Factored the Theta
   set-operation engine out of `ThetaSketch` and made it generic over a per-key `Summary`
   (folded on repeat keys and on union/intersection). Ships `NoSummary` (plain Theta set)
