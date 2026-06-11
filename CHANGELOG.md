@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`reconciliation::CpiSync` — Characteristic Polynomial Interpolation set reconciliation (IEEE-IT 2003).**
+  Minsky–Trachtenberg–Zippel reconciliation: each party encodes its set as **power sums**
+  `Σ a^k` over a prime field (`GF(2^31−1)`) for `k = 1…2m`; subtracting the two parties' power sums
+  gives the *signed* power sums of the symmetric difference, whose elements are recovered as roots of
+  a small characteristic polynomial found by **Berlekamp–Massey** — exactly as in BCH decoding. Only
+  `2m` field elements cross the wire regardless of set size. The GF(p) analogue of `PinSketch`, with
+  +1/−1 multiplicities distinguishing the two sides. `reconcile` returns a `CpiDiff`; over-capacity is
+  reported, never wrong. 7 tests (identical; small diff inside 100k sets; element-0 via the +1 shift;
+  disjoint; over-capacity error; out-of-range rejection) + doctest.
+
+
 - **`membership::VectorQuotientFilter` — power-of-two-choices block filter with deletes (SIGMOD 2021).**
   VQF (Pandey, Conway, Durie, Bender, Farach-Colton & Johnson) balances load with
   **power-of-two-choices**: each key has two candidate blocks and its 16-bit tag is stored in

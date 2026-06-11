@@ -50,11 +50,13 @@
 //! // set_diff.to_remove contains items Bob should remove
 //! ```
 
+mod cpisync;
 mod iblt;
 mod pin_sketch;
 mod range_reconcile;
 mod strata_estimator;
 
+pub use cpisync::{CpiDiff, CpiSync};
 pub use iblt::{Iblt, IbltStats};
 pub use pin_sketch::PinSketch;
 pub use range_reconcile::{RangeDiff, RangeReconciler};
