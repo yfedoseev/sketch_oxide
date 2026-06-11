@@ -26,6 +26,23 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`statistics::JoinSketch` — accurate, unbiased inner-product / join-size estimation (Wang et al.,
+  SIGMOD 2023).** The inner product `J = Σ_e f(e)·g(e)` of two streams' frequency vectors is exactly
+  their equi-join size (and underlies cosine similarity and optimizer cardinality estimates). Classic
+  AGMS / Fast-AGMS suffer large variance from collisions among *frequent* items; JoinSketch instead
+  **separates items by frequency** so heavy hitters (which dominate `J`) are recorded exactly and only
+  the tail goes through the noisy sketch (~10× more accurate than Fast-AGMS). Three components: a
+  **frequent part** (hash table, exact counts for items past a threshold `T`), a **medium part**
+  (bucketed `(key,count)`, promoting to FP on crossing `T`), and an **infrequent part** (Fast-AGMS:
+  `d` rows of `±ξ`-signed counters absorbing evicted light items). Insertion promotes/evicts between
+  parts; a frequency lookup adds the keyed count to the IFP median estimate. The inner product sums
+  the **nine FP/MP/IFP cross-pieces** (keyed×keyed and keyed×IFP by exact key, IFP×IFP by the Fast-AGMS
+  inner product). `new(fp_buckets, fp_entries, mp_buckets, mp_entries, ifp_depth, ifp_width,
+  threshold)`, `insert`, `estimate`, `inner_product`. 6 tests (param validation; empty; heavy-item
+  exact frequency; **Zipf inner product within 10%**; **disjoint streams ≈ 0**; dimension-mismatch
+  rejection) + doctest. Reference evicts the FP's smallest item to the IFP in place of the paper's
+  dynamic FP doubling. Paper-verified. Completes roadmap item #21.
+
 - **`privacy::DpswSketch` — differentially private frequency estimation over sliding windows (Wang,
   Wang & Chen, KDD 2024).** Answers per-item frequency queries over the last `w` items under
   **event-level `ρ`-zCDP**. Three ingredients: a **Private Count-Min** whose released counters carry

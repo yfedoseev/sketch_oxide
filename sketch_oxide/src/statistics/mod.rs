@@ -7,6 +7,7 @@
 mod ams;
 mod density_sketch;
 mod hll_joint;
+mod join_sketch;
 mod k_ary;
 mod moments;
 mod morris;
@@ -15,6 +16,7 @@ mod p_stable;
 pub use ams::AmsSketch;
 pub use density_sketch::DensitySketch;
 pub use hll_joint::HllJointEstimator;
+pub use join_sketch::JoinSketch;
 pub use k_ary::KArySketch;
 pub use moments::MomentsSketch;
 pub use morris::MorrisCounter;
