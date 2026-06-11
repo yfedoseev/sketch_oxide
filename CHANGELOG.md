@@ -26,6 +26,15 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`statistics::PStableLpSketch` — Indyk p-stable Lp-norm sketch (JACM 2006).** Estimates the `Lp`
+  norm of a streamed coordinate vector by projecting it onto `d` random vectors with i.i.d.
+  p-stable entries: each projection equals `‖x‖_p` times a standard stable variate, so the median
+  of `|c_j|` (divided by the median of `|S|`) recovers the norm robustly. Supports `p = 1` (Cauchy
+  → L1) and `p = 2` (Gaussian → L2); linear, so increments, decrements and `merge` all work.
+  General `p ∈ (0,2]` via Chambers–Mallows–Stuck is a documented follow-up. 7 tests (L1 & L2
+  estimates within tolerance; linearity/reversibility; disjoint-support merge) + doctest.
+
+
 - **`sampling::ReservoirSamplingL` — reservoir sampling with Algorithm L (optimal skipping).** The
   textbook Algorithm R draws a random number per item (`O(n)` RNG work); Algorithm L (Li, ACM TOMS
   1994) keeps the identical uniform guarantee (each item present with probability `k/n`) but draws
