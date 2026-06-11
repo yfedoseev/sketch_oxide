@@ -26,6 +26,15 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`learned::GradientSketch` — sketched gradient compression (SketchedSGD / FetchSGD, ICML 2020).**
+  A Count Sketch specialized for real-valued gradients: a small signed linear sketch that (1) sums
+  correctly when worker sketches are added (`merge`), so distributed-SGD aggregation is just sketch
+  addition, and (2) recovers the **top-k** heaviest coordinates of the summed gradient
+  (`top_k`/`unsketch`) without ever materializing the full vector. `add`/`accumulate`, median
+  `estimate`, and `scale` (for momentum/learning-rate in sketch space). 6 tests (top-k recovery of
+  heavy coords among 20k; heavy-coord accuracy; cross-worker summation; linear scaling) + doctest.
+
+
 - **`statistics::PStableLpSketch` — Indyk p-stable Lp-norm sketch (JACM 2006).** Estimates the `Lp`
   norm of a streamed coordinate vector by projecting it onto `d` random vectors with i.i.d.
   p-stable entries: each projection equals `‖x‖_p` times a standard stable variate, so the median
