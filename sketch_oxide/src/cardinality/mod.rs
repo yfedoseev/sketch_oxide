@@ -13,6 +13,7 @@
 //! | ThetaSketch | Good | ~1/√k | Set operations (union, intersection) |
 
 mod cpc;
+mod cvm;
 mod fm_sketch;
 mod hyperloglog;
 mod kmv;
@@ -24,6 +25,7 @@ mod tuple_sketch;
 mod ultraloglog;
 
 pub use cpc::CpcSketch;
+pub use cvm::CvmSketch;
 pub use fm_sketch::FmSketch;
 pub use hyperloglog::HyperLogLog;
 pub use kmv::KmvSketch;

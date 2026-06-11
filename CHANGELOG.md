@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`cardinality::CvmSketch` — sampling-based distinct counting (Chakraborty, Vinodchandran & Meel,
+  2022; popularized by Knuth).** Unlike every other cardinality estimator here, CVM uses **no hash
+  functions** — pure random sampling. It keeps a buffer of at most `capacity` distinct elements and a
+  retention probability `p` (starting at 1): each element drops any existing copy, is re-admitted with
+  probability `p`, and when the buffer fills it is sub-sampled by a fair coin per element with `p`
+  halved. Since each buffered element is present with probability exactly `p`, `|buffer|/p` is an
+  **unbiased** estimate; relative error ≈ `1/√capacity`. Caller-seedable RNG; generic over
+  `T: Hash + Eq + Clone`. 6 tests (capacity validation; exact under capacity; duplicates don't change
+  the estimate; 200k distinct within 10%; unbiasedness — mean over 60 seeds within 3%; empty → 0) +
+  doctest. The only sampling-based (vs hashing-based) distinct counter in the crate.
+
 - **`sampling::DistinctSampling` — bounded uniform sample of a stream's *distinct* items (Gibbons,
   VLDB 2001).** Keeps a capacity-bounded sample drawn uniformly from the distinct set — regardless of
   per-item frequency — so it answers distinct-count and *subset* distinct-count queries in small space.
