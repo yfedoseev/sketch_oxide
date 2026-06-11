@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::HiddenSketch` — a reversible frequency sketch that recovers heavy keys *and* counts
+  (2025).** Standard frequency sketches can answer "frequency of key X?" but cannot *list* the heavy
+  keys — the keys are lost. Hidden Sketch makes the sketch invertible: alongside a Count-Min count each
+  cell stores `Σ key·c` and a verification sum `Σ H(key)·c`. A cell touched by one distinct key is
+  *pure* (`key_sum/count = k`, `hash_sum = count·H(k)`), so `k` and its frequency read straight out and
+  peel from its other cells (one per `depth` blocks, as in an IBLT). Iterating recovers every
+  `(key, frequency)` pair when the keys fit the table, and the heavy hitters even when they do not; the
+  verification sum makes a bogus recovery `~2^{−64}` unlikely. `insert`, `insert_many`, `estimate`
+  (Count-Min upper bound), `decode`. 5 tests (param validation; full recovery of 100 keys with
+  distinct counts; estimate is an upper bound; no bogus recoveries even at 10× overload; empty) +
+  doctest.
+
 - **`quantiles::PerFlowQuantiles` — per-flow quantiles in fixed space (M4 framework, Wang et al., ICDE
   2024).** Where `PerKeyQuantiles` tracks exact summaries for a bounded set of heavy keys, M4 answers
   per-flow quantiles for *every* flow in `O(d·w)` memory by sketching: each flow hashes to one cell
