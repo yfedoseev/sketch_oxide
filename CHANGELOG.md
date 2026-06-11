@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::VectorQuotientFilter` — power-of-two-choices block filter with deletes (SIGMOD 2021).**
+  VQF (Pandey, Conway, Durie, Bender, Farach-Colton & Johnson) balances load with
+  **power-of-two-choices**: each key has two candidate blocks and its 16-bit tag is stored in
+  whichever is *less full*, keeping every block far from overflow so the filter runs at very high
+  load (>0.85) in small fixed-size blocks. Deletion is exact (remove one tag), unlike a Bloom filter.
+  `insert` (returns false only when both candidate blocks are full), `contains`, `remove`,
+  `load_factor`. Portable scalar version; the SIMD block scan is a drop-in performance follow-up that
+  doesn't change which keys are accepted. 6 tests (no false negatives over 30k; deletes; reaches
+  >0.85 load before any failure; bounded FPR; power-of-two block rounding) + doctest.
+
+
 - **`membership::AdaptiveQuotientFilter` — a filter that *fixes* false positives on feedback (FOCS 2018).**
   An ordinary AMQ has a fixed FPR and the same non-member false-positives forever. The Adaptive
   Quotient Filter (Bender, Farach-Colton, Kuszmaul, Pandey et al.) lets a caller **report** a false
