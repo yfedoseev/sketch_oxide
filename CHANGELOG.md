@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`similarity::SuperMinHash` — lower-variance MinHash for Jaccard estimation (Ertl, 2017).** Plain
+  MinHash draws `m` independent minima (variance `J(1−J)/m`); SuperMinHash produces `m` registers whose
+  collision probabilities are each exactly the Jaccard index — still unbiased — but *negatively
+  correlated*, cutting variance by up to 2× (`·α(m,u)`, `α ≤ 1`) at the same sketch size. Each element
+  is processed by a Fisher–Yates-style partial permutation assigning it a value `r + j` (level `j`,
+  fraction `r`) one register at a time, keeping the per-register minimum, with a level histogram for
+  early termination — the paper's optimized Algorithm 4, transcribed faithfully. The estimator is the
+  fraction of agreeing registers, as in MinHash. `add`, `jaccard`, `merge` (register-wise min = set
+  union), `signature`. 7 tests (register validation; identical/disjoint sets; Jaccard within 0.05;
+  order-independence of the signature; merge equals the union signature exactly; size-mismatch error)
+  + doctest.
+
 - **`graph::HyperAnf` — approximate neighborhood function of a graph (Boldi, Rosa & Vigna, WWW 2011).**
   The neighborhood function `N(t)` counts node pairs within distance `t` (how Facebook measured "four
   degrees of separation"); exactly it needs all-pairs BFS. HyperANF gives every node a `HyperLogLog`
