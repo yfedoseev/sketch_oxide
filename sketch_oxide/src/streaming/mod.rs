@@ -18,6 +18,7 @@ mod forward_decay;
 mod sliding_hll;
 mod sliding_sketch;
 mod sliding_window;
+mod smooth_histogram;
 mod windowed_aggregator;
 
 pub use ada_sketch::AdaSketch;
@@ -29,6 +30,7 @@ pub use forward_decay::{ForwardDecay, PolynomialForwardDecay};
 pub use sliding_hll::{SlidingHLLStats, SlidingHyperLogLog};
 pub use sliding_sketch::SlidingSketch;
 pub use sliding_window::SlidingWindowCounter;
+pub use smooth_histogram::SmoothHistogramSum;
 pub use windowed_aggregator::WindowedAggregator;
 
 #[cfg(test)]

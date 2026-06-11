@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::SmoothHistogramSum` — (1±ε) sliding-window aggregates (Smooth Histograms, FOCS 2007).**
+  The Braverman–Ostrovsky framework for approximating *smooth* functions over the last `W` elements
+  of a stream. It keeps a sparse set of **checkpoints** (each holding the aggregate from its start to
+  now), pruned so consecutive checkpoints stay within `(1−ε)`; a window query returns the checkpoint
+  just before the window boundary, which smoothness guarantees is within `(1±ε)` of the true value —
+  in `O((1/ε)·log R)` space, never the full window. Instantiated here for windowed **sum of
+  non-negative values**; the same machinery generalizes to distinct counts / `Lp` norms via a
+  per-checkpoint sketch (documented follow-up). 6 tests (approximation matches exact within ε at
+  multiple points; sublinear checkpoint count over 100k; window-larger-than-stream; bad params/values)
+  + doctest.
+
+
 - **`matrix::CountSketchEmbedding` — CountSketch sparse subspace embedding (STOC 2013).** The
   Clarkson–Woodruff input-sparsity-time transform: an `s × n` matrix with one `±1` per column, applied
   to an `n × d` matrix in `O(nnz(A))` to produce a tiny `s × d` sketch `SA` that is a **subspace
