@@ -22,6 +22,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   full set operations that fold summaries. Built on the `ThetaCore<S>` substrate;
   `estimated_column_sums()` scales the retained sample up to a population estimate. Closes the
   biggest functional gap vs DataSketches.
+- **`frequency::OnOffSketch` — persistence estimation.** Measures *persistence* (the number of
+  distinct time periods an item appears in) rather than frequency, distinguishing stealthy
+  persistent flows (a scanner probing every period) from flash crowds (Zhang et al., VLDB 2020).
+  Each cell has a persistence counter + a per-period "on" flag (set once per period, reset at
+  boundaries). `update`/`new_period`/`persistence`/`persistent_items`.
 - **`frequency::MvSketch` — invertible heavy-hitter sketch.** Each cell runs a Boyer–Moore
   majority vote (candidate key, vote balance, total), making heavy-hitter detection
   *invertible* — the heavy keys are recovered directly from the sketch with no separate key
