@@ -9,6 +9,7 @@ mod gss;
 mod hyperanf;
 mod mascot;
 mod tcm;
+mod thinkd;
 mod triest;
 
 pub use agm_connectivity::AgmConnectivity;
@@ -17,4 +18,5 @@ pub use gss::GssSketch;
 pub use hyperanf::HyperAnf;
 pub use mascot::Mascot;
 pub use tcm::TcmSketch;
+pub use thinkd::ThinkD;
 pub use triest::Triest;

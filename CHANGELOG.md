@@ -26,6 +26,19 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`graph::ThinkD` — triangle counting in *fully dynamic* graph streams with deletions (Shin et al.,
+  PKDD 2018).** `Mascot`/`Triest` count triangles in insertion-only streams; ThinkD ("Think before you
+  Discard") also handles **edge deletions**, and uses every edge to update the estimate before
+  discarding it. This is ThinkD-fast (Algorithm 1): each edge is kept in the sample with probability
+  `r`, but on every arriving edge (insertion *or* deletion) it counts the triangles closed against the
+  sampled subgraph and moves the global/local estimates by `±1/r²`. Since a triangle is discovered
+  exactly when both companion edges are sampled (prob `r²`), the `1/r²` correction makes it
+  **unbiased** for the current graph; at `r = 1` it counts exactly. `add_edge`, `remove_edge`,
+  `global_count`, `local_count`. 6 tests (param validation; exact dynamic add/delete/re-add on K5;
+  deleting all edges → 0; per-node local counts on K4; triangle-free → 0; unbiasedness — mean over 200
+  seeds within 10% of K11's 165 triangles after deleting a node's edges) + doctest. Paper-verified
+  against the algorithm pseudocode; complements the insertion-only `Mascot`/`Triest`.
+
 - **`cardinality::SetSketch` — one sketch for both cardinality and Jaccard (Ertl, VLDB 2021).** Where
   HyperLogLog estimates cardinality and MinHash estimates Jaccard, SetSketch does both in one mergeable
   structure that interpolates between them via a base `b` (`b → 1` ≈ MinHash, `b = 2` ≈ HyperLogLog).
