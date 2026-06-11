@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`quantiles::PerFlowQuantiles` — per-flow quantiles in fixed space (M4 framework, Wang et al., ICDE
+  2024).** Where `PerKeyQuantiles` tracks exact summaries for a bounded set of heavy keys, M4 answers
+  per-flow quantiles for *every* flow in `O(d·w)` memory by sketching: each flow hashes to one cell
+  per row of a `d × w` table, every cell holding a `DDSketch` that accumulates all flows mapping
+  there. A flow's values land in all `d` of its cells, each contaminated by a different set of other
+  flows; the **MIN technique** answers from the flow's least-contaminated cell (smallest total count),
+  and since collisions only add mass, that cell is the tightest available estimate. "What is the p99
+  latency of flow X?" across millions of flows. `update`, `quantile`; flow keys are any `Hash` type.
+  4 tests (param validation; two flows' medians tracked independently; p50/p99 of a hot flow within
+  600 amid 5000 background flows; unseen flow → None) + doctest. Composes `quantiles::DDSketch`;
+  complements the exact-but-bounded `PerKeyQuantiles`.
+
 - **`membership::BloomierFilter` — compact static key→value map (Chazelle, Kilian, Rubinfeld & Tal,
   2004).** Where an `XorFilter` answers *is this key present?*, a Bloomier filter answers *what value
   is associated with this key?* for a fixed map. It reuses the 3-wise XOR-peeling construction but
