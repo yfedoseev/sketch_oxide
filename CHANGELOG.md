@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::HyperCalm` — one-pass mining of *periodic batches* in data streams (Liu et al., ICDE
+  2023).** Reports the top-`k` items by batch *periodicity* (groups of an item's batches arriving at a
+  fixed period) in one pass with `O(1)` per item, via three cooperating components: a **HyperBloom
+  Filter (HyperBF)** — a time-aware Bloom filter whose bits are widened to 2-bit cyclic *time slices*
+  `⌊t/T⌋ mod 3 + 1`; on each access it cleans the *outdated* slice within the cell's block and reports
+  a batch start when any of the item's `d` cells reads `0` (with an **asynchronous timeline** giving
+  each array its own offset to resolve the fuzzy `T..2T` gap zone); a **TimeRecorder** LRU table that
+  turns consecutive batch times into a candidate period `V = t − t_last`; and **CalmSS** — a top-`k`
+  finder pairing an LRU guard queue (promotion threshold `P`) with a Space-Saving summary, keeping
+  one-off cold entries out of the precious bins. `new(t_threshold, d, m, l, recorder_cap, lru_w,
+  promotion, ss_size, k)`, `insert(item, timestamp)`, `top_k_periodic()`. 5 tests (param validation;
+  empty; HyperBF gap detection under background traffic; recovery of two periodic flows with their
+  exact periods; periodic flows out-rank noise) + doctest. Paper-verified.
+
 - **`quantiles::SketchPolymer` — per-item *tail* quantile estimation with one sketch (Guo et al., KDD
   2023).** Estimates the tail quantile of a *per-item* value distribution (e.g. "the 99th-percentile
   latency of flow `e`") under tight memory. Two ideas: **Value Splitting and Sharing** replaces each
