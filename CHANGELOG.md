@@ -26,6 +26,22 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::StableSketch` — versatile flat sketch for heavy hitters/changers/persistent items
+  (Li & Patras, WWW 2024, Best Student Paper).** A single-layer `m × u` table where each bucket holds
+  a `(key, value, stability)` triple. **Bucket stability** is the core idea: a bucket whose recorded
+  item keeps re-appearing accrues stability, so on skewed streams heavy items sit in far more stable
+  buckets than light ones. Insertion (paper Algorithm 1) probes the `m` rows: an empty bucket is
+  claimed (`V←1,S←1`); a key match is reinforced (`V←V+1,S←S+1`); otherwise the minimum-value bucket
+  is tracked and, on a collision in *all* rows, a **stochastic decay-based replacement** fires with
+  probability `L(f) = 1/(V·S+1)` — decrement `V`, and only if it hits zero does the new item take the
+  bucket (`S←max(S−1,0)`). Because `V` and `S` both grow for persistent items, `L(f)` shrinks for
+  them, making heavy items progressively harder to evict. Yields a **one-sided** estimator (never
+  over-counts, Theorem 4.1) since full keys are matched exactly. The `rand<1/(V·S+1)` test is realised
+  exactly with integer arithmetic (`xxhash(f, seed⊕step) mod (V·S+1) == 0`) — deterministic and
+  reproducible. `new(rows, cols)`, `insert`, `estimate`, `heavy_hitters(threshold)`. 6 tests (param
+  validation; empty; isolated item exact; **one-sided under stress**; monotonic dominant estimate;
+  **Zipf heavy-hitter F1 ≥ 0.85**) + doctest. Paper-verified.
+
 - **`frequency::BubbleSketch` — high-performance, memory-efficient top-`k` finder (Cao et al., CIKM
   2024).** Detects the top-`k` most frequent items *without a min-heap*, beating HeavyKeeper on
   accuracy by up to two orders of magnitude in the paper. It keeps two arrays `A₁`, `A₂` of `w`
