@@ -26,6 +26,15 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`sampling::ReservoirSamplingL` — reservoir sampling with Algorithm L (optimal skipping).** The
+  textbook Algorithm R draws a random number per item (`O(n)` RNG work); Algorithm L (Li, ACM TOMS
+  1994) keeps the identical uniform guarantee (each item present with probability `k/n`) but draws
+  only `O(k·(1 + log(n/k)))` random numbers by computing an exponential jump over each run of
+  items certain to be rejected. Same public API as `ReservoirSampling`; only the internals skip.
+  6 tests (fills to k; exact below capacity; deterministic with seed; sample mean ≈ stream mean) +
+  doctest.
+
+
 - **`frequency::UnbiasedSpaceSaving` — heavy hitters with statistically unbiased counts (KDD 2018).**
   Classic SpaceSaving always hands the evicted minimum's value to the newcomer, which over-counts
   tail items. Unbiased Space-Saving (Ting, KDD 2018) increments the minimum counter and lets the
