@@ -26,6 +26,27 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::TelescopingFilter` — a practical *adaptive* filter (Lee, McCauley, Singh & Stein, ESA
+  2021).** An adaptive filter fixes a false positive the instant it is detected so the *same* false
+  positive never recurs — vital under skewed query workloads. The Telescoping Filter achieves
+  worst-case adaptivity with **variable-length fingerprints**: each slot carries a small **selector**
+  choosing which `r`-bit window of the key's hash is stored, and on a detected false positive the
+  offending slot's selector advances to the next window so the absent key no longer matches (while the
+  inserted key always does). `new(q, r)`, `insert`, `contains`, `adapt`, `len`. 4 tests (param
+  validation; **no false negatives**; **adapt permanently fixes a false positive** without corrupting
+  members; bounded FPR) + doctest. Behaviour-faithful reference layout (explicit `(hash, selector)`
+  entries vs the paper's RSQF + telescoping hash chain). Phase-3 Group B item. Paper-verified.
+
+- **`similarity::CMinHash` — circulant MinHash reusing one permutation `K` times (Li & Li, ICML
+  2022).** Classic MinHash needs `K` independent permutations; C-MinHash rigorously reduces this to
+  **two** — an initial `σ` to break data structure and a `π` re-used `K` times via **circulant shifts**
+  (`π, π→1, π→2, …`) — and proves the Jaccard estimator's variance is *strictly smaller* than classic
+  MinHash. The `k`-th hash of `S ⊆ [D]` is `min_{i∈S} π[(σ[i]−k) mod D]`; two signatures with the same
+  `(D, K, seed)` estimate Jaccard by their fraction of matching coordinates. `new(d, k, seed)`,
+  `add(i)`, `jaccard(other)`, `signature()`. 6 tests (param/range validation; **Jaccard estimate
+  within 0.06**; identical → 1.0; disjoint → ~0; signature-mismatch rejection) + doctest. Phase-3
+  Group B item. Paper-verified.
+
 - **`matrix::RobustFrequentDirections` — Frequent Directions with a regularizer that halves the error
   (Luo, Chen, Zhang, Li & Zhang, JMLR 2019).** Standard FD's `BᵀB` is low-rank and *underestimates*
   `AᵀA` — bad for second-order online learning, which needs an invertible, well-conditioned Hessian

@@ -17,6 +17,7 @@
 //! | **Weights** | No | Yes (weighted features) |
 
 pub mod bbit_minhash;
+pub mod c_minhash;
 pub mod minhash;
 pub mod minhash_lsh;
 pub mod odd_sketch;
@@ -28,6 +29,7 @@ pub mod super_min_hash;
 pub mod weighted_minhash;
 
 pub use bbit_minhash::BBitMinHash;
+pub use c_minhash::CMinHash;
 pub use minhash::MinHash;
 pub use minhash_lsh::MinHashLsh;
 pub use odd_sketch::OddSketch;
