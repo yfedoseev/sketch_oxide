@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::FrequentDistinctTuples` — keys ranked by distinct associated values (Apache
+  DataSketches FDT).** Unlike count-based heavy hitters, FDT answers "which keys associate with the
+  *most distinct values*?" — super-spreader detection (source IPs contacting the most distinct
+  destinations), most-distinct-resources-per-user, etc. It composes a Space-Saving-style monitored set
+  with a per-key `HyperLogLog`: each monitored key owns an HLL of its distinct values, and when full
+  the key with the smallest distinct estimate is evicted. Keys whose distinct cardinalities differ by
+  more than the HLL error are ranked reliably. `update`, `top_k`, `distinct_estimate`, `is_monitored`;
+  generic over `K: Hash + Eq + Clone`. 3 tests (param validation; top-5 super-spreader ranking over a
+  churny stream; per-key distinct estimate within 5%; empty/absent) + doctest. Composes
+  `cardinality::HyperLogLog`.
+
 - **`cardinality::Recordinality` — distinct counting by counting hash "records" (Helmi, Lumbroso,
   Martínez & Viola, 2012).** Keeps the `k` smallest distinct hashes and a counter `R` of how many
   elements have ever entered that bottom-`k` set, then estimates `D̂ = k·(1 + 1/k)^(R − k + 1) − 1`,
