@@ -26,6 +26,15 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`graph::Doulion` — triangle counting by edge sparsification (KDD 2009).** DOULION (Tsourakakis,
+  Kang, Miller & Faloutsos) estimates the triangle count of a massive graph by keeping each edge
+  with probability `p` and counting triangles only in the sparsified subgraph: a triangle survives
+  iff all three edges are kept (probability `p³`), so the exact sample count divided by `p³` is an
+  **unbiased** estimate computed on a `p` fraction of the edges. `add_edge`, `estimate_triangles`,
+  `kept_edges`. 6 tests (exact at `p=1` on K₁₀; zero on a star; duplicate/self-edge handling;
+  sparsified K₃₀ within 35%; unbiased mean over 40 seeds within 20%) + doctest.
+
+
 - **`sampling::SlidingWindowSample` — uniform sampling over a moving window (SODA 2002).** Maintains a
   uniform random sample of the last `W` elements (where the classic reservoir cannot, because the
   sample can expire). Following Babcock–Datar–Motwani, every element gets a random priority and the
