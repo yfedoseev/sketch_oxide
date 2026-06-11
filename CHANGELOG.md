@@ -26,6 +26,22 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`sampling::EbppsSketch` — exact PPS sampling with bounded sample size (Lang, IPL 2023).** Keeps a
+  sample of at most `k` items from a weighted stream such that, *at all times*, each item appears with
+  probability **exactly proportional to its weight** (capped at 1) — the exact-PPS property — in
+  amortised constant time; the bounded-size counterpart to VarOpt and basis of Apache DataSketches'
+  `ebpps`. The state is one number `c` (expected sample size, with a fractional part), a list of full
+  items, and one optional *partial item* carrying mass `c mod 1`. Each update computes
+  `ρ = min(1/wₘₐₓ, k/W)`, **downsamples** the sample by `ρ_new/ρ_old`, and **merges** in the new item
+  as a one-element sample of mass `ρ·w`; a draw returns every full item plus the partial with
+  probability `c mod 1`, so the realised sample is `≤ k` and each item's marginal inclusion
+  probability is exactly `ρ·wᵢ`. `new(k)`, `with_seed(k, seed)`, `update(item, weight)`, `sample()`,
+  `n`, `cumulative_weight`, `c`, `rho`. 6 tests (param/weight validation; empty; **sample size bounded
+  by `k`**; **dominant item always present**; **exact-PPS inclusion probabilities** — empirical
+  inclusion frequencies match `ρ·wᵢ` within 0.04 over 3000 runs) + doctest. Transcribed faithfully
+  from the author's Apache DataSketches reference (the terse IPL paper omits the latent-sample
+  operations). Completes roadmap item #13. Paper-verified.
+
 - **`cardinality::HyperLogLogPlus` — engineered HyperLogLog with bias correction (Heule, Nunkesser &
   Hall, EDBT 2013).** Google's production refinement of HyperLogLog, improving accuracy across the
   whole cardinality range while keeping the `m = 2^p` register structure: **64-bit hashing** (removes
