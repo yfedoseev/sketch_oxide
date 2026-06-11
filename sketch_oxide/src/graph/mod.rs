@@ -6,11 +6,13 @@
 mod agm_connectivity;
 mod doulion;
 mod gss;
+mod mascot;
 mod tcm;
 mod triest;
 
 pub use agm_connectivity::AgmConnectivity;
 pub use doulion::Doulion;
 pub use gss::GssSketch;
+pub use mascot::Mascot;
 pub use tcm::TcmSketch;
 pub use triest::Triest;

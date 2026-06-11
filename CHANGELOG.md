@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`graph::Mascot` — fixed-probability edge-sampling triangle counting (Lim & Kang, KDD 2015).**
+  Where `Triest` keeps a fixed-size reservoir, MASCOT keeps each edge independently with probability
+  `p`. For every arriving edge `(u, v)` it counts the triangles closed against the already-sampled
+  graph (common neighbors of `u`, `v`), crediting `1/p²` per triangle; it then keeps the edge with
+  probability `p`. Since a triangle is detected only when both companion edges are sampled (prob
+  `p²`), the `1/p²` correction makes the global count **unbiased**. At `p = 1` it samples every edge
+  and counts exactly. `add_edge`, `estimate`, `sampled_edges`; `u64` vertices, undirected, dedup,
+  self-loops dropped. 6 tests (param validation; exact at `p=1` on K5/K7; triangle-free star → 0;
+  duplicate/self-loop handling; within 30% on K20; unbiasedness — mean over 200 seeds within 10% of
+  K10's 120 triangles) + doctest. Complements the reservoir-based `Triest`.
+
 - **`quantiles::QDigest` — deterministic, mergeable quantile summary over a bounded integer universe
   (Shrivastava et al., SenSys 2004).** Overlays a complete binary tree on `[0, 2^L)` and keeps counts
   at a sparse node set; a compression invariant merges any light sibling/parent triple (combined
