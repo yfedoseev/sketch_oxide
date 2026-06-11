@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`range_filters::BloomRf` — range queries in a *single* Bloom filter via prefix hashing (Mößner,
+  Riegger, Bernhardt & Petrov, EDBT 2023).** A plain Bloom filter answers only point queries; bloomRF
+  inserts each key at several **dyadic prefix levels** (the key with low bits masked off) into *one* bit
+  array, so the filter records which prefixes are occupied at every encoded level. A range query
+  `[lo, hi]` is resolved by a coarse-to-fine **dyadic descent**: an absent prefix prunes its whole
+  subtree, a present one refines to the next level, reporting a possible hit only when some finest-level
+  prefix overlapping the range is present — no per-level filters (unlike a trie of Bloom filters), so
+  near-optimal space and constant query cost. No false negatives. `new(num_bits, num_hashes, min_level,
+  level_step)`, `insert(key)`, `contains(key)`, `range_query(lo, hi)`. 4 tests (param validation;
+  **no false negatives for point and around-key ranges**; rules out far-empty ranges; bounded point FPR)
+  + doctest. The paper's piecewise-monotone hash functions are a cache optimisation; this reference uses
+  ordinary per-`(prefix, level)` hashing with identical membership semantics. Phase-3 Group B item.
+  Paper-verified.
+
 - **`sampling::StratifiedReservoir` — independent reservoir per stratum for variance reduction.** Plain
   reservoir sampling under-represents small strata; stratified sampling keeps a *separate* size-`k`
   reservoir per stratum (Vitter's Algorithm R within each), guaranteeing every stratum a uniform
