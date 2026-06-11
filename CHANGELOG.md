@@ -12,6 +12,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`range_filters::Surf` — the Succinct Range Filter (SIGMOD 2018).** The trie-based filter that
+  gave RocksDB practical range filtering: a trie over the keys, pruned to the shortest prefixes
+  that still tell them apart. Truncated tails give bounded false positives but **no false
+  negatives** — a present key always walks to a stored leaf, and any range containing a present
+  key returns `true`. Because the trie is sorted it answers `[low, high]` **range** queries
+  (`RangeFilter::may_contain_range`), not just point lookups (`contains_u64` / `contains_bytes`,
+  arbitrary byte keys). This is SuRF-Base (the pruned trie); the LOUDS-DS succinct rank/select
+  bit-encoding (~10 bits/key) and the SuRF-Hash/Real suffix variants layer on the same contract
+  and are documented follow-ups. 9 tests + doctest.
+
+
 - **`reconciliation::PinSketch` — BCH-syndrome set reconciliation (minisketch / BIP-330).** The
   optimal-size set-reconciliation sketch (Eppstein et al., SIGCOMM 2011; the algorithm behind
   Bitcoin's `minisketch` / Erlay): members are elements of `GF(2^field_bits)` and the sketch
