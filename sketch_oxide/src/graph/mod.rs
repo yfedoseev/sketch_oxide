@@ -5,6 +5,7 @@
 
 mod agm_connectivity;
 mod doulion;
+mod fleet;
 mod gss;
 mod hyperanf;
 mod mascot;
@@ -14,6 +15,7 @@ mod triest;
 
 pub use agm_connectivity::AgmConnectivity;
 pub use doulion::Doulion;
+pub use fleet::Fleet;
 pub use gss::GssSketch;
 pub use hyperanf::HyperAnf;
 pub use mascot::Mascot;

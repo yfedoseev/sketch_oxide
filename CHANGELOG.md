@@ -26,6 +26,22 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`graph::Fleet` — butterfly (bipartite 4-cycle) estimation from a graph stream (Sanei-Mehri, Zhang,
+  Sariyüce & Tirthapura, "FLEET", CIKM 2019).** A **butterfly** is the bipartite analog of a triangle:
+  `{a,b}⊆L`, `{x,y}⊆R` with all four edges present (a 2×2 biclique). Butterfly count measures density
+  in user–product / author–paper / fraud-ring networks; exact streaming counting needs `Ω(n²)` space,
+  so FLEET estimates it in **bounded memory**. This implements **FLEET1** (adaptive sampling): keep a
+  reservoir of ≤ `M` edges sampled with probability `p` (initially 1); when full, **halve** `p` (`p←γp`,
+  default `γ=½`) and **sub-sample** the reservoir (retain each edge w.p. `γ`) so every reservoir edge is
+  always a uniform `p`-sample. The exact reservoir butterfly count `ξ(R)` is maintained incrementally
+  (each new edge's completed butterflies via common-neighbour counting), and since a butterfly's four
+  edges are each in the reservoir w.p. `p`, the estimate `ξ(R)/p⁴` is **unbiased**. `new(max_reservoir,
+  gamma, seed)`, `add_edge(l, r)`, `estimate()`, `reservoir_size`, `sampling_probability`. 5 tests
+  (param validation; **exact when the reservoir holds everything** — K(2,2)/K(2,3)/K(3,3)/K(4,3); no
+  butterflies in a tree; incremental count matches exact; **unbiased under sub-sampling** averaged over
+  80 seeds) + doctest. FLEET1 infinite-window estimator (the paper's FLEET-SW sliding-window variant
+  noted as an extension). Phase-3 Group B item. Paper-verified.
+
 - **`streaming::DeterministicWave` — `ε`-approximate Basic Counting over a sliding window (Gibbons &
   Tirthapura, "Distributed Streams Algorithms for Sliding Windows", SPAA 2002).** Counts the 1-bits
   among the last `n` items. The Exponential Histogram solves this in `O((1/ε)·log N)` space but with
