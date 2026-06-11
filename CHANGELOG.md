@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`cardinality::HyperBitBit` — ultra-compact cardinality estimator (Sedgewick, 2016).** Estimates
+  distinct counts in just **128 + 6 bits** (two 64-bit words + a small exponent) yet stays within ~10%
+  on practical data up to `2^64`. A minimisation of HyperLogLog: it keeps an exponent `lgN` and a
+  64-bit `sketch` whose bit `k` is set when an item hashes to bucket `k` with leading-zero rank
+  `r > lgN`; a second word tracks the `r > lgN+1` level and is promoted (with `lgN++`) once `sketch` is
+  more than half full — a self-clocking doubling. Estimate `2^(lgN + 5.4 + popcount/32)`. `new`, `add`,
+  `add_hash`, `estimate`. 3 tests (non-degenerate empty; **accuracy within 40% at 100k/1M/5M**;
+  monotone growth) + doctest. Approximate and not meant for small cardinalities (documented). Phase-3
+  Group A completeness item. Reference-verified.
+
 - **`matrix::DumpSnapshotsFd` — space-optimal Frequent Directions over a sliding window (Yin et al.,
   "Optimal Matrix Sketching over Sliding Windows", VLDB 2024, Best Paper nomination).** Sketches a
   row-stream so the window covariance error is `‖A_WᵀA_W − B_WᵀB_W‖₂ ≤ εN`, in the **optimal `O(d/ε)`**
