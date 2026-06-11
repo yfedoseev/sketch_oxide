@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`similarity::WeightedMinHash` — Improved Consistent Weighted Sampling (ICWS, ICDM 2010).** Extends
+  MinHash from unweighted to **weighted** Jaccard similarity `Σ min(w_A,w_B) / Σ max(w_A,w_B)` — the
+  right measure for term frequencies, traffic volumes, histogram bins. Ioffe's ICWS draws a
+  *consistent* sample per hash and element such that two weighted sets produce the same signature
+  component with probability *exactly* their weighted Jaccard, so the fraction of matching components
+  is an unbiased estimate. A weighted set is `(element, weight)` pairs; `signature` produces a
+  `(chosen_element, level)` vector, `jaccard` compares two signatures. 6 tests cross-checked against
+  the exact weighted Jaccard (identical; disjoint; 0.5 overlap; unequal weights giving 0.1; signature
+  length) + doctest.
+
+
 - **`quantiles::GreenwaldKhanna` — deterministic ε-approximate quantiles (SIGMOD 2001).** The classic
   Greenwald–Khanna summary: rank/quantile queries within `±εn` using `O((1/ε)·log(εn))` space, with a
   **deterministic** error bound that holds for every stream regardless of order or adversary (unlike
