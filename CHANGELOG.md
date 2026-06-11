@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::LossyCounting` — deterministic approximate frequency counting (Manku & Motwani, VLDB
+  2002).** Answers "which items exceed an `s` fraction of the stream, and how often?" with worst-case
+  *deterministic* guarantees (no failure probability, unlike the randomized sketches here) in
+  `O((1/ε)·log(εN))` space. The stream is cut into buckets of `w = ⌈1/ε⌉`; each tracked element holds
+  an exact-since count `f` and a max-error `Δ`, and every bucket boundary prunes elements whose
+  `f + Δ` has fallen to the current bucket id. Guarantees: no false negatives (every item with true
+  freq `≥ sN` is reported by `query(s)`), no over-reporting below `(s−ε)N`, and underestimation only
+  by `≤ εN`. Generic over `T: Hash + Eq + Clone`; `insert`, `estimate`, `query`, `count`, `len`.
+  5 tests (param validation; underestimate `≤ εN` vs an exact `HashMap` oracle; all heavy hitters
+  reported with no false negatives; pruning keeps an all-distinct stream's table `< 2000` for 50k
+  items; empty/absent) + doctest.
+
 - **`similarity::OddSketch` — parity-bit symmetric-difference & Jaccard estimator (Mitzenmacher,
   Pagh, Pham, WWW 2014).** Each inserted item *toggles* one bit, so bit `i` holds the parity of items
   hashing there. Two properties make it compact and composable: XOR composes symmetric difference
