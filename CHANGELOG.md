@@ -12,6 +12,19 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::FibaAggregator` — out-of-order sliding-window aggregation (FiBA, VLDB 2019).** The
+  structure `WindowedAggregator`'s two-stack design cannot do: values keyed by event time, inserted
+  and evicted in *any* order. Partial aggregates are cached at every tree node, so the window
+  aggregate is available in O(1) and an insert/evict only repairs one root-to-leaf path (O(log n)).
+  The combine is any associative op with identity (a monoid) and is folded in strict **time order**,
+  so it is correct for non-commutative combines (concatenation, first/last, min-by-time, matrix
+  product), not just sums. Implemented as an aggregate-augmented height-balanced (AVL) tree — the
+  verifiable form of FiBA's contract; the namesake B-tree-with-fingers spine (amortized O(log d)
+  near the window ends) is a documented locality follow-up that does not change results. 8 tests
+  (incl. 1000-element out-of-order, time-order fold of a non-commutative combine, AVL balance at
+  10k) + doctest.
+
+
 - **`graph::GssSketch` — the Graph Stream Sketch (ICDE 2019).** The accuracy successor to
   `TcmSketch`: where TCM sums weights into hashed cells and conflates every edge that lands
   together, GSS stores a **fingerprint** of each endpoint in the cell, so a query only credits a
