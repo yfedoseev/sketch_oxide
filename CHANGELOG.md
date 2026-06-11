@@ -26,6 +26,19 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`similarity::COph` — Circulant One Permutation Hashing (Li & Li, arXiv 2111.09544, 2021).** One
+  Permutation Hashing splits one permutation of `[D]` into `K` bins and min-hashes each, but sparse data
+  leaves empty bins needing *densification*. C-OPH carries the circulant idea of [`CMinHash`] into OPH:
+  one **small** permutation `π` of length `D/K` reused across bins by circulant shifts, and a
+  densification that **applies** the shifted `π` to a randomly chosen non-empty source bin (lifted into
+  the bin's disjoint value range) rather than copying — the paper proves this attains the smallest
+  Jaccard estimation variance among densified OPH schemes. `new(d, k, seed)`, `add(i)`, `signature()`,
+  `jaccard(other)`, `num_bins`. 6 tests (param validation incl. `D` multiple of `K`; range check;
+  **Jaccard estimate within tolerance**; identical→1.0; disjoint→~0; **densification fills sparse sets
+  with no sentinels and identical sparse sets→1.0**) + doctest. Densification uses a shared random bin
+  order rotated per slot (standard rotation densification); per-bin contents retained so the improved
+  `π_s` densification can be computed. Phase-3 Group B item. Paper-verified.
+
 - **`streaming::Hokusai` — time-adaptive frequency sketches (Matusevych, Smola & Ahmed, UAI 2012).**
   A single Count-Min sketch counts items but forgets *when*; Hokusai adds a time axis by keeping a
   logarithmic ladder of Count-Min sketches so that, at any moment, `M_j` summarises frequencies over
