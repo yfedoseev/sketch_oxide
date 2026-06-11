@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::CountMinLog` — Count-Min with approximate *logarithmic* counters (Pitel & Fouquier,
+  2015).** Plain Count-Min spends a full word per counter though its error is dominated by hash
+  collisions, not counter width. Count-Min-Log replaces each linear counter with a **Morris-style
+  approximate counter**: value `c` represents an estimated count `value(c)` growing geometrically, and
+  an increment is *applied probabilistically* with probability `1/(value(c+1)−value(c))` so the count
+  stays unbiased — billions of events fit in ~16-bit cells, so the same memory buys a wider/deeper
+  table and lower relative error (notably for low-frequency items). `value(c)=c` for `c≤limit` (exact
+  region) then `limit+(base^{c−limit}−1)/(base−1)`; increments are **conservative** (only the row-minima
+  advance); estimate = min over rows of `value`. `new(width, depth, seed)` /
+  `with_params(width, depth, base, limit, seed)`, `add(key)`, `estimate(key)`, `total` / `width` /
+  `depth`. 6 tests (param validation; **small counts exact**; **base-2 geometric quantisation &
+  increment probabilities**; **large counts within ~10%**; frequency ordering preserved; isolated heavy
+  key within the counter-noise band) + doctest. Phase-3 Group A item. Paper-verified.
+
 - **`reconciliation::RatelessIblt` — set reconciliation with no pre-agreed difference size (Yang, Gilad
   & Alizadeh, SIGCOMM 2024).** A classic IBLT must be sized for an expected difference `d` — too small
   fails to decode, too large wastes bandwidth. A **Rateless IBLT** defines an *infinite* stream of

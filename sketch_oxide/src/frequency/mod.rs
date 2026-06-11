@@ -3,6 +3,7 @@
 mod bubble_sketch;
 mod conservative_count_min;
 mod count_min;
+mod count_min_log;
 mod count_sketch;
 mod cuckoo_heavy_keeper;
 pub mod elastic_sketch;
@@ -32,6 +33,7 @@ mod waving_sketch;
 pub use bubble_sketch::BubbleSketch;
 pub use conservative_count_min::ConservativeCountMin;
 pub use count_min::CountMinSketch;
+pub use count_min_log::CountMinLog;
 pub use count_sketch::CountSketch;
 pub use cuckoo_heavy_keeper::CuckooHeavyKeeper;
 pub use elastic_sketch::ElasticSketch;
