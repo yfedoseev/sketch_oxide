@@ -10,7 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Development toward holistic 2026 coverage. See the phased roadmap (internal) for the
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
+### Changed
+
+- **`range_filters::MementoFilter` — rebuilt on the genuine prefix/memento decomposition (fidelity
+  fix).** The previous implementation stored every full 64-bit key and answered range queries by a
+  linear scan over all buckets — neither space-bounded nor sublinear, despite the docs. It now
+  splits each key into a high-order prefix and a low-order memento and stores, per prefix, the
+  sorted list of mementos. Range queries walk only the prefixes overlapping the query
+  (order-preserving, sublinear), are **exact in the interior** (an occupied prefix wholly inside
+  the range certainly holds a key in range) and boundary-refined by the memento lists — still no
+  false negatives. Adds a `may_contain` point query and `num_prefixes`. Public API, `MementoStats`,
+  capacity and `num_expansions` semantics unchanged (48/48 integration tests still pass). The
+  rank-and-select quotient-filter packing with fingerprinted prefixes (trading bits for a `2^-r`
+  FPR) is documented as the follow-up.
+
 ### Added
+
 
 - **`membership::BurrFilter` — Bumped Ribbon Retrieval (SEA 2022), near-optimal static AMQ.** A
   real ribbon filter: each key contributes one equation over GF(2) whose support is a contiguous
