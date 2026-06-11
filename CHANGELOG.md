@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`privacy::CountMeanSketch` — Apple's Count-Mean-Sketch ε-LDP frequency sketch ("Learning with
+  Privacy at Scale", 2017).** Where single-value oracles answer one value at a time, CMS keeps a
+  `k × m` sketch matrix so the whole frequency histogram is queryable while each client's report
+  stays `ε`-LDP. Each client picks a random hash row `j`, builds the `±1` indicator at `h_j(d)`,
+  flips each coordinate with probability `1/(e^{ε/2}+1)`, and sends `(v, j)`; the server debiases by
+  `c_ε = (e^{ε/2}+1)/(e^{ε/2}−1)` into row `j`, then estimates `(m/(m−1))·((1/k)·Σ_l M[l,h_l(d)] −
+  N/m)` — unbiased for the true count. Deployed by Apple for keyboard/emoji/Safari telemetry.
+  Caller-supplied RNG (pass a CSPRNG in production). 5 tests (param validation; heavy value within
+  12%; absent value ≈ 0; frequency is a fraction; single client at huge ε estimates exactly 1) +
+  doctest. Complements the local-hashing `OlhFrequencyOracle` and the central-DP `DpCountMin`.
+
 - **`privacy::OlhFrequencyOracle` — Optimized Local Hashing ε-LDP frequency oracle (Wang et al.,
   USENIX Security 2017).** Generalized Randomized Response reports into the full domain, so its
   variance grows with domain size `d`. OLH first hashes each user's value into a small range of

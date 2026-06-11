@@ -21,6 +21,7 @@
 //!   budget.
 
 pub mod accountant;
+pub mod cms;
 pub mod dp_continual;
 pub mod dp_count_min;
 pub mod dp_quantile;
@@ -29,6 +30,7 @@ pub mod mechanisms;
 pub mod olh;
 
 pub use accountant::{Accountant, PrivacyParams};
+pub use cms::CountMeanSketch;
 pub use dp_continual::DpContinualCounter;
 pub use dp_count_min::{DpCountMin, PrivateCountMin};
 pub use dp_quantile::DpQuantile;
