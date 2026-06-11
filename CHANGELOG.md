@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`sampling::StratifiedReservoir` — independent reservoir per stratum for variance reduction.** Plain
+  reservoir sampling under-represents small strata; stratified sampling keeps a *separate* size-`k`
+  reservoir per stratum (Vitter's Algorithm R within each), guaranteeing every stratum a uniform
+  sample regardless of size. Exact per-stratum counts let a population total of any per-item value be
+  recovered **unbiasedly** by the Horvitz–Thompson estimator (`(count/sample_size)·Σ value`).
+  `new(k)` / `with_seed(k, seed)` / `checked_new(k)`, `add(stratum, item)`, `sample(stratum)`,
+  `stratum_count`, `strata`, `estimated_total(value_fn)`, `total_seen`, `num_strata`. 4 tests
+  (validation; per-stratum samples sized correctly incl. tiny strata; within-stratum sample is uniform;
+  **Horvitz–Thompson total accurate**) + doctest. Phase-3 Group A item.
+
 - **`similarity::LshEnsemble` — domain search by set *containment* (Zhu et al., VLDB 2016).** Jaccard
   LSH finds *similar* sets; many applications instead want high **containment** `t(Q,X)=|Q∩X|/|Q|`,
   which is asymmetric and size-dependent (`J = t·|Q|/(|X|+(1−t)|Q|)`), so one Jaccard LSH is badly
