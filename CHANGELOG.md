@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`quantiles::QDigest` — deterministic, mergeable quantile summary over a bounded integer universe
+  (Shrivastava et al., SenSys 2004).** Overlays a complete binary tree on `[0, 2^L)` and keeps counts
+  at a sparse node set; a compression invariant merges any light sibling/parent triple (combined
+  count `≤ ⌊N/k⌋`) upward, bounding the size to `O(k)` nodes with rank error `≤ (L/k)·N`. Queries walk
+  retained nodes in value order; summaries **merge** in closed form (node-wise add + re-compress) with
+  the same bound — the canonical sensor-network quantile sketch. `insert`, `quantile`, `rank`,
+  `merge`, `count`, `len`. 9 tests (param/range validation; exact quantiles with no compression;
+  approximate quantiles within the error bound; `O(k)` node bound over 100k items; rank monotonicity;
+  merge of two halves; universe-mismatch error; empty → None) + doctest. Complements the
+  comparison-based `GreenwaldKhanna`/`KllSketch` (which need no bounded domain).
+
 - **`frequency::LossyCounting` — deterministic approximate frequency counting (Manku & Motwani, VLDB
   2002).** Answers "which items exceed an `s` fraction of the stream, and how often?" with worst-case
   *deterministic* guarantees (no failure probability, unlike the randomized sketches here) in
