@@ -3,6 +3,7 @@
 //! Probabilistic data structures for set membership queries.
 
 mod adaptive_quotient_filter;
+mod aleph_filter;
 mod binary_fuse;
 mod blocked_bloom;
 mod bloom;
@@ -22,6 +23,7 @@ mod vector_quotient_filter;
 mod xor_filter;
 
 pub use adaptive_quotient_filter::AdaptiveQuotientFilter;
+pub use aleph_filter::AlephFilter;
 pub use binary_fuse::BinaryFuseFilter;
 pub use blocked_bloom::BlockedBloomFilter;
 pub use bloom::BloomFilter;

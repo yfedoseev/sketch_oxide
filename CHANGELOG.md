@@ -26,6 +26,22 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::AlephFilter` — an expandable filter that grows to infinity in constant time (Dayan,
+  Bercea & Pagh, VLDB 2024).** The successor to InfiniFilter: a quotient filter with **variable-length
+  fingerprints** that doubles its capacity on demand. An item's hash splits into a `k`-bit bucket
+  address (low bits) and an `F`-bit fingerprint; on each **doubling** (`k → k+1`) every stored
+  fingerprint donates its LSB to the new high address bit, migrating to its correct bucket while
+  shrinking by one bit (new inserts get full `F`-bit fingerprints again). After `F` expansions an old
+  entry becomes a **void entry** (length 0, always positive); where InfiniFilter chains void entries
+  into secondary tables (`O(log N/F)` queries), Aleph **duplicates** each void entry across both
+  candidate buckets so every query is a single bucket access — **`O(1)`** — with the same FPR. Yields
+  the membership invariant of **no false negatives across all expansions** and a bounded FPR
+  (`≈ 2^-F·(log₂N+2)`). `new(initial_log_buckets, fingerprint_bits)`, `insert`, `contains`,
+  `num_buckets`, `len`. 5 tests (param validation; empty; **no false negatives across ~9 expansions of
+  200k items**; bounded FPR; **void-entry duplication preserves membership** with tiny `F=3`) +
+  doctest. Behaviour-faithful reference layout (explicit bucket lists vs the packed quotient-filter
+  slot array); Fixed-Width regime, deletion is a follow-up. Paper-verified.
+
 - **`streaming::HyperCalm` — one-pass mining of *periodic batches* in data streams (Liu et al., ICDE
   2023).** Reports the top-`k` items by batch *periodicity* (groups of an item's batches arriving at a
   fixed period) in one pass with `O(1)` per item, via three cooperating components: a **HyperBloom
