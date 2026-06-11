@@ -22,6 +22,10 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   full set operations that fold summaries. Built on the `ThetaCore<S>` substrate;
   `estimated_column_sums()` scales the retained sample up to a population estimate. Closes the
   biggest functional gap vs DataSketches.
+- **`frequency::MvSketch` — invertible heavy-hitter sketch.** Each cell runs a Boyer–Moore
+  majority vote (candidate key, vote balance, total), making heavy-hitter detection
+  *invertible* — the heavy keys are recovered directly from the sketch with no separate key
+  list (Tang et al., INFOCOM 2019). `update`/`estimate`/`heavy_hitters` (enumerates candidates).
 - **`frequency::WavingSketch` — unbiased top-k / heavy hitters.** Each bucket holds a small
   heavy part plus a signed waving counter; light items only nudge the counter by their ±1 sign
   (cancelling in expectation), while heavy items are promoted and bias-corrected (Li et al.,
