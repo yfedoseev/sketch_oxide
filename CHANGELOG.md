@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`cardinality::HyperLogLogPlus` — engineered HyperLogLog with bias correction (Heule, Nunkesser &
+  Hall, EDBT 2013).** Google's production refinement of HyperLogLog, improving accuracy across the
+  whole cardinality range while keeping the `m = 2^p` register structure: **64-bit hashing** (removes
+  HLL's large-range correction), **empirical bias correction** (subtracts an authors-measured bias
+  looked up by `k = 6` nearest-neighbour interpolation over per-precision sample tables), and
+  **LinearCounting below a tuned per-precision threshold**. Estimation (paper §4): raw estimate `E`;
+  if `E ≤ 5m` correct to `E − bias(E)`; `H = m·ln(m/V)` when empty registers exist; return `H` if
+  `H ≤ threshold(p)` else the corrected estimate. The `RAW_ESTIMATE`/`BIAS`/`THRESHOLD` tables
+  (precisions 4–18) are transcribed verbatim from the canonical reference data. `new(precision)`,
+  `add`, `update_hash`, `estimate`, `merge`. 7 tests (precision validation; empty; accuracy at
+  1k/100k/1M within 2–3%; **small-cardinality LinearCounting**; **bias-correction range at a few `m`**;
+  merge-unions-cardinality; precision-mismatch rejection) + doctest. Dense representation; the sparse
+  representation (a memory optimisation) is a follow-up. Completes roadmap item #2. Paper-verified.
+
 - **`statistics::JoinSketch` — accurate, unbiased inner-product / join-size estimation (Wang et al.,
   SIGMOD 2023).** The inner product `J = Σ_e f(e)·g(e)` of two streams' frequency vectors is exactly
   their equi-join size (and underlies cosine similarity and optimizer cardinality estimates). Classic
