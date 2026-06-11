@@ -26,6 +26,21 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::DeterministicWave` — `ε`-approximate Basic Counting over a sliding window (Gibbons &
+  Tirthapura, "Distributed Streams Algorithms for Sliding Windows", SPAA 2002).** Counts the 1-bits
+  among the last `n` items. The Exponential Histogram solves this in `O((1/ε)·log N)` space but with
+  `O(log N)` worst-case per-item time (a bucket-merge cascade); the **wave** matches EH's space and
+  `O(1)` query while avoiding the cascade. A wave keeps positions of recent 1-bits at `⌈log₂(2εN)⌉`
+  **levels** — level `i` holds the `1/ε+1` most recent 1-bits whose **1-rank** is a multiple of `2^i`,
+  so coarser levels reach exponentially further back on the same budget and always bracket any window
+  `≤ N`. **Update** appends a 1-bit's `(pos, rank)` to every level `i` with `rank ≡ 0 (mod 2^i)`;
+  **query** brackets the window start `s` by the stored ranks `r₁ < s ≤ r₂` and returns `rank − r̄ + 1`
+  (`r̄ = r₂` if the boundary is tight, else `(r₁+r₂)/2`), with relative error `< ε`. `new(max_window,
+  epsilon)`, `update(bit)`, `estimate(window)`, `position` / `ones`. 5 tests (param validation; **exact
+  on a small transient stream**; **within relative error `ε` on a long stream across many windows**;
+  all-zeros/all-ones; whole-stream window exact) + doctest. Basic wave (the §3.2 modulo-`N` /
+  top-level-only refinement for `O(1)` worst-case update noted). Phase-3 Group A item. Paper-verified.
+
 - **`privacy::PersonLevelDp` — person-level differential privacy via bounded user contribution (Wilson
   et al., "Differentially Private SQL with Bounded User Contribution", PETS 2020).** Record-level DP
   under-protects a **person** who contributes many records. Person-level DP bounds each user before

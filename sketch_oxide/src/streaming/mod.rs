@@ -10,6 +10,7 @@
 
 mod ada_sketch;
 mod apbf;
+mod deterministic_wave;
 mod ecm_sketch;
 mod eh_core;
 mod exponential_histogram;
@@ -30,6 +31,7 @@ mod windowed_aggregator;
 
 pub use ada_sketch::AdaSketch;
 pub use apbf::Apbf;
+pub use deterministic_wave::DeterministicWave;
 pub use ecm_sketch::EcmSketch;
 pub use exponential_histogram::ExponentialHistogram;
 pub use fiba::FibaAggregator;
