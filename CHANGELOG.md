@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`quantiles::DyadicCountSketch` — approximate quantiles over *turnstile* streams (insertions and
+  deletions).** Comparison-based quantile sketches (GK, KLL, t-digest) assume an append-only stream;
+  DCS supports **deletions** via the dyadic-interval framework (Cormode & Muthukrishnan) with the
+  Count-Sketch refinement of Wang, Luo & Yi. The universe `[0, 2^L)` is split into dyadic intervals —
+  level `ℓ` has `2^{L-ℓ}` intervals of width `2^ℓ` — each summarised by a **signed Count Sketch**
+  (estimate = median over rows, *unbiased* and tolerant of deletion cancellation, unlike the one-sided
+  Count-Min of "Dyadic Count-Min"). `update(x, Δ)` (Δ may be negative) touches one interval per level;
+  `rank(x)` sums the ≤`L` dyadic blocks covering `[0, x)`; `quantile(φ)` binary-searches the universe.
+  Coarse levels with no more intervals than the sketch width are stored **exactly**. `new(universe_bits,
+  width, depth, seed)`, `update` / `add` / `remove`, `rank`, `quantile`, `count`, `total`. 5 tests
+  (param/range validation; **rank & quantiles on a uniform stream**; **deletions reduce rank**;
+  **unbiased estimate survives add/remove cancellation**) + doctest. Phase-3 Group A item.
+  Paper-verified.
+
 - **`membership::TaffyCuckooFilter` — a cuckoo filter that *grows* without rebuilds or fpp inflation
   (Jim Apple, "Stretching Your Data With Taffy Filters", SP&E 2022).** Ordinary cuckoo/Bloom filters
   must be sized up front; once full, inserts fail or the false-positive probability doubles. A Taffy

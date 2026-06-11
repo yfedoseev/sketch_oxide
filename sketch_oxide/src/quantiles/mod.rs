@@ -81,6 +81,7 @@
 //! ```
 
 mod ddsketch;
+mod dyadic_count_sketch;
 mod gk;
 mod kll;
 mod otel_histogram;
@@ -94,6 +95,7 @@ mod tdigest;
 mod udd_sketch;
 
 pub use ddsketch::DDSketch;
+pub use dyadic_count_sketch::DyadicCountSketch;
 pub use gk::GreenwaldKhanna;
 pub use kll::{KllFloatSketch, KllSketch};
 pub use otel_histogram::OtelExponentialHistogram;
