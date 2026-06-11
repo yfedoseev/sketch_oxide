@@ -26,6 +26,23 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::BubbleSketch` — high-performance, memory-efficient top-`k` finder (Cao et al., CIKM
+  2024).** Detects the top-`k` most frequent items *without a min-heap*, beating HeavyKeeper on
+  accuracy by up to two orders of magnitude in the paper. It keeps two arrays `A₁`, `A₂` of `w`
+  buckets; each bucket holds `B` entries kept **sorted ascending by frequency**, so the top entry
+  (the *hot entry*) always holds the bucket's heaviest item with its **full key**, while the lower
+  `B-1` *cold* entries store only a compact **fingerprint** — a "ladder" layout that spends bits on
+  the items actually reported. Three mechanisms (paper §3): ladder bucket layout; **real-time bubble
+  sorting** (a touched entry bubbles up to its sorted place); and **threshold relocation** — when a
+  cold item crosses the dynamic threshold `Δ = f_max·(1/k)^α` *and* beats the top of its alternate
+  bucket, it is promoted into that bucket's hot entry (the insert holds its full key), resolving the
+  "two hot items in one bucket" conflict. New items take the first empty entry of either candidate
+  bucket, or count-decay the coldest entry on overflow. `new(w, b, k, alpha)`, `insert`, `top_k`,
+  `estimate`. 6 tests (param validation; empty; exact ranking of well-separated heavy hitters;
+  heavy-item estimate within 1%; **Zipf top-20 precision ≥ 0.85** over a 2000-item universe;
+  duplicates + monotonicity) + doctest. Behaviour-faithful reference layout (explicit entries vs the
+  paper's word-packed variable-width encoding). Paper-verified.
+
 - **`cardinality::ExaLogLog` — space-efficient distinct counting up to the exa-scale (Ertl, EDBT
   2025).** The latest in the HyperLogLog lineage and successor to `UltraLogLog`: up to 43% less space
   than HyperLogLog for the same error. It generalises HLL/EHLL/ULL/PCSA with two structural parameters

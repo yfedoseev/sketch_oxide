@@ -1,5 +1,6 @@
 //! Frequency estimation algorithms
 
+mod bubble_sketch;
 mod conservative_count_min;
 mod count_min;
 mod count_sketch;
@@ -26,6 +27,7 @@ mod tower_sketch;
 mod unbiased_space_saving;
 mod waving_sketch;
 
+pub use bubble_sketch::BubbleSketch;
 pub use conservative_count_min::ConservativeCountMin;
 pub use count_min::CountMinSketch;
 pub use count_sketch::CountSketch;
