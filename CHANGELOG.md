@@ -26,6 +26,21 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::PersistentCountMin` — *temporal frequency* queries over the entire history.** The
+  counting analog of the Persistent Bloom Filter: a Count-Min sketch answers "how often did `x` occur?",
+  this answers "how often did `x` occur during `[s, e]`?" for forensic/audit analytics. Over `[1, T]`
+  (a power of two) with leaf granularity `g`, it builds a binary tree with **one Count-Min sketch per
+  node** (dyadic-ranges framework of Cormode & Muthukrishnan); **insert** `(x,t)` increments `x` in the
+  sketch at every node on the root→leaf(t) path, and **query** `(x,[s,e])` **sums** each node's Count-Min
+  estimate over the `O(log T)` disjoint dyadic canonical cover of `[s,e]`. Because the cover tiles
+  `[s,e]` disjointly and Count-Min never under-counts, the summed estimate **never underestimates** the
+  true range frequency (overestimation from collisions only). `new(t_max, granularity, width, depth,
+  seed)`, `insert(item, timestamp)`, `estimate_range(item, start, end)`, `t_max` / `num_sketches`. 5
+  tests (param validation; **never underestimates range frequency**; **exact temporal decomposition
+  without collisions**; absent element → 0; granularity groups timestamps) + doctest. Clean
+  dyadic-decomposition construction (Wei et al.'s sampling-based persistent sketch, SIGMOD 2015, noted
+  as the more space-efficient alternative). Phase-3 Group A item.
+
 - **`range_filters::Arf` — Adaptive Range Filter that learns empty regions from queries (Alexiou,
   Kossmann & Larson, "Avoiding Trips to Siberia", VLDB 2013).** What a Bloom filter is for point
   queries, an ARF is for **range** queries — "does the set contain any key in `[lo, hi]`?" — but it is
