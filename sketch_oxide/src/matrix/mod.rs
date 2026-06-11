@@ -6,7 +6,9 @@
 mod count_sketch_embedding;
 mod frequent_directions;
 mod jl;
+mod sliding_frequent_directions;
 
 pub use count_sketch_embedding::CountSketchEmbedding;
 pub use frequent_directions::FrequentDirections;
 pub use jl::JohnsonLindenstrauss;
+pub use sliding_frequent_directions::SlidingFrequentDirections;

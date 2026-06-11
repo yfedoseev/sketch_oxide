@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`matrix::SlidingFrequentDirections` — Frequent Directions over a sliding window (DS-FD).** Where
+  `FrequentDirections` summarizes all rows ever seen, DS-FD (sliding-window matrix sketching, Wei et
+  al., SIGMOD 2016) approximates the covariance of only the **last `W` rows**. It partitions the
+  window into `num_blocks` blocks, keeping one FD sketch per block in a ring buffer; since `AᵀA` is
+  additive over a row partition, the window covariance is the **sum of the per-block sketch
+  covariances**, with each block's FD error summing to the same `‖A_window‖²_F / ℓ` bound. The oldest
+  block is recycled as the window slides. `append`, `windowed_covariance`, `window`. 4 tests (forgets
+  a stale direction once it ages out; tracks a planted recent direction; windowed covariance within
+  the FD error bound vs the exact last-W covariance) + doctest. Builds on `FrequentDirections`.
+
+
 - **`privacy::DpQuantile` — differentially private quantiles via the exponential mechanism (STOC 2011).**
   A quantile's sensitivity is unbounded, so it cannot be privatized by adding noise to the value.
   Smith's exponential-mechanism solution scores each gap between consecutive sorted points by how
