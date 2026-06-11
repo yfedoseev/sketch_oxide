@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::SlidingWindowQuantiles` — approximate quantiles over the most recent `window` items
+  (PromSketch EHKLL, Zhu et al., VLDB 2025).** Answers `quantile_over_time(p99, …)`: the p99 of only
+  the recent stream, with old data aged out. It divides the window into fixed-size blocks, each
+  summarized by a `KllSketch`; a query merges the in-window blocks (KLL is additively mergeable) and
+  reads the quantile, and the oldest block is dropped once the window slides past it. The window is
+  count-based with block granularity (retains `window/block` completed blocks plus the current one),
+  using `O((window/block)·KLL)` memory independent of stream length. `update`, `quantile`,
+  `retained_blocks`. 5 tests (param validation; reflects a recent regime shift; early window reflects
+  early values; bounded block count over 100k items; empty → None) + doctest. Composes
+  `quantiles::KllSketch`.
+
 - **`frequency::HiddenSketch` — a reversible frequency sketch that recovers heavy keys *and* counts
   (2025).** Standard frequency sketches can answer "frequency of key X?" but cannot *list* the heavy
   keys — the keys are lost. Hidden Sketch makes the sketch invertible: alongside a Count-Min count each
