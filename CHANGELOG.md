@@ -186,6 +186,12 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   al., ICML 2009): each feature hashes to a coordinate and a ±1 sign, values accumulate, and
   collisions cancel in expectation so inner products are preserved. The standard input layer
   for online learning (VW) and the scikit-learn `FeatureHasher`. `add`/`vector`/`transform`.
+- **`membership::CountingQuotientFilter` — counting, deletable, mergeable filter.** A Counting
+  Quotient Filter (Pandey et al., SIGMOD 2017): quotienting stores only an `r_bits` remainder
+  per item, with a per-remainder count — the one filter that is simultaneously counting,
+  deletable, and mergeable, and the substrate feature-rich filters (Aleph/AQF/Memento) build on.
+  Functionally exact (no false negatives, FPR `≈ load/2^r_bits`); uses the clear bucketed
+  reference layout (the RSQF rank-select packed layout is a cache/space optimization to follow).
 - **`membership::ScalableBloomFilter` — Bloom filter for unbounded inserts.** Chains
   sub-filters: when the active one fills, a larger sub-filter with a geometrically tighter FPR
   is appended (Almeida et al., IPL 2007), keeping the compounded false-positive rate bounded by
