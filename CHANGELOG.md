@@ -26,6 +26,22 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`sampling::SignedUpdateSampler` — weighted sampling over streams of *signed* weight updates (in the
+  spirit of Cohen, Cormode & Duffield, SIGMETRICS 2012).** Classic weighted reservoirs assume every
+  update adds weight; many streams instead carry **signed** updates (corrections, refunds, turnstile
+  deletions). This summary supports unbiased estimation of the **net** weight `Σ_{k∈Q} w(k)` of any
+  query subset in space independent of the key count. **Reference construction** (documented, *not* the
+  verbatim CCD single-sample algorithm): two-sided **priority sampling** (Duffield–Lund–Thorup) — each
+  positive update feeds a priority sample of the positive sub-stream and each negative update (by
+  magnitude) a second sample of the negative sub-stream; each side keeps the `k` highest-priority items
+  (`qᵢ = wᵢ/uᵢ`) and the largest discarded priority `τ`, with the unbiased estimator `Σ max(wᵢ, τ)`, and
+  the net subset-sum is the positive estimate minus the negative. `new(k)` / `with_seed(k, seed)`,
+  `update(key, delta)`, `estimate_subset_sum(predicate)`, `estimate_total`, `capacity`, `sample_size`.
+  4 tests (param validation; **exact net weight under capacity**; **subset-predicate group sums**;
+  **unbiased net total under sampling** averaged over 120 seeds) + doctest. Best-effort reference; the
+  CCD single-sample scheme has strictly lower variance for keys with both `+` and `−` updates. Phase-3
+  Group B item.
+
 - **`graph::Fleet` — butterfly (bipartite 4-cycle) estimation from a graph stream (Sanei-Mehri, Zhang,
   Sariyüce & Tirthapura, "FLEET", CIKM 2019).** A **butterfly** is the bipartite analog of a triangle:
   `{a,b}⊆L`, `{x,y}⊆R` with all four edges present (a 2×2 biclique). Butterfly count measures density
