@@ -26,6 +26,18 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`sampling::DistinctSampling` — bounded uniform sample of a stream's *distinct* items (Gibbons,
+  VLDB 2001).** Keeps a capacity-bounded sample drawn uniformly from the distinct set — regardless of
+  per-item frequency — so it answers distinct-count and *subset* distinct-count queries in small space.
+  Each item gets a geometric level `ℓ(x)` (trailing zeros of its hash, `Pr[ℓ ≥ L] = 2^{−L}`); the
+  sketch keeps all distinct items with `ℓ(x) ≥ L` and raises `L` (evicting too-shallow items) whenever
+  it would exceed capacity. Distinct count is `|sample|·2^L` and any predicate's distinct count is
+  `|{x ∈ sample : pred(x)}|·2^L` — both unbiased. `insert`, `estimate_distinct`,
+  `estimate_distinct_where`, `sample`, `level`. 6 tests (zero-capacity rejection; exact under
+  capacity; duplicates don't change the estimate; 200k distinct within 10%; unbiased subset query;
+  empty → 0) + doctest. Unlike `ReservoirSampling` (samples positions, biased to frequent items) this
+  samples distinct values and retains them for after-the-fact subset queries.
+
 - **`frequency::StickySampling` — randomized approximate frequency counting (Manku & Motwani, VLDB
   2002).** The randomized companion to `LossyCounting`: answers "which items exceed an `s` fraction of
   the stream?" in space *independent of stream length* — `O((1/ε)·log(1/(s·δ)))` — at the cost of a
