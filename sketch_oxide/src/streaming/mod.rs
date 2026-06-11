@@ -19,6 +19,7 @@ mod sliding_hll;
 mod sliding_sketch;
 mod sliding_window;
 mod sliding_window_quantiles;
+mod sliding_window_universal;
 mod smooth_histogram;
 mod windowed_aggregator;
 
@@ -32,6 +33,7 @@ pub use sliding_hll::{SlidingHLLStats, SlidingHyperLogLog};
 pub use sliding_sketch::SlidingSketch;
 pub use sliding_window::SlidingWindowCounter;
 pub use sliding_window_quantiles::SlidingWindowQuantiles;
+pub use sliding_window_universal::SlidingWindowUniversal;
 pub use smooth_histogram::SmoothHistogramSum;
 pub use windowed_aggregator::WindowedAggregator;
 

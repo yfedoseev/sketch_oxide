@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::SlidingWindowUniversal` — windowed L2 / frequency moments over the most recent items
+  (PromSketch EHUniv, Zhu et al., VLDB 2025).** The companion to `SlidingWindowQuantiles`: it puts a
+  `UnivMon` universal sketch in each block of an exponential-histogram-style window, so one structure
+  answers `l2_over_time` (and other additive frequency-moment functions) over the last `window` items.
+  A query merges the in-window blocks (UnivMon is additively mergeable) and evaluates the function; the
+  oldest block ages out as the window slides. One UnivMon per *block* keeps memory at
+  `O((window/block)·UnivMon)`, independent of stream length. `update`, `estimate_l2`,
+  `retained_blocks`. 4 tests (param validation; windowed L2 reflects ~window items not the full stream;
+  a recent burst raises the windowed L2; empty → 0) + doctest. Composes `universal::UnivMon`.
+  (Heavy-hitter recovery over a merged window is lossy and left as a follow-up.)
+
 - **`streaming::SlidingWindowQuantiles` — approximate quantiles over the most recent `window` items
   (PromSketch EHKLL, Zhu et al., VLDB 2025).** Answers `quantile_over_time(p99, …)`: the p99 of only
   the recent stream, with old data aged out. It divides the window into fixed-size blocks, each
