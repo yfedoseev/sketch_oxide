@@ -26,6 +26,23 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`range_filters::Proteus` — a self-designing range filter (Knorr, Lemaire, Lim et al., SIGMOD
+  2022).** Answers "does any key lie in `[lo, hi]`?" and *self-designs* its layout to the workload,
+  unifying the two state-of-the-art families into one design space: a **trie** over the top `t` prefix
+  levels (rules out large empty ranges) plus a single **prefix Bloom filter** at a chosen length
+  `l ≥ t` (catches queries close to the key set inside the trie's non-empty regions). A query descends
+  the trie over the prefixes covering `[lo, hi]`; on each present prefix the length-`l` sub-prefixes
+  are probed in the Bloom filter, ending positive on a hit or moving to the next non-empty region —
+  so the filter can be fully deterministic, fully probabilistic, or anywhere between. The
+  self-designing step (paper Algorithm 1 / Contextual Prefix FPR model) takes the key set, a memory
+  budget, and a sample of representative empty range queries and picks the `(t, l)` minimising the
+  false-positive rate. `build(keys, mem_bits, sample_queries)`, `range_query(lo, hi)`, `trie_depth`,
+  `bloom_len`. 5 tests (param validation; **no false negatives** as point and containing-range
+  queries; low held-out FPR; far-range FPR bounded; more memory never worsens FPR) + doctest.
+  Behaviour-faithful reference layout (sorted-prefix trie + reused `BloomFilter`; the tuner measures
+  candidate FPRs on the sample workload rather than the closed-form CPFPR model — the same selection
+  the paper validates against). Paper-verified.
+
 - **`membership::MortonFilter` — a faster, more space-efficient cuckoo filter (Breslow & Jayasena,
   VLDB 2018).** Re-engineers the cuckoo filter around **compression**, **biasing**, and **decoupled
   logical sparsity** so lookups/inserts/deletes typically touch a single cache line. Fingerprints are
