@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::FilteredSpaceSaving` — memory-tight top-k heavy hitters (Homem & Carvalho, 2010).**
+  The algorithm behind Redis's `TOPK`. Plain Space-Saving admits every unmonitored item immediately,
+  churning the monitored set under a heavy tail; Filtered Space-Saving interposes a filter array of
+  hash-indexed counters — an unmonitored item just bumps its filter cell and is promoted only once
+  that cell would exceed the current monitored minimum, and an evicted item's count is parked back in
+  its filter cell so recurring heavies re-enter with a good estimate. Keeps the Space-Saving
+  guarantees: every item above `N/capacity` is monitored, with `true ∈ [count − error, count]`.
+  `update`, `top_k`, `estimate`, `count`; generic over `T: Hash + Eq + Clone`. 4 tests (param
+  validation; exact top-5 recovery over a 200k churny stream; heavy estimate within bound and
+  over-estimate < 1000; empty/absent) + doctest. A tighter top-k complement to `SpaceSaving`.
+
 - **`membership::XorFilter` — fast, compact static membership filter (Graf & Lemire, JEA 2020).**
   Built once from a fixed key set into a `≈1.23·n`-slot fingerprint array; each key maps to three
   slots (one per third) with the invariant that the XOR of a key's three slots equals its fingerprint.
