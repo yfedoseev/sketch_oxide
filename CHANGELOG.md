@@ -26,6 +26,23 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`privacy::DpswSketch` — differentially private frequency estimation over sliding windows (Wang,
+  Wang & Chen, KDD 2024).** Answers per-item frequency queries over the last `w` items under
+  **event-level `ρ`-zCDP**. Three ingredients: a **Private Count-Min** whose released counters carry
+  Gaussian noise `σ² = a/ρ_local` (CM `ℓ₂`-sensitivity `√(2a)` ⇒ the Gaussian mechanism is
+  `ρ_local`-zCDP; queries are post-processing); **disjoint substreams** of `B = ⌈w^β⌉` items that
+  compose under the parallel rule; and **smooth histograms** keeping geometrically-spaced forward
+  (prefix) and backward (suffix) checkpoint PCMSs so any window boundary is approximated within
+  `(1±α)`. The per-checkpoint budget split (`ρ₁ = ρ(2α−α²)`, `ρ_j = ρα^{j−2}(1−α)³/2`) sums to
+  **exactly `ρ` per substream** (`ρ₁ + 2·Σρ_j = ρ`) — the crux of the `ρ`-zCDP guarantee (Lemma 4.1).
+  A query sums one PCMS per overlapping substream (whole / backward / forward). Noise is added once at
+  finalization from a caller-supplied RNG (pass a CSPRNG via `secure_rng` in production). Built on the
+  module's `discrete_gaussian` mechanism (the existing `PrivateCountMin` is ε-Laplace, the wrong
+  framework). `new(w, rho, alpha, beta, depth, width)`, `insert(item, rng)`, `query(item)`,
+  `total_budget()`, `substream_size()`. 6 tests (param validation; empty; **budget never exceeds ρ
+  across α/ρ grids** — the privacy invariant; window-frequency accuracy; **old items expire from the
+  window**; distinct items don't bleed) + doctest. Paper-verified.
+
 - **`frequency::HeavyLocker` — distributed heavy-hitter detection via dynamic threshold locking (Shi,
   Li, Zheng, Yang, Wang & Xu, KDD 2025).** Exploits stream **separability** — heavy and non-heavy
   items separate around the real-time threshold `θ·item_num` — to *lock* and protect likely heavy
