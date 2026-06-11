@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`range_filters::Rosetta` — range filtering via prefix Bloom filters (SIGMOD 2020).** Rosetta
+  (Luo et al.) answers range queries as a handful of point queries: every key is inserted under all
+  of its prefixes (`level 0..=bits`) into a Bloom filter keyed by `(level, prefix)`, and a range
+  `[low, high]` is **dyadically decomposed** into the `O(bits)` canonical prefix blocks that exactly
+  tile it — if any block is present the range may be non-empty, else it is definitely empty. A
+  present key lies in exactly one block whose prefix it inserted, so there are **no false
+  negatives**; false positives compound with query width (documented). `insert`, `range_query`, and
+  the `RangeFilter` trait. 7 tests (point ranges find keys; no-FN over 5000 keys with tight ranges;
+  empty-gap rejection; full-range span; bounded point-FPR) + doctest.
+
+
 - **`learned::LearnedFrequent` — learning-augmented frequency estimation (LA-Misra-Gries, ICLR 2019).**
   Classical sketches spread error uniformly, so even the heaviest items carry the Misra–Gries
   offset. Learning-augmented estimation (Hsu, Indyk, Katabi & Vakilian) uses an `Oracle` to predict
