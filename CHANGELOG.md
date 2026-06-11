@@ -26,6 +26,23 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::HeavyLocker` — distributed heavy-hitter detection via dynamic threshold locking (Shi,
+  Li, Zheng, Yang, Wang & Xu, KDD 2025).** Exploits stream **separability** — heavy and non-heavy
+  items separate around the real-time threshold `θ·item_num` — to *lock* and protect likely heavy
+  hitters. The structure is `w` buckets of `d` count-sorted cells, each bucket with a **lock bit**:
+  when a full bucket's smallest cell exceeds `θ·L·item_num` (so every item in it is a real-time heavy
+  hitter) the bucket locks, blocking replacement; locks are re-evaluated each insert (so a bucket
+  unlocks as the threshold grows). A tuning factor `L ≤ 1` protects slow-ramping heavy hitters and
+  multi-hashing cuts collisions. Inserts increment a matched key, fill an empty cell, or RAP-replace
+  the smallest cell of an unlocked bucket (probability `1/(min+1)`, taking slot `min+1`); a locked
+  bucket drops the item. Full keys make it **invertible** (heavy hitters read directly) and
+  **mergeable** — co-located buckets from per-stream sketches combine by summing per-key counts and
+  keeping the top `d`, giving global heavy hitters. `new(w, d, theta, lock_tuning, num_hashes)`,
+  `insert`, `query`, `heavy_hitters(phi)`, `merge`. 7 tests (param validation; empty; isolated item
+  exact; **lock protects a heavy item from a 200k cold tail**; Zipf heavy-hitter F1 ≥ 0.85;
+  **merge recovers global heavy hitters across two streams**; merge config-mismatch rejection) +
+  doctest. The RAP draw is realised exactly via integer hashing (deterministic). Paper-verified.
+
 - **`range_filters::Proteus` — a self-designing range filter (Knorr, Lemaire, Lim et al., SIGMOD
   2022).** Answers "does any key lie in `[lo, hi]`?" and *self-designs* its layout to the workload,
   unifying the two state-of-the-art families into one design space: a **trie** over the top `t` prefix
