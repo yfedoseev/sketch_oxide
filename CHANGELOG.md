@@ -156,6 +156,11 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
   tracks an `(ε, δ)` budget under sequential composition and refuses over-budget spends.
   RNG is explicit and must be a CSPRNG (`secure_rng`). Substrate for DP cardinality release,
   DP-Count-Min, continual counting, and LDP oracles in later waves.
+- **`cardinality::FmSketch` — Flajolet–Martin / PCSA cardinality.** The original probabilistic
+  distinct-counting sketch (Flajolet & Martin, JCSS 1985) and ancestor of HLL: `m` bitmaps with
+  stochastic averaging, cardinality from the average bitmap fringe `(m/φ)·2^R̄`. Included for
+  completeness and legacy interop (HLL improves accuracy per bit by tracking max rank instead).
+  Mergeable (bitwise OR).
 - **`cardinality::KmvSketch` — K-Minimum-Values cardinality + Jaccard.** Keeps the `k` smallest
   hash values; `n̂ = (k−1)/v_k` from the k-th smallest. Because the actual minima are kept, the
   bottom-`k` of a union is exact on the sample, giving unbiased **union cardinality** and
