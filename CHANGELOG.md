@@ -26,6 +26,22 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::PeriodicSketch` — top-K *periodic items* in data streams (Fan, Zhang, Yang et al., ICDE
+  2022).** An item is periodic if it recurs at a roughly fixed interval (beaconing hosts, laundering
+  patterns, habitual clicks); PeriodicSketch is the first one-pass `O(1)`-per-item structure for the
+  top-K periodic items, pairing two sketches. **Cover-Min** (a Count-Min relative over timestamps)
+  records each item's interval: an arrival `(e,t)` reads the stored timestamps, reports `V = t −
+  min(them)`, then **covers** all `d` rows with `t`. **GSU** (Guaranteed Soft Uniform) keeps the top-K
+  elements `(item, interval)` by recurrence frequency: on a full bucket the least-frequent cell `L` is
+  replaced only with probability `(t_fail+1)/(2·f_min)` (where `t_fail` counts consecutive failed
+  replacements), and on success the new frequency is `f_min + ⌊t_fail/f_min⌋` with `t_fail` reset —
+  soft-uniform replacement that suppresses the over-counting plain Space-Saving suffers on cold items.
+  Intervals within `±delta_t` share a period (binned). `new(cm_width, cm_depth, gsu_buckets,
+  cells_per_bucket, delta_t, seed)`, `insert(item, timestamp)`, `top_k(k)`, `delta_t`. 5 tests (param
+  validation; **detects a strictly periodic item**; **distinguishes two periods**; first occurrence
+  records no interval; **tolerance bins nearby intervals**) + doctest. Phase-3 Group A item.
+  Paper-verified.
+
 - **`quantiles::MomentsSketch` — mergeable quantiles from power moments via maximum entropy (Gan, Ding,
   Tang, Sethi, Bailis & Zaharia, SIGMOD 2018).** Where most quantile sketches store sample-like
   summaries, the Moments Sketch keeps only a few **power sums** `Σ xⁱ` (`i=0..k`) plus `min`/`max` — so
