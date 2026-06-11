@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::XorFilter` — fast, compact static membership filter (Graf & Lemire, JEA 2020).**
+  Built once from a fixed key set into a `≈1.23·n`-slot fingerprint array; each key maps to three
+  slots (one per third) with the invariant that the XOR of a key's three slots equals its fingerprint.
+  A query recomputes the three slots and the fingerprint and checks the XOR — three memory accesses,
+  no false negatives, FPR `≈ 2^{−bits}` (≈0.39% for Xor8, ≈0.0015% for Xor16). Construction peels the
+  3-hypergraph and back-substitutes in reverse, retrying with a fresh seed on the rare unpeelable
+  graph. `from_keys`, `contains`, `len`, `bits_per_fingerprint`, `slot_count`. 6 tests (bits
+  validation; no false negatives over 20k keys; Xor8 FPR < 1.2% and Xor16 FPR < 0.1% over 100k–200k
+  non-keys; duplicate de-duplication; empty rejects) + doctest. The widely-referenced predecessor of
+  `BinaryFuseFilter`.
+
 - **`cardinality::CvmSketch` — sampling-based distinct counting (Chakraborty, Vinodchandran & Meel,
   2022; popularized by Knuth).** Unlike every other cardinality estimator here, CVM uses **no hash
   functions** — pure random sampling. It keeps a buffer of at most `capacity` distinct elements and a
