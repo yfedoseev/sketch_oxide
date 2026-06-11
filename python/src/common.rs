@@ -56,6 +56,29 @@ pub fn python_item_to_hash(item: &Bound<'_, PyAny>) -> PyResult<u64> {
     }
 }
 
+/// Convert a Python item to its raw bytes, preserving the original value.
+///
+/// Unlike [`python_item_to_hash`], this keeps the item recoverable, so heavy-hitter / top-k sketches
+/// can return meaningful keys. `int`/`float` map to little-endian bytes, `str` to UTF-8, `bytes`
+/// pass through.
+pub fn python_item_to_bytes(item: &Bound<'_, PyAny>) -> PyResult<Vec<u8>> {
+    if let Ok(val) = item.extract::<i64>() {
+        Ok(val.to_le_bytes().to_vec())
+    } else if let Ok(val) = item.extract::<u64>() {
+        Ok(val.to_le_bytes().to_vec())
+    } else if let Ok(val) = item.extract::<String>() {
+        Ok(val.into_bytes())
+    } else if let Ok(b) = item.downcast::<PyBytes>() {
+        Ok(b.as_bytes().to_vec())
+    } else if let Ok(val) = item.extract::<f64>() {
+        Ok(val.to_bits().to_le_bytes().to_vec())
+    } else {
+        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+            "Item must be int, str, bytes, or float",
+        ))
+    }
+}
+
 /// Macro to execute a closure with a Python item converted to a Rust type.
 ///
 /// This macro handles conversion of Python types (int, str, bytes) to their
