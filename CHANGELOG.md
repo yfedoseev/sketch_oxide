@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`membership::BloomierFilter` — compact static key→value map (Chazelle, Kilian, Rubinfeld & Tal,
+  2004).** Where an `XorFilter` answers *is this key present?*, a Bloomier filter answers *what value
+  is associated with this key?* for a fixed map. It reuses the 3-wise XOR-peeling construction but
+  stores `fingerprint‖value` per slot; a query XORs a key's three slots and checks the fingerprint. A
+  build-set key always returns its exact value (no false negatives); an absent key is rejected
+  (`None`) with probability `1 − 2^{−fingerprint_bits}`. A retrieval data structure — the building
+  block behind compressed static dictionaries and minimal perfect hashing. `from_pairs`, `get`,
+  `len`, `value_bits`. 5 tests (param/value-width validation; exact retrieval over 10k keys;
+  absent-key acceptance < 0.1% with a 16-bit fingerprint; last-value-wins on duplicate keys; empty) +
+  doctest.
+
 - **`statistics::DensitySketch` — streaming kernel density estimation over a reservoir (DataSketches
   KDE family).** Summarizes the *shape* of a 1-D stream rather than a single statistic: it answers
   "how dense is the data around `x`?" for anomaly detection, distribution monitoring, and mode
