@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`statistics::KArySketch` — sketch-based heavy-change detection (k-ary sketch, IMC 2003).** A
+  linear sketch (Krishnamurthy, Sen, Zhang & Chen) for finding the items whose value *changed* most
+  between two snapshots (the "deltoids"). Like Count-Min it keeps `depth × width` buckets and adds
+  each item's signed value to one bucket per row, but reads back an **unbiased** estimate
+  `(bucket − total/width)/(1 − 1/width)` (median over rows). Because it is linear, the `difference`
+  of two snapshots is itself a sketch — of the change vector — so heavy changers are the keys whose
+  difference-estimate exceeds a threshold (`heavy_changers`). Handles increments and decrements.
+  6 tests (lone value; difference isolates a +3000 surge and a −2000 drop; heavy changers found &
+  ranked; linearity under decrements) + doctest.
+
+
 - **`statistics::HllJointEstimator` — set operations over two HyperLogLog sketches.** Because HLL
   registers hold per-bucket maxima, the register-wise maximum of two sketches is exactly the HLL of
   their **union**; inclusion–exclusion then yields the intersection and Jaccard:
