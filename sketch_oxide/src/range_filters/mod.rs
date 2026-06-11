@@ -60,6 +60,7 @@ mod grafite;
 mod grf;
 mod memento_filter;
 mod pgm_index;
+mod radix_spline;
 mod rosetta;
 mod surf;
 
@@ -68,6 +69,7 @@ pub use grafite::{Grafite, GrafiteStats};
 pub use grf::{GRFStats, GRF};
 pub use memento_filter::{MementoFilter, MementoStats};
 pub use pgm_index::PgmIndex;
+pub use radix_spline::RadixSpline;
 pub use rosetta::Rosetta;
 pub use surf::Surf;
 

@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`range_filters::RadixSpline` — single-pass learned index over sorted keys (aiDM @ SIGMOD 2020).**
+  Approximates the CDF (`key → position`) of a sorted `u64` array so a lookup predicts a key's
+  position within a guaranteed `max_error` and finishes with a bounded local search. Two parts built
+  in one pass: a **linear spline** fitted by the greedy-spline-corridor method (fewest points keeping
+  every key within `max_error`) and a **radix table** mapping high key bits to the spline segment for
+  O(1) segment lookup. `build`, `estimate_position`, `search_bound`, `num_spline_points`. Joins
+  `PgmIndex` in the learned-index family. 6 tests (error bound holds for linear / gappy / clustered
+  key distributions; search window contains the true position; endpoint clamping; linear CDF
+  compresses to <10 points) + doctest.
+
+
 - **`range_filters::Rosetta` — range filtering via prefix Bloom filters (SIGMOD 2020).** Rosetta
   (Luo et al.) answers range queries as a handful of point queries: every key is inserted under all
   of its prefixes (`level 0..=bits`) into a Bloom filter keyed by `(level, prefix)`, and a range
