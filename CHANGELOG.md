@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`streaming::AdaSketch` — time-adaptive Count-Min sketch (Ada-Sketches, SIGMOD 2016).** Makes a
+  Count-Min sketch recency-aware with O(1) updates via **pre-emphasis / de-emphasis**: an update at
+  logical time `t` adds weight `e^{αt}` instead of 1, and a query divides by the current `e^{αT}`,
+  so an item seen Δ steps ago contributes `e^{-αΔ}` — exponential time decay with no per-item
+  bookkeeping. A **global rescale** divides all counters down and advances the time origin whenever
+  the live weight grows large, keeping `f64` counters well-conditioned over unbounded streams.
+  `update`/`update_weighted`, `estimate`. 5 tests (recent outweighs old; equal-recency items close;
+  survives 1M updates via rescale; burst estimate matches the closed-form decay sum) + doctest.
+
+
 - **`learned::GradientSketch` — sketched gradient compression (SketchedSGD / FetchSGD, ICML 2020).**
   A Count Sketch specialized for real-valued gradients: a small signed linear sketch that (1) sums
   correctly when worker sketches are added (`merge`), so distributed-SGD aggregation is just sketch

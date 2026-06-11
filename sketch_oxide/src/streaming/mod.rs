@@ -8,6 +8,7 @@
 //! - [`ExponentialHistogram`]: Enhanced exponential histogram with formal error bounds
 //! - [`SlidingHyperLogLog`]: Time-windowed cardinality estimation with HyperLogLog
 
+mod ada_sketch;
 mod apbf;
 mod ecm_sketch;
 mod eh_core;
@@ -19,6 +20,7 @@ mod sliding_sketch;
 mod sliding_window;
 mod windowed_aggregator;
 
+pub use ada_sketch::AdaSketch;
 pub use apbf::Apbf;
 pub use ecm_sketch::EcmSketch;
 pub use exponential_histogram::ExponentialHistogram;
