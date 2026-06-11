@@ -26,6 +26,19 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`universal::OmniSketch` — multi-dimensional frequency with arbitrary predicates (Punter et al.,
+  VLDB 2024, Best Paper).** A single sketch answers `COUNT(*)` with equality predicates on *any subset*
+  of attributes, chosen at query time, over a fast multi-attribute stream. It keeps one Count-Min-like
+  `d × w` matrix per attribute, but each cell also stores a **bottom-`B` min-wise sample** of the
+  record-ids that hashed there (the `B` smallest values of a record-id hash) plus the count. Inserting
+  hashes each attribute value into its matrix and offers the record-id hash to every touched cell's
+  sample; a query gathers the `p·d` cells for its `p` predicates, **intersects** their record-id
+  samples (a record satisfying all predicates hashes into all of them), and estimates `f̂(q) = (n_max/B)
+  · |S∩|` (Eq. 4), correcting the `B/n_max` sampling rate. `new`, `insert`, `query`. 6 tests (param
+  validation; single predicate within 20%; two predicates within 30%; three predicates; impossible
+  combination → near-0; empty/out-of-range → 0) + doctest. Algorithm 1 + estimator transcribed
+  faithfully; paper-verified. Complements `CocoSketch`/`UnivMon`.
+
 - **`universal::CocoSketch` — sketching for arbitrary partial-key queries (Zhang et al., SIGCOMM
   2021).** Network measurement wants flow sizes by *arbitrary* key fields (by source IP, by 5-tuple,
   by (src,dst)) from one sketch; CocoSketch casts this to subset-sum estimation. It keeps `d` arrays of
