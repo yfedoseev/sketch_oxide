@@ -26,6 +26,17 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`privacy::OlhFrequencyOracle` — Optimized Local Hashing ε-LDP frequency oracle (Wang et al.,
+  USENIX Security 2017).** Generalized Randomized Response reports into the full domain, so its
+  variance grows with domain size `d`. OLH first hashes each user's value into a small range of
+  `g = ⌊e^ε⌉ + 1` buckets with a privately-chosen random hash, then runs randomized response over
+  those `g` buckets only — making the variance `O(e^ε/(e^ε−1)²)·n`, independent of `d`. Each user
+  sends `(seed, bucket)`; the server counts the *support* of a value (`H_seed(a) = y`) and debiases
+  with `p* = e^ε/(e^ε+g−1)`, `q* = 1/g` for an unbiased `n̂_a`. Caller-supplied RNG (pass a CSPRNG in
+  production — both the coin and the hash seed must be unpredictable). 5 tests (param validation;
+  variance-optimal `g`; heavy value on a 1024-wide domain within 10%; absent value ≈ 0; frequency is
+  a fraction) + doctest. Complements `GrrFrequencyOracle` (which wins on small domains).
+
 - **`quantiles::PerKeyQuantiles` — quantile summaries per heavy-hitter key (SQUAD, 2023).** Monitoring
   often needs a quantile *per key* (p99 latency per endpoint, median size per flow). Tracking every
   key is infeasible, so SQUAD-style estimation keeps summaries only for the heavy hitters: a

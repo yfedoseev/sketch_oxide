@@ -26,6 +26,7 @@ pub mod dp_count_min;
 pub mod dp_quantile;
 pub mod ldp;
 pub mod mechanisms;
+pub mod olh;
 
 pub use accountant::{Accountant, PrivacyParams};
 pub use dp_continual::DpContinualCounter;
@@ -36,3 +37,4 @@ pub use mechanisms::{
     discrete_gaussian, discrete_laplace, gaussian_mechanism, gaussian_sigma, laplace_mechanism,
     randomized_response, randomized_response_truth_prob, secure_rng,
 };
+pub use olh::OlhFrequencyOracle;
