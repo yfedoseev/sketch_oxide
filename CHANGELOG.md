@@ -26,6 +26,20 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`quantiles::MomentsSketch` — mergeable quantiles from power moments via maximum entropy (Gan, Ding,
+  Tang, Sethi, Bailis & Zaharia, SIGMOD 2018).** Where most quantile sketches store sample-like
+  summaries, the Moments Sketch keeps only a few **power sums** `Σ xⁱ` (`i=0..k`) plus `min`/`max` — so
+  it is tiny, constant-size, and **trivially mergeable** (add the power sums), ideal as a pre-aggregated
+  column statistic. Quantiles are reconstructed at query time by fitting the **maximum-entropy density**
+  `q(m) ∝ exp(Σ λᵢ mⁱ)` on the domain mapped to `[−1,1]`, solving for the Lagrange multipliers by
+  damped **Newton** on the convex moment-matching objective (gradient = moment residual, Hessian =
+  moment covariance, integrals on a fixed grid), then inverting the fitted CDF. This is the
+  maximum-entropy query layer that the descriptive `statistics::MomentsSketch` documented as a
+  follow-up. `new(k)` (`k` in `2..=10`), `add`, `merge`, `quantile(φ)`, `count` / `min` / `max` /
+  `is_empty`. 7 tests (param validation; empty → none; **uniform quantiles near-linear**; **bell-shaped
+  median centred**; **merge is additive & queryable**; merge rejects mismatched `k`; constant stream) +
+  doctest. Phase-3 follow-up to the moments accumulator. Paper-verified.
+
 - **`frequency::CountMinLog` — Count-Min with approximate *logarithmic* counters (Pitel & Fouquier,
   2015).** Plain Count-Min spends a full word per counter though its error is dominated by hash
   collisions, not counter width. Count-Min-Log replaces each linear counter with a **Morris-style
