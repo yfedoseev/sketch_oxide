@@ -26,6 +26,22 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`frequency::DoubleAnonymousSketch` — top-K-*fair* global top-K across disjoint streams (Zhao, Han,
+  Zhong, Zhang, Yang & Cui, SIGMOD/PACMMOD 2023).** Merging per-site local top-Ks is biased: top-K
+  sketches over-estimate the items they select, so a genuinely hot item in a *light* stream can be
+  drowned out by inflated estimates from *heavy* streams and dropped from the global answer. The paper
+  formalises **top-K-fairness** and proves **double-anonymity** sufficient: keep the *top-K part*
+  (membership) and the *count part* (frequency) independent so the estimate is uncorrelated with
+  selection. This reference implements the **basic double-anonymous sketch** — every item is inserted
+  independently into a Space-Saving top-K part and an **unbiased Count-Mean** sketch (`counter − (N −
+  counter)/(w−1)`, averaged over rows); a query reports the top-K *set* from Space-Saving with each
+  frequency taken *only* from the count part. Sites `merge` by summing the linear count parts and
+  unioning candidates, giving a fair, unbiased global top-K. `new(width, depth, k, seed)`, `insert`,
+  `estimate`, `candidates`, `top_k(k)`, `merge`, `total`. 5 tests (param validation; **local top-K in
+  order**; **unbiased estimate accurate**; **fair global top-K keeps a hot item from a light stream**;
+  merge rejects incompatible) + doctest. The paper's *hot panning* and *early freezing* accuracy
+  optimisations are noted as extensions on this core. Phase-3 Group A item. Paper-verified.
+
 - **`streaming::PeriodicSketch` — top-K *periodic items* in data streams (Fan, Zhang, Yang et al., ICDE
   2022).** An item is periodic if it recurs at a roughly fixed interval (beaconing hosts, laundering
   patterns, habitual clicks); PeriodicSketch is the first one-pass `O(1)`-per-item structure for the
