@@ -5,7 +5,9 @@
 //! later waves) entropy, Lp norms, and correlation.
 
 mod ams;
+mod hll_joint;
 mod p_stable;
 
 pub use ams::AmsSketch;
+pub use hll_joint::HllJointEstimator;
 pub use p_stable::PStableLpSketch;

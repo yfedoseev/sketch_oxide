@@ -26,6 +26,16 @@ full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
 
+- **`statistics::HllJointEstimator` — set operations over two HyperLogLog sketches.** Because HLL
+  registers hold per-bucket maxima, the register-wise maximum of two sketches is exactly the HLL of
+  their **union**; inclusion–exclusion then yields the intersection and Jaccard:
+  `|A∩B| = |A| + |B| − |A∪B|`, `J = |A∩B| / |A∪B|`. All four cardinalities use the same
+  register-based estimator (bias-corrected harmonic mean + linear counting) so the arithmetic stays
+  coherent. `cardinality_a`/`cardinality_b`, `union`, `intersection`, `jaccard`. 6 tests
+  (half-overlap J≈1/3; disjoint; identical; subset; individual cardinalities; precision-mismatch
+  error) + doctest.
+
+
 - **`range_filters::RadixSpline` — single-pass learned index over sorted keys (aiDM @ SIGMOD 2020).**
   Approximates the CDF (`key → position`) of a sorted `u64` array so a lookup predicts a key's
   position within a guaranteed `max_error` and finishes with a bounded local search. Two parts built
