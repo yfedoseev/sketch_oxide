@@ -13,6 +13,7 @@
 //! # Available Algorithms
 //!
 //! - [`Iblt`] - Invertible Bloom Lookup Table (classic, fixed-rate) for set reconciliation
+//! - [`PinSketch`] - BCH-syndrome set reconciliation (minisketch / BIP-330), optimal sketch size
 //!
 //! # Theory
 //!
@@ -50,9 +51,11 @@
 //! ```
 
 mod iblt;
+mod pin_sketch;
 mod strata_estimator;
 
 pub use iblt::{Iblt, IbltStats};
+pub use pin_sketch::PinSketch;
 pub use strata_estimator::StrataEstimator;
 
 // Deprecated aliases kept for backwards compatibility with the pre-0.2.0 names.

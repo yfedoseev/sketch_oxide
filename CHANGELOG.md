@@ -11,6 +11,20 @@ Development toward holistic 2026 coverage. See the phased roadmap (internal) for
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
 ### Added
+
+- **`reconciliation::PinSketch` — BCH-syndrome set reconciliation (minisketch / BIP-330).** The
+  optimal-size set-reconciliation sketch (Eppstein et al., SIGCOMM 2011; the algorithm behind
+  Bitcoin's `minisketch` / Erlay): members are elements of `GF(2^field_bits)` and the sketch
+  stores their odd power sums in exactly `capacity` field elements. XOR-merging two sketches
+  yields a sketch of the **symmetric difference** (shared elements cancel); `decode` reconstructs
+  the differing elements via Berlekamp–Massey + Chien search and recovers them exactly when the
+  difference is `≤ capacity`. The field's irreducible polynomial is found automatically (Rabin's
+  test) for any `field_bits ∈ 2..=32`. Root finding is a Chien search (`O(2^field_bits)`), so
+  `field_bits ≤ 20` is recommended; large-field Berlekamp-trace factorization is a documented
+  follow-up. Over-capacity saturation is honestly documented as not always detectable — pair with
+  `StrataEstimator` to size `capacity`. 9 tests (incl. an exhaustive field-validity check across
+  bit widths) + doctest.
+
 - **`streaming::ForwardDecay` — exponential time-decay aggregation.** Forward decay (Cormode
   et al., ICDE 2009) measures item age forward from a landmark, so only running sums are kept
   and nothing is re-aged per query. Provides decayed count, decayed sum, and a
