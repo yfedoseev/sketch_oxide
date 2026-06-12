@@ -4,6 +4,7 @@ mod ada_sketch;
 mod adaptive_quotient_filter;
 mod agm_connectivity;
 mod aleph_filter;
+mod ams;
 mod apbf;
 mod arf;
 mod bbit_minhash;
@@ -29,6 +30,7 @@ mod cuckoo;
 mod cuckoo_heavy_keeper;
 mod cvm;
 mod ddsketch;
+mod density_sketch;
 mod deterministic_wave;
 mod distinct_sampling;
 mod diva;
@@ -60,6 +62,8 @@ mod hyperanf;
 mod hyperbitbit;
 mod hyperloglog;
 mod iblt;
+mod join_sketch;
+mod k_ary;
 mod kll;
 mod kmv;
 mod l0_sampler;
@@ -72,6 +76,8 @@ mod memento_filter;
 mod minhash;
 mod minhash_lsh;
 mod moments_sketch;
+mod moments_stats;
+mod morris;
 mod morton_filter;
 mod mv_sketch;
 mod nitrosketch;
@@ -79,6 +85,7 @@ mod odd_sketch;
 mod on_off_sketch;
 mod oph;
 mod otel_histogram;
+mod p_stable;
 mod per_flow_quantiles;
 mod per_key;
 mod periodic_sketch;
@@ -197,6 +204,13 @@ mod xor_filter;
 /// - **Arf / BloomRf / Rosetta / Proteus / DivaFilter**: Range membership filters
 /// - **Surf**: Succinct Range Filter (trie-based, no false negatives)
 /// - **PgmIndex / RadixSpline**: Learned indexes (rank / position estimation)
+///
+/// ### Statistics
+/// - **MomentsStatistics**: Online mean/variance/skewness/kurtosis
+/// - **AmsSketch / PStableLpSketch**: F2 / Lp-norm estimation
+/// - **KArySketch / JoinSketch**: Change detection & join-size estimation
+/// - **DensitySketch**: Streaming kernel density estimation
+/// - **MorrisCounter**: Probabilistic approximate counting
 ///
 /// ### Graph Sketches
 /// - **Triest / Mascot / ThinkD / Doulion / Fleet**: Streaming triangle counting
@@ -412,6 +426,15 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<minhash_lsh::MinHashLsh>()?;
     m.add_class::<simhash_lsh::SimHashLsh>()?;
     m.add_class::<lsh_ensemble::LshEnsemble>()?;
+
+    // Statistics
+    m.add_class::<ams::AmsSketch>()?;
+    m.add_class::<density_sketch::DensitySketch>()?;
+    m.add_class::<join_sketch::JoinSketch>()?;
+    m.add_class::<k_ary::KArySketch>()?;
+    m.add_class::<moments_stats::MomentsStatistics>()?;
+    m.add_class::<morris::MorrisCounter>()?;
+    m.add_class::<p_stable::PStableLpSketch>()?;
 
     // Sampling
     m.add_class::<reservoir::ReservoirSampling>()?;
