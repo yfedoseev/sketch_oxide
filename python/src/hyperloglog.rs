@@ -29,7 +29,7 @@ use crate::with_python_item;
 ///     - Use for ecosystem interoperability with Redis/Druid
 #[pyclass(module = "sketch_oxide")]
 pub struct HyperLogLog {
-    inner: RustHyperLogLog,
+    pub(crate) inner: RustHyperLogLog,
 }
 
 #[pymethods]

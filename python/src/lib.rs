@@ -72,6 +72,7 @@ mod gss;
 mod heavy_keeper;
 mod heavy_locker;
 mod hidden_sketch;
+mod hll_joint;
 mod hll_plus;
 mod hokusai;
 mod hyper_calm;
@@ -265,6 +266,7 @@ mod xor_filter;
 /// - **KArySketch / JoinSketch**: Change detection & join-size estimation
 /// - **DensitySketch**: Streaming kernel density estimation
 /// - **MorrisCounter**: Probabilistic approximate counting
+/// - **HllJointEstimator**: Union / intersection / Jaccard over two HyperLogLogs
 ///
 /// ### Graph Sketches
 /// - **Triest / Mascot / ThinkD / Doulion / Fleet**: Streaming triangle counting
@@ -489,6 +491,7 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<moments_stats::MomentsStatistics>()?;
     m.add_class::<morris::MorrisCounter>()?;
     m.add_class::<p_stable::PStableLpSketch>()?;
+    m.add_class::<hll_joint::HllJointEstimator>()?;
 
     // Matrix sketches
     m.add_class::<frequent_directions::FrequentDirections>()?;
