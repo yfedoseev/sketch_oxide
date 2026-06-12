@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 
 mod ada_sketch;
 mod adaptive_quotient_filter;
+mod agm_connectivity;
 mod aleph_filter;
 mod apbf;
 mod arf;
@@ -32,6 +33,7 @@ mod deterministic_wave;
 mod distinct_sampling;
 mod diva;
 mod double_anonymous;
+mod doulion;
 mod dyadic_count_sketch;
 mod ebpps;
 mod ecm_sketch;
@@ -40,18 +42,21 @@ mod exa_log_log;
 mod exponential_histogram;
 mod fcm_sketch;
 mod filtered_space_saving;
+mod fleet;
 mod fm_sketch;
 mod forward_decay;
 mod frequent;
 mod gk;
 mod grafite;
 mod grf;
+mod gss;
 mod heavy_keeper;
 mod heavy_locker;
 mod hidden_sketch;
 mod hll_plus;
 mod hokusai;
 mod hyper_calm;
+mod hyperanf;
 mod hyperbitbit;
 mod hyperloglog;
 mod iblt;
@@ -62,6 +67,7 @@ mod learned_bloom;
 mod linear_counting;
 mod lossy_counting;
 mod lsh_ensemble;
+mod mascot;
 mod memento_filter;
 mod minhash;
 mod minhash_lsh;
@@ -125,10 +131,13 @@ mod stratified_reservoir;
 mod super_min_hash;
 mod surf;
 mod taffy_cuckoo_filter;
+mod tcm;
 mod tdigest;
 mod telescoping_filter;
 mod theta;
+mod thinkd;
 mod tower_sketch;
+mod triest;
 mod udd_sketch;
 mod ultraloglog;
 mod unbiased_space_saving;
@@ -188,6 +197,12 @@ mod xor_filter;
 /// - **Arf / BloomRf / Rosetta / Proteus / DivaFilter**: Range membership filters
 /// - **Surf**: Succinct Range Filter (trie-based, no false negatives)
 /// - **PgmIndex / RadixSpline**: Learned indexes (rank / position estimation)
+///
+/// ### Graph Sketches
+/// - **Triest / Mascot / ThinkD / Doulion / Fleet**: Streaming triangle counting
+/// - **TcmSketch / GssSketch**: Graph-stream adjacency sketches (edge/degree queries)
+/// - **HyperAnf**: Approximate neighbourhood function / distance distribution
+/// - **AgmConnectivity**: Linear-sketch graph connectivity
 ///
 /// ### Set Reconciliation
 /// - **RatelessIBLT / RatelessIbltCoded**: Rateless invertible Bloom lookup tables
@@ -371,6 +386,17 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<range_reconcile::RangeReconciler>()?;
     m.add_class::<strata_estimator::StrataEstimator>()?;
     m.add_class::<rateless_iblt_coded::RatelessIbltCoded>()?;
+
+    // Graph sketches
+    m.add_class::<agm_connectivity::AgmConnectivity>()?;
+    m.add_class::<doulion::Doulion>()?;
+    m.add_class::<fleet::Fleet>()?;
+    m.add_class::<gss::GssSketch>()?;
+    m.add_class::<hyperanf::HyperAnf>()?;
+    m.add_class::<mascot::Mascot>()?;
+    m.add_class::<tcm::TcmSketch>()?;
+    m.add_class::<thinkd::ThinkD>()?;
+    m.add_class::<triest::Triest>()?;
 
     // Similarity estimation
     m.add_class::<minhash::MinHash>()?;
