@@ -1,7 +1,9 @@
 use pyo3::prelude::*;
 
+mod ada_sketch;
 mod adaptive_quotient_filter;
 mod aleph_filter;
+mod apbf;
 mod bbit_minhash;
 mod binary_fuse;
 mod blocked_bloom;
@@ -23,16 +25,19 @@ mod cuckoo;
 mod cuckoo_heavy_keeper;
 mod cvm;
 mod ddsketch;
+mod deterministic_wave;
 mod distinct_sampling;
 mod double_anonymous;
 mod dyadic_count_sketch;
 mod ebpps;
+mod ecm_sketch;
 mod elastic_sketch;
 mod exa_log_log;
 mod exponential_histogram;
 mod fcm_sketch;
 mod filtered_space_saving;
 mod fm_sketch;
+mod forward_decay;
 mod frequent;
 mod gk;
 mod grafite;
@@ -41,6 +46,8 @@ mod heavy_keeper;
 mod heavy_locker;
 mod hidden_sketch;
 mod hll_plus;
+mod hokusai;
+mod hyper_calm;
 mod hyperbitbit;
 mod hyperloglog;
 mod kll;
@@ -63,6 +70,9 @@ mod oph;
 mod otel_histogram;
 mod per_flow_quantiles;
 mod per_key;
+mod periodic_sketch;
+mod persistent_bloom;
+mod persistent_count_min;
 mod prefix_filter;
 mod priority_sampling;
 mod prob_min_hash;
@@ -84,8 +94,12 @@ mod simhash;
 mod simhash_lsh;
 mod sketch_polymer;
 mod sliding_hll;
+mod sliding_sketch;
 mod sliding_window;
+mod sliding_window_quantiles;
 mod sliding_window_sample;
+mod sliding_window_universal;
+mod smooth_histogram;
 mod space_saving;
 mod space_saving_pm;
 mod spline_sketch;
@@ -147,6 +161,13 @@ mod xor_filter;
 ///
 /// ### Streaming
 /// - **SlidingWindowCounter**: Time-bounded counting with O(log²N) space (Datar 2002)
+/// - **ExponentialHistogram / DeterministicWave**: Sliding-window bit/count estimation
+/// - **AdaSketch / Hokusai / SlidingSketch / EcmSketch**: Time-adaptive frequency sketches
+/// - **Apbf**: Age-partitioned Bloom filter (sliding-window membership)
+/// - **ForwardDecay / PolynomialForwardDecay**: Time-decayed aggregates
+/// - **HyperCalm / PeriodicSketch**: Periodic-batch / recurring-item detection
+/// - **PersistentBloomFilter / PersistentCountMin**: Time-range membership & frequency
+/// - **SlidingWindowQuantiles / SlidingWindowUniversal / SmoothHistogramSum**: Windowed quantiles, L2, and sums
 ///
 /// ### Similarity Estimation
 /// - **MinHash**: Jaccard similarity (Broder 1997, LSH, deduplication)
@@ -285,6 +306,21 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<sliding_window::SlidingWindowCounter>()?;
     m.add_class::<exponential_histogram::ExponentialHistogram>()?;
     m.add_class::<sliding_hll::SlidingHyperLogLog>()?;
+    m.add_class::<ada_sketch::AdaSketch>()?;
+    m.add_class::<apbf::Apbf>()?;
+    m.add_class::<deterministic_wave::DeterministicWave>()?;
+    m.add_class::<ecm_sketch::EcmSketch>()?;
+    m.add_class::<forward_decay::ForwardDecay>()?;
+    m.add_class::<forward_decay::PolynomialForwardDecay>()?;
+    m.add_class::<hokusai::Hokusai>()?;
+    m.add_class::<hyper_calm::HyperCalm>()?;
+    m.add_class::<periodic_sketch::PeriodicSketch>()?;
+    m.add_class::<persistent_bloom::PersistentBloomFilter>()?;
+    m.add_class::<persistent_count_min::PersistentCountMin>()?;
+    m.add_class::<sliding_sketch::SlidingSketch>()?;
+    m.add_class::<sliding_window_quantiles::SlidingWindowQuantiles>()?;
+    m.add_class::<sliding_window_universal::SlidingWindowUniversal>()?;
+    m.add_class::<smooth_histogram::SmoothHistogramSum>()?;
 
     // Range filters
     m.add_class::<grafite::Grafite>()?;

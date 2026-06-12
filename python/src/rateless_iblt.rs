@@ -152,10 +152,8 @@ impl RatelessIBLT {
             for (key, value) in diff.to_insert {
                 let key_bytes = PyBytes::new_bound(py, &key);
                 let value_bytes = PyBytes::new_bound(py, &value);
-                let tuple = pyo3::types::PyTuple::new_bound(
-                    py,
-                    &[key_bytes.as_any(), value_bytes.as_any()],
-                );
+                let tuple =
+                    pyo3::types::PyTuple::new_bound(py, [key_bytes.as_any(), value_bytes.as_any()]);
                 to_insert_list.append(tuple)?;
             }
             dict.set_item("to_insert", to_insert_list)?;
@@ -165,10 +163,8 @@ impl RatelessIBLT {
             for (key, value) in diff.to_remove {
                 let key_bytes = PyBytes::new_bound(py, &key);
                 let value_bytes = PyBytes::new_bound(py, &value);
-                let tuple = pyo3::types::PyTuple::new_bound(
-                    py,
-                    &[key_bytes.as_any(), value_bytes.as_any()],
-                );
+                let tuple =
+                    pyo3::types::PyTuple::new_bound(py, [key_bytes.as_any(), value_bytes.as_any()]);
                 to_remove_list.append(tuple)?;
             }
             dict.set_item("to_remove", to_remove_list)?;
