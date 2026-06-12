@@ -22,6 +22,7 @@ mod conservative_count_min;
 mod count_min;
 mod count_min_log;
 mod count_sketch;
+mod count_sketch_embedding;
 mod counting_bloom;
 mod counting_quotient_filter;
 mod cpc;
@@ -36,6 +37,7 @@ mod distinct_sampling;
 mod diva;
 mod double_anonymous;
 mod doulion;
+mod dump_snapshots_fd;
 mod dyadic_count_sketch;
 mod ebpps;
 mod ecm_sketch;
@@ -48,6 +50,7 @@ mod fleet;
 mod fm_sketch;
 mod forward_decay;
 mod frequent;
+mod frequent_directions;
 mod gk;
 mod grafite;
 mod grf;
@@ -62,6 +65,7 @@ mod hyperanf;
 mod hyperbitbit;
 mod hyperloglog;
 mod iblt;
+mod jl;
 mod join_sketch;
 mod k_ary;
 mod kll;
@@ -110,6 +114,7 @@ mod reservoir;
 mod reservoir_l;
 mod rhhh;
 mod ribbon;
+mod robust_frequent_directions;
 mod rosetta;
 mod salsa;
 mod scalable_bloom;
@@ -118,6 +123,7 @@ mod signed_update_sampler;
 mod simhash;
 mod simhash_lsh;
 mod sketch_polymer;
+mod sliding_frequent_directions;
 mod sliding_hll;
 mod sliding_sketch;
 mod sliding_window;
@@ -204,6 +210,11 @@ mod xor_filter;
 /// - **Arf / BloomRf / Rosetta / Proteus / DivaFilter**: Range membership filters
 /// - **Surf**: Succinct Range Filter (trie-based, no false negatives)
 /// - **PgmIndex / RadixSpline**: Learned indexes (rank / position estimation)
+///
+/// ### Matrix Sketches
+/// - **FrequentDirections / RobustFrequentDirections**: Deterministic covariance sketching
+/// - **SlidingFrequentDirections / DumpSnapshotsFd**: Sliding-window covariance sketching
+/// - **JohnsonLindenstrauss / CountSketchEmbedding**: Random projections / subspace embeddings
 ///
 /// ### Statistics
 /// - **MomentsStatistics**: Online mean/variance/skewness/kurtosis
@@ -435,6 +446,14 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<moments_stats::MomentsStatistics>()?;
     m.add_class::<morris::MorrisCounter>()?;
     m.add_class::<p_stable::PStableLpSketch>()?;
+
+    // Matrix sketches
+    m.add_class::<frequent_directions::FrequentDirections>()?;
+    m.add_class::<robust_frequent_directions::RobustFrequentDirections>()?;
+    m.add_class::<sliding_frequent_directions::SlidingFrequentDirections>()?;
+    m.add_class::<dump_snapshots_fd::DumpSnapshotsFd>()?;
+    m.add_class::<jl::JohnsonLindenstrauss>()?;
+    m.add_class::<count_sketch_embedding::CountSketchEmbedding>()?;
 
     // Sampling
     m.add_class::<reservoir::ReservoirSampling>()?;
