@@ -47,6 +47,7 @@ mod elastic_sketch;
 mod exa_log_log;
 mod exponential_histogram;
 mod fcm_sketch;
+mod feature_hashing;
 mod filtered_space_saving;
 mod fleet;
 mod fm_sketch;
@@ -74,6 +75,8 @@ mod kll;
 mod kmv;
 mod l0_sampler;
 mod learned_bloom;
+mod learned_count_min;
+mod learned_frequent;
 mod linear_counting;
 mod lossy_counting;
 mod lsh_ensemble;
@@ -100,6 +103,7 @@ mod persistent_bloom;
 mod persistent_count_min;
 mod pgm_index;
 mod pin_sketch;
+mod precomputed_oracle;
 mod prefix_filter;
 mod priority_sampling;
 mod prob_min_hash;
@@ -120,12 +124,14 @@ mod ribbon;
 mod robust_frequent_directions;
 mod rosetta;
 mod salsa;
+mod sandwiched_bloom;
 mod scalable_bloom;
 mod set_sketch;
 mod signed_update_sampler;
 mod simhash;
 mod simhash_lsh;
 mod sketch_polymer;
+mod sketched_sgd;
 mod sliding_frequent_directions;
 mod sliding_hll;
 mod sliding_sketch;
@@ -213,6 +219,13 @@ mod xor_filter;
 /// - **Arf / BloomRf / Rosetta / Proteus / DivaFilter**: Range membership filters
 /// - **Surf**: Succinct Range Filter (trie-based, no false negatives)
 /// - **PgmIndex / RadixSpline**: Learned indexes (rank / position estimation)
+///
+/// ### Learned Sketches
+/// - **LearnedBloomFilter / SandwichedLearnedBloom**: Oracle-augmented membership
+/// - **LearnedCountMin / LearnedFrequent**: Oracle-augmented frequency & heavy hitters
+/// - **PrecomputedOracle**: Score oracle plugged into the learned sketches
+/// - **FeatureHasher**: Hashing-trick feature vectorization
+/// - **GradientSketch**: Communication-efficient sketched SGD
 ///
 /// ### Network Telemetry
 /// - **BeauCoup**: Coupon-based super-spreader / per-key distinct detection
@@ -486,6 +499,14 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Network telemetry
     m.add_class::<beaucoup::BeauCoup>()?;
+
+    // Learned sketches
+    m.add_class::<precomputed_oracle::PrecomputedOracle>()?;
+    m.add_class::<feature_hashing::FeatureHasher>()?;
+    m.add_class::<sketched_sgd::GradientSketch>()?;
+    m.add_class::<learned_count_min::LearnedCountMin>()?;
+    m.add_class::<learned_frequent::LearnedFrequent>()?;
+    m.add_class::<sandwiched_bloom::SandwichedLearnedBloom>()?;
 
     Ok(())
 }
