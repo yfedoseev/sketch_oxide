@@ -23,8 +23,10 @@ mod cuckoo;
 mod cuckoo_heavy_keeper;
 mod cvm;
 mod ddsketch;
+mod distinct_sampling;
 mod double_anonymous;
 mod dyadic_count_sketch;
+mod ebpps;
 mod elastic_sketch;
 mod exa_log_log;
 mod exponential_histogram;
@@ -43,6 +45,7 @@ mod hyperbitbit;
 mod hyperloglog;
 mod kll;
 mod kmv;
+mod l0_sampler;
 mod learned_bloom;
 mod linear_counting;
 mod lossy_counting;
@@ -61,6 +64,7 @@ mod otel_histogram;
 mod per_flow_quantiles;
 mod per_key;
 mod prefix_filter;
+mod priority_sampling;
 mod prob_min_hash;
 mod q_digest;
 mod qsketch;
@@ -69,16 +73,19 @@ mod recordinality;
 mod removable_sketch;
 mod req;
 mod reservoir;
+mod reservoir_l;
 mod rhhh;
 mod ribbon;
 mod salsa;
 mod scalable_bloom;
 mod set_sketch;
+mod signed_update_sampler;
 mod simhash;
 mod simhash_lsh;
 mod sketch_polymer;
 mod sliding_hll;
 mod sliding_window;
+mod sliding_window_sample;
 mod space_saving;
 mod space_saving_pm;
 mod spline_sketch;
@@ -87,6 +94,7 @@ mod stable_bloom;
 mod stable_sketch;
 mod stacked_filter;
 mod sticky_sampling;
+mod stratified_reservoir;
 mod super_min_hash;
 mod taffy_cuckoo_filter;
 mod tdigest;
@@ -102,6 +110,7 @@ mod varopt;
 mod vector_quotient_filter;
 mod waving_sketch;
 mod weighted_minhash;
+mod weighted_reservoir;
 mod xor_filter;
 
 /// sketch_oxide: State-of-the-Art DataSketches Library (2025)
@@ -145,7 +154,16 @@ mod xor_filter;
 ///
 /// ### Sampling
 /// - **ReservoirSampling**: Uniform random sampling (Vitter 1985)
+/// - **ReservoirSamplingL**: Skip-based uniform reservoir (Li's Algorithm L)
 /// - **VarOptSampling**: Variance-optimal weighted sampling (Cohen 2014)
+/// - **WeightedReservoirSampling**: A-Res weighted sampling (Efraimidis–Spirakis)
+/// - **PrioritySampling**: Weighted subset-sum estimation (Duffield 2007)
+/// - **EbppsSketch**: Exact bounded PPS weighted sampling
+/// - **DistinctSampling**: Uniform sample over distinct items (L0 sampling)
+/// - **SlidingWindowSample**: Uniform sample over the most-recent window
+/// - **StratifiedReservoir**: Independent per-stratum reservoirs
+/// - **L0Sampler**: L0 sampling over dynamic (insert/delete) streams
+/// - **SignedUpdateSampler**: Signed-update weighted subset-sum estimation
 ///
 /// ## Quick Start
 ///
@@ -294,6 +312,15 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Sampling
     m.add_class::<reservoir::ReservoirSampling>()?;
     m.add_class::<varopt::VarOptSampling>()?;
+    m.add_class::<reservoir_l::ReservoirSamplingL>()?;
+    m.add_class::<weighted_reservoir::WeightedReservoirSampling>()?;
+    m.add_class::<priority_sampling::PrioritySampling>()?;
+    m.add_class::<ebpps::EbppsSketch>()?;
+    m.add_class::<distinct_sampling::DistinctSampling>()?;
+    m.add_class::<sliding_window_sample::SlidingWindowSample>()?;
+    m.add_class::<stratified_reservoir::StratifiedReservoir>()?;
+    m.add_class::<l0_sampler::L0Sampler>()?;
+    m.add_class::<signed_update_sampler::SignedUpdateSampler>()?;
 
     // Universal monitoring
     m.add_class::<univmon::UnivMon>()?;
