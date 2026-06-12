@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use pyo3::wrap_pyfunction;
 
 mod ada_sketch;
 mod adaptive_quotient_filter;
@@ -39,6 +40,16 @@ mod distinct_sampling;
 mod diva;
 mod double_anonymous;
 mod doulion;
+mod dp_accountant;
+mod dp_cms;
+mod dp_continual;
+mod dp_count_min;
+mod dp_grr;
+mod dp_mechanisms;
+mod dp_misra_gries;
+mod dp_olh;
+mod dp_quantile;
+mod dpsw_sketch;
 mod dump_snapshots_fd;
 mod dyadic_count_sketch;
 mod ebpps;
@@ -101,6 +112,7 @@ mod per_key;
 mod periodic_sketch;
 mod persistent_bloom;
 mod persistent_count_min;
+mod person_level_dp;
 mod pgm_index;
 mod pin_sketch;
 mod precomputed_oracle;
@@ -219,6 +231,13 @@ mod xor_filter;
 /// - **Arf / BloomRf / Rosetta / Proteus / DivaFilter**: Range membership filters
 /// - **Surf**: Succinct Range Filter (trie-based, no false negatives)
 /// - **PgmIndex / RadixSpline**: Learned indexes (rank / position estimation)
+///
+/// ### Differential Privacy
+/// - **PrivacyParams / Accountant**: (ε, δ) budget tracking & composition
+/// - **mechanisms**: discrete Laplace/Gaussian, randomized response (module functions)
+/// - **DpCountMin / DpMisraGries / DpQuantile / DpContinualCounter / DpswSketch**: DP sketches
+/// - **PersonLevelDp**: User-level DP histograms
+/// - **CountMeanSketch / GrrFrequencyOracle / OlhFrequencyOracle**: Local-DP frequency oracles
 ///
 /// ### Learned Sketches
 /// - **LearnedBloomFilter / SandwichedLearnedBloom**: Oracle-augmented membership
@@ -507,6 +526,30 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<learned_count_min::LearnedCountMin>()?;
     m.add_class::<learned_frequent::LearnedFrequent>()?;
     m.add_class::<sandwiched_bloom::SandwichedLearnedBloom>()?;
+
+    // Differential privacy
+    m.add_class::<dp_accountant::PrivacyParams>()?;
+    m.add_class::<dp_accountant::Accountant>()?;
+    m.add_class::<dp_cms::CountMeanSketch>()?;
+    m.add_class::<dp_grr::GrrFrequencyOracle>()?;
+    m.add_class::<dp_olh::OlhFrequencyOracle>()?;
+    m.add_class::<dp_continual::DpContinualCounter>()?;
+    m.add_class::<dp_count_min::DpCountMin>()?;
+    m.add_class::<dp_count_min::PrivateCountMin>()?;
+    m.add_class::<dp_misra_gries::DpMisraGries>()?;
+    m.add_class::<dp_quantile::DpQuantile>()?;
+    m.add_class::<dpsw_sketch::DpswSketch>()?;
+    m.add_class::<person_level_dp::PersonLevelDp>()?;
+    m.add_function(wrap_pyfunction!(dp_mechanisms::discrete_laplace, m)?)?;
+    m.add_function(wrap_pyfunction!(dp_mechanisms::laplace_mechanism, m)?)?;
+    m.add_function(wrap_pyfunction!(dp_mechanisms::discrete_gaussian, m)?)?;
+    m.add_function(wrap_pyfunction!(dp_mechanisms::gaussian_mechanism, m)?)?;
+    m.add_function(wrap_pyfunction!(dp_mechanisms::gaussian_sigma, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        dp_mechanisms::randomized_response_truth_prob,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(dp_mechanisms::randomized_response, m)?)?;
 
     Ok(())
 }
