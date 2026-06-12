@@ -1,15 +1,20 @@
 use pyo3::prelude::*;
 
+mod adaptive_quotient_filter;
+mod aleph_filter;
 mod binary_fuse;
 mod blocked_bloom;
 mod bloom;
+mod bloomier_filter;
 mod bubble_sketch;
+mod burr;
 mod common;
 mod conservative_count_min;
 mod count_min;
 mod count_min_log;
 mod count_sketch;
 mod counting_bloom;
+mod counting_quotient_filter;
 mod cpc;
 mod cuckoo;
 mod cuckoo_heavy_keeper;
@@ -38,9 +43,11 @@ mod linear_counting;
 mod lossy_counting;
 mod memento_filter;
 mod minhash;
+mod morton_filter;
 mod mv_sketch;
 mod nitrosketch;
 mod on_off_sketch;
+mod prefix_filter;
 mod qsketch;
 mod rateless_iblt;
 mod recordinality;
@@ -50,6 +57,7 @@ mod reservoir;
 mod rhhh;
 mod ribbon;
 mod salsa;
+mod scalable_bloom;
 mod set_sketch;
 mod simhash;
 mod sliding_hll;
@@ -60,8 +68,11 @@ mod spline_sketch;
 mod spread_sketch;
 mod stable_bloom;
 mod stable_sketch;
+mod stacked_filter;
 mod sticky_sampling;
+mod taffy_cuckoo_filter;
 mod tdigest;
+mod telescoping_filter;
 mod theta;
 mod tower_sketch;
 mod ultraloglog;
@@ -69,7 +80,9 @@ mod unbiased_space_saving;
 mod univmon;
 mod vacuum_filter;
 mod varopt;
+mod vector_quotient_filter;
 mod waving_sketch;
+mod xor_filter;
 
 /// sketch_oxide: State-of-the-Art DataSketches Library (2025)
 ///
@@ -169,6 +182,19 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stable_bloom::StableBloomFilter>()?;
     m.add_class::<vacuum_filter::VacuumFilter>()?;
     m.add_class::<learned_bloom::LearnedBloomFilter>()?;
+    m.add_class::<scalable_bloom::ScalableBloomFilter>()?;
+    m.add_class::<prefix_filter::PrefixFilter>()?;
+    m.add_class::<aleph_filter::AlephFilter>()?;
+    m.add_class::<counting_quotient_filter::CountingQuotientFilter>()?;
+    m.add_class::<vector_quotient_filter::VectorQuotientFilter>()?;
+    m.add_class::<adaptive_quotient_filter::AdaptiveQuotientFilter>()?;
+    m.add_class::<telescoping_filter::TelescopingFilter>()?;
+    m.add_class::<morton_filter::MortonFilter>()?;
+    m.add_class::<taffy_cuckoo_filter::TaffyCuckooFilter>()?;
+    m.add_class::<burr::BurrFilter>()?;
+    m.add_class::<stacked_filter::StackedFilter>()?;
+    m.add_class::<xor_filter::XorFilter>()?;
+    m.add_class::<bloomier_filter::BloomierFilter>()?;
 
     // Quantile estimation
     m.add_class::<ddsketch::DDSketch>()?;
