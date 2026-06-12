@@ -17,6 +17,7 @@ mod bubble_sketch;
 mod burr;
 mod c_minhash;
 mod c_oph;
+mod coco_sketch;
 mod common;
 mod conservative_count_min;
 mod count_min;
@@ -86,6 +87,7 @@ mod morton_filter;
 mod mv_sketch;
 mod nitrosketch;
 mod odd_sketch;
+mod omni_sketch;
 mod on_off_sketch;
 mod oph;
 mod otel_histogram;
@@ -210,6 +212,11 @@ mod xor_filter;
 /// - **Arf / BloomRf / Rosetta / Proteus / DivaFilter**: Range membership filters
 /// - **Surf**: Succinct Range Filter (trie-based, no false negatives)
 /// - **PgmIndex / RadixSpline**: Learned indexes (rank / position estimation)
+///
+/// ### Universal Monitoring
+/// - **UnivMon**: One sketch, many statistics (universal streaming)
+/// - **CocoSketch**: Compressed-counting per-flow size estimation
+/// - **OmniSketch**: Multi-attribute conjunctive cardinality queries
 ///
 /// ### Matrix Sketches
 /// - **FrequentDirections / RobustFrequentDirections**: Deterministic covariance sketching
@@ -470,6 +477,8 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Universal monitoring
     m.add_class::<univmon::UnivMon>()?;
+    m.add_class::<coco_sketch::CocoSketch>()?;
+    m.add_class::<omni_sketch::OmniSketch>()?;
 
     Ok(())
 }

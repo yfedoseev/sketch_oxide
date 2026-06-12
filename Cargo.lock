@@ -1127,6 +1127,7 @@ dependencies = [
  "numpy",
  "pyo3",
  "pyo3-build-config",
+ "rand 0.9.2",
  "sketch_oxide",
  "twox-hash 2.1.2",
 ]

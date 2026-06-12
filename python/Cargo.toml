@@ -12,6 +12,7 @@ pyo3.workspace = true
 sketch_oxide = { path = "../sketch_oxide" }
 numpy.workspace = true  # For NumPy integration
 twox-hash.workspace = true  # For hashing in SlidingHyperLogLog
+rand.workspace = true  # For caller-seeded RNGs (e.g. CocoSketch)
 
 [build-dependencies]
 pyo3-build-config.workspace = true
