@@ -8,6 +8,7 @@ mod ams;
 mod apbf;
 mod arf;
 mod bbit_minhash;
+mod beaucoup;
 mod binary_fuse;
 mod blocked_bloom;
 mod bloom;
@@ -212,6 +213,9 @@ mod xor_filter;
 /// - **Arf / BloomRf / Rosetta / Proteus / DivaFilter**: Range membership filters
 /// - **Surf**: Succinct Range Filter (trie-based, no false negatives)
 /// - **PgmIndex / RadixSpline**: Learned indexes (rank / position estimation)
+///
+/// ### Network Telemetry
+/// - **BeauCoup**: Coupon-based super-spreader / per-key distinct detection
 ///
 /// ### Universal Monitoring
 /// - **UnivMon**: One sketch, many statistics (universal streaming)
@@ -479,6 +483,9 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<univmon::UnivMon>()?;
     m.add_class::<coco_sketch::CocoSketch>()?;
     m.add_class::<omni_sketch::OmniSketch>()?;
+
+    // Network telemetry
+    m.add_class::<beaucoup::BeauCoup>()?;
 
     Ok(())
 }
