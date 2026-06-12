@@ -21,6 +21,7 @@ mod count_sketch;
 mod counting_bloom;
 mod counting_quotient_filter;
 mod cpc;
+mod cpisync;
 mod cuckoo;
 mod cuckoo_heavy_keeper;
 mod cvm;
@@ -50,6 +51,7 @@ mod hokusai;
 mod hyper_calm;
 mod hyperbitbit;
 mod hyperloglog;
+mod iblt;
 mod kll;
 mod kmv;
 mod l0_sampler;
@@ -73,12 +75,15 @@ mod per_key;
 mod periodic_sketch;
 mod persistent_bloom;
 mod persistent_count_min;
+mod pin_sketch;
 mod prefix_filter;
 mod priority_sampling;
 mod prob_min_hash;
 mod q_digest;
 mod qsketch;
+mod range_reconcile;
 mod rateless_iblt;
+mod rateless_iblt_coded;
 mod recordinality;
 mod removable_sketch;
 mod req;
@@ -108,6 +113,7 @@ mod stable_bloom;
 mod stable_sketch;
 mod stacked_filter;
 mod sticky_sampling;
+mod strata_estimator;
 mod stratified_reservoir;
 mod super_min_hash;
 mod taffy_cuckoo_filter;
@@ -168,6 +174,14 @@ mod xor_filter;
 /// - **HyperCalm / PeriodicSketch**: Periodic-batch / recurring-item detection
 /// - **PersistentBloomFilter / PersistentCountMin**: Time-range membership & frequency
 /// - **SlidingWindowQuantiles / SlidingWindowUniversal / SmoothHistogramSum**: Windowed quantiles, L2, and sums
+///
+/// ### Set Reconciliation
+/// - **RatelessIBLT / RatelessIbltCoded**: Rateless invertible Bloom lookup tables
+/// - **Iblt**: Invertible Bloom lookup table (key/value symmetric difference)
+/// - **CpiSync**: Characteristic-polynomial interpolation reconciliation
+/// - **PinSketch**: BCH-code-based set reconciliation
+/// - **RangeReconciler**: Recursive range-based reconciliation
+/// - **StrataEstimator**: Set-difference size estimation
 ///
 /// ### Similarity Estimation
 /// - **MinHash**: Jaccard similarity (Broder 1997, LSH, deduplication)
@@ -329,6 +343,12 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Set reconciliation
     m.add_class::<rateless_iblt::RatelessIBLT>()?;
+    m.add_class::<iblt::Iblt>()?;
+    m.add_class::<cpisync::CpiSync>()?;
+    m.add_class::<pin_sketch::PinSketch>()?;
+    m.add_class::<range_reconcile::RangeReconciler>()?;
+    m.add_class::<strata_estimator::StrataEstimator>()?;
+    m.add_class::<rateless_iblt_coded::RatelessIbltCoded>()?;
 
     // Similarity estimation
     m.add_class::<minhash::MinHash>()?;
