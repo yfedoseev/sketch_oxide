@@ -4,10 +4,12 @@ mod ada_sketch;
 mod adaptive_quotient_filter;
 mod aleph_filter;
 mod apbf;
+mod arf;
 mod bbit_minhash;
 mod binary_fuse;
 mod blocked_bloom;
 mod bloom;
+mod bloom_rf;
 mod bloomier_filter;
 mod bubble_sketch;
 mod burr;
@@ -28,6 +30,7 @@ mod cvm;
 mod ddsketch;
 mod deterministic_wave;
 mod distinct_sampling;
+mod diva;
 mod double_anonymous;
 mod dyadic_count_sketch;
 mod ebpps;
@@ -75,12 +78,15 @@ mod per_key;
 mod periodic_sketch;
 mod persistent_bloom;
 mod persistent_count_min;
+mod pgm_index;
 mod pin_sketch;
 mod prefix_filter;
 mod priority_sampling;
 mod prob_min_hash;
+mod proteus;
 mod q_digest;
 mod qsketch;
+mod radix_spline;
 mod range_reconcile;
 mod rateless_iblt;
 mod rateless_iblt_coded;
@@ -91,6 +97,7 @@ mod reservoir;
 mod reservoir_l;
 mod rhhh;
 mod ribbon;
+mod rosetta;
 mod salsa;
 mod scalable_bloom;
 mod set_sketch;
@@ -116,6 +123,7 @@ mod sticky_sampling;
 mod strata_estimator;
 mod stratified_reservoir;
 mod super_min_hash;
+mod surf;
 mod taffy_cuckoo_filter;
 mod tdigest;
 mod telescoping_filter;
@@ -174,6 +182,12 @@ mod xor_filter;
 /// - **HyperCalm / PeriodicSketch**: Periodic-batch / recurring-item detection
 /// - **PersistentBloomFilter / PersistentCountMin**: Time-range membership & frequency
 /// - **SlidingWindowQuantiles / SlidingWindowUniversal / SmoothHistogramSum**: Windowed quantiles, L2, and sums
+///
+/// ### Range Filters & Learned Indexes
+/// - **Grafite / GRF / MementoFilter**: Range-emptiness filters with error bounds
+/// - **Arf / BloomRf / Rosetta / Proteus / DivaFilter**: Range membership filters
+/// - **Surf**: Succinct Range Filter (trie-based, no false negatives)
+/// - **PgmIndex / RadixSpline**: Learned indexes (rank / position estimation)
 ///
 /// ### Set Reconciliation
 /// - **RatelessIBLT / RatelessIbltCoded**: Rateless invertible Bloom lookup tables
@@ -340,6 +354,14 @@ fn sketch_oxide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<grafite::Grafite>()?;
     m.add_class::<grf::GRF>()?;
     m.add_class::<memento_filter::MementoFilter>()?;
+    m.add_class::<arf::Arf>()?;
+    m.add_class::<bloom_rf::BloomRf>()?;
+    m.add_class::<diva::DivaFilter>()?;
+    m.add_class::<pgm_index::PgmIndex>()?;
+    m.add_class::<proteus::Proteus>()?;
+    m.add_class::<radix_spline::RadixSpline>()?;
+    m.add_class::<rosetta::Rosetta>()?;
+    m.add_class::<surf::Surf>()?;
 
     // Set reconciliation
     m.add_class::<rateless_iblt::RatelessIBLT>()?;
