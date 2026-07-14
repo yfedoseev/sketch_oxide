@@ -115,7 +115,7 @@ impl ReqSketch {
             .filter_map(|&q| self.inner.quantile(q))
             .collect();
 
-        Ok(PyArray1::from_vec_bound(py, results))
+        Ok(PyArray1::from_vec(py, results))
     }
 
     /// Get the total count of values added

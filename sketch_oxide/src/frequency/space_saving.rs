@@ -533,8 +533,14 @@ impl<T: Hash + Eq + Clone + 'static> Sketch for SpaceSaving<T> {
     }
 
     fn serialize(&self) -> Vec<u8> {
-        // This is a simplified serialization that works for basic types
-        // For complex types T, serde feature should be used
+        // NOTE: the `Sketch::serialize` signature is infallible (`-> Vec<u8>`),
+        // but `SpaceSaving<T>` cannot encode arbitrary generic `T` counters
+        // without a byte-encoding bound on `T`. Rather than silently drop the
+        // counters (which would produce bytes that fail to round-trip), we emit
+        // a header whose `num_items` field records the true count; `deserialize`
+        // then returns an explicit `Unsupported` error when counters are
+        // present. Full counter serialization arrives with the canonical
+        // item-encoding trait (see docs/research/fable5 B1/B2).
         let mut bytes = Vec::new();
 
         // Header: capacity (8 bytes) + stream_length (8 bytes) + epsilon (8 bytes) + num_items (8 bytes)
@@ -542,10 +548,6 @@ impl<T: Hash + Eq + Clone + 'static> Sketch for SpaceSaving<T> {
         bytes.extend_from_slice(&self.stream_length.to_le_bytes());
         bytes.extend_from_slice(&self.epsilon.to_le_bytes());
         bytes.extend_from_slice(&self.items.len().to_le_bytes());
-
-        // Note: Full item serialization requires T to implement serialization
-        // This basic implementation only works when items HashMap is empty
-        // For production use with arbitrary T, use serde feature
 
         bytes
     }
@@ -586,9 +588,9 @@ impl<T: Hash + Eq + Clone + 'static> Sketch for SpaceSaving<T> {
         );
 
         if num_items > 0 {
-            return Err(SketchError::DeserializationError(
-                "generic deserialization of items not supported; use serde feature".to_string(),
-            ));
+            return Err(SketchError::Unsupported {
+                op: "SpaceSaving::deserialize with populated counters (generic T not yet byte-encodable)",
+            });
         }
 
         Ok(Self {

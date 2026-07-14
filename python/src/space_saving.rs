@@ -131,14 +131,17 @@ impl SpaceSaving {
     ///     >>> heavy = ss.heavy_hitters(0.05)
     ///     >>> for item, lower, upper in heavy:
     ///     ...     print(f"{item}: [{lower}, {upper}]")
-    fn heavy_hitters(&self, threshold: f64) -> PyResult<Vec<(PyObject, u64, u64)>> {
+    fn heavy_hitters(
+        &self,
+        py: Python<'_>,
+        threshold: f64,
+    ) -> PyResult<Vec<(Py<PyAny>, u64, u64)>> {
         let results = self.inner.heavy_hitters(threshold);
-        let py = unsafe { pyo3::Python::assume_gil_acquired() };
 
         Ok(results
             .into_iter()
             .map(|(key, lower, upper)| {
-                let py_bytes = PyBytes::new_bound(py, &key);
+                let py_bytes = PyBytes::new(py, &key);
                 (py_bytes.into(), lower, upper)
             })
             .collect())
@@ -161,14 +164,13 @@ impl SpaceSaving {
     ///     ...         ss.update(str(i))
     ///     >>> top10 = ss.top_k(10)
     ///     >>> assert len(top10) <= 10
-    fn top_k(&self, k: usize) -> PyResult<Vec<(PyObject, u64, u64)>> {
+    fn top_k(&self, py: Python<'_>, k: usize) -> PyResult<Vec<(Py<PyAny>, u64, u64)>> {
         let results = self.inner.top_k(k);
-        let py = unsafe { pyo3::Python::assume_gil_acquired() };
 
         Ok(results
             .into_iter()
             .map(|(key, lower, upper)| {
-                let py_bytes = PyBytes::new_bound(py, &key);
+                let py_bytes = PyBytes::new(py, &key);
                 (py_bytes.into(), lower, upper)
             })
             .collect())
@@ -198,9 +200,8 @@ impl SpaceSaving {
     ///
     /// Returns:
     ///     bytes: Serialized sketch data
-    fn serialize(&self) -> PyObject {
-        let py = unsafe { pyo3::Python::assume_gil_acquired() };
-        PyBytes::new_bound(py, &self.inner.serialize()).into()
+    fn serialize(&self, py: Python<'_>) -> Py<PyAny> {
+        PyBytes::new(py, &self.inner.serialize()).into()
     }
 
     /// Deserialize a sketch from bytes
@@ -215,7 +216,7 @@ impl SpaceSaving {
     ///     ValueError: If data is invalid
     #[staticmethod]
     fn deserialize(data: &Bound<'_, PyAny>) -> PyResult<SpaceSaving> {
-        let bytes = if let Ok(b) = data.downcast::<PyBytes>() {
+        let bytes = if let Ok(b) = data.cast::<PyBytes>() {
             b.as_bytes().to_vec()
         } else {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -308,7 +309,7 @@ impl SpaceSaving {
             Ok(val.to_le_bytes().to_vec())
         } else if let Ok(val) = item.extract::<String>() {
             Ok(val.into_bytes())
-        } else if let Ok(b) = item.downcast::<PyBytes>() {
+        } else if let Ok(b) = item.cast::<PyBytes>() {
             Ok(b.as_bytes().to_vec())
         } else {
             Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(

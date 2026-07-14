@@ -47,7 +47,7 @@
 //! - Paper: "DDSketch: A Fast and Fully-Mergeable Quantile Sketch with Relative-Error Guarantees" (VLDB 2019)
 //! - Datadog blog: https://www.datadoghq.com/blog/engineering/computing-accurate-percentiles-with-ddsketch/
 
-use crate::common::{Mergeable, Sketch, SketchError};
+use crate::common::{Mergeable, ReadCursor, Sketch, SketchError};
 use std::collections::HashMap;
 
 /// Store for binned values
@@ -471,55 +471,41 @@ impl Sketch for DDSketch {
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self, SketchError> {
-        if bytes.len() < 104 {
-            return Err(SketchError::DeserializationError(
-                "Insufficient data for DDSketch header".to_string(),
-            ));
-        }
+        // Panic-free bounds-checked parsing: `*_bins_len` are attacker-controlled
+        // and the old code sliced `bytes[pos..pos + n]` in a loop without bounds
+        // checks — a remote-DoS panic on truncated input across the FFI boundary.
+        let mut cur = ReadCursor::new(bytes);
 
-        let alpha = f64::from_le_bytes(bytes[0..8].try_into().unwrap());
-        let gamma = f64::from_le_bytes(bytes[8..16].try_into().unwrap());
-        let gamma_ln = f64::from_le_bytes(bytes[16..24].try_into().unwrap());
-        let offset = f64::from_le_bytes(bytes[24..32].try_into().unwrap());
-        let zero_count = u64::from_le_bytes(bytes[32..40].try_into().unwrap());
-
-        let mut pos = 40;
+        let alpha = cur.read_f64_le()?;
+        let gamma = cur.read_f64_le()?;
+        let gamma_ln = cur.read_f64_le()?;
+        let offset = cur.read_f64_le()?;
+        let zero_count = cur.read_u64_le()?;
 
         // Read positive store
-        let pos_count = u64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap());
-        pos += 8;
-        let pos_min = f64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap());
-        pos += 8;
-        let pos_max = f64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap());
-        pos += 8;
-        let pos_bins_len = u64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap()) as usize;
-        pos += 8;
+        let pos_count = cur.read_u64_le()?;
+        let pos_min = cur.read_f64_le()?;
+        let pos_max = cur.read_f64_le()?;
+        // Each bin is 4 (index) + 8 (count) = 12 bytes; validated against the tail.
+        let pos_bins_len = cur.read_len_prefixed_count(12)?;
 
-        let mut pos_bins = HashMap::new();
+        let mut pos_bins = HashMap::with_capacity(pos_bins_len);
         for _ in 0..pos_bins_len {
-            let index = i32::from_le_bytes(bytes[pos..pos + 4].try_into().unwrap());
-            pos += 4;
-            let count = u64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap());
-            pos += 8;
+            let index = cur.read_i32_le()?;
+            let count = cur.read_u64_le()?;
             pos_bins.insert(index, count);
         }
 
         // Read negative store
-        let neg_count = u64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap());
-        pos += 8;
-        let neg_min = f64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap());
-        pos += 8;
-        let neg_max = f64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap());
-        pos += 8;
-        let neg_bins_len = u64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap()) as usize;
-        pos += 8;
+        let neg_count = cur.read_u64_le()?;
+        let neg_min = cur.read_f64_le()?;
+        let neg_max = cur.read_f64_le()?;
+        let neg_bins_len = cur.read_len_prefixed_count(12)?;
 
-        let mut neg_bins = HashMap::new();
+        let mut neg_bins = HashMap::with_capacity(neg_bins_len);
         for _ in 0..neg_bins_len {
-            let index = i32::from_le_bytes(bytes[pos..pos + 4].try_into().unwrap());
-            pos += 4;
-            let count = u64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap());
-            pos += 8;
+            let index = cur.read_i32_le()?;
+            let count = cur.read_u64_le()?;
             neg_bins.insert(index, count);
         }
 
@@ -598,6 +584,46 @@ impl Mergeable for DDSketch {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deserialize_rejects_truncated_and_oversized_bins_without_panic() {
+        // Regression (fable5 doc 05 #1): pos_bins_len was attacker-controlled and
+        // the loop sliced bytes without bounds checks -> panic on truncation.
+        // Header is 40 bytes + positive store prefix (24 bytes) then bins_len.
+        let mut bytes = Vec::new();
+        for _ in 0..4 {
+            bytes.extend_from_slice(&1.0f64.to_le_bytes()); // alpha,gamma,gamma_ln,offset
+        }
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // zero_count
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // pos_count
+        bytes.extend_from_slice(&0.0f64.to_le_bytes()); // pos_min
+        bytes.extend_from_slice(&0.0f64.to_le_bytes()); // pos_max
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // pos_bins_len (huge) -> no bins follow
+        assert!(
+            DDSketch::deserialize(&bytes).is_err(),
+            "must error, not panic"
+        );
+
+        // Truncated header
+        assert!(DDSketch::deserialize(&[0u8; 10]).is_err());
+    }
+
+    #[test]
+    fn deserialize_round_trips_populated() {
+        let mut dd = DDSketch::new(0.01).unwrap();
+        for i in 1..1000 {
+            dd.add(i as f64);
+            dd.add(-(i as f64));
+        }
+        let bytes = dd.serialize();
+        let restored = DDSketch::deserialize(&bytes).expect("round-trip");
+        let a = dd.quantile(0.5).unwrap();
+        let b = restored.quantile(0.5).unwrap();
+        assert!(
+            (a - b).abs() < 1e-6,
+            "median differs after round-trip: {a} vs {b}"
+        );
+    }
 
     #[test]
     fn test_key_value_inverse() {

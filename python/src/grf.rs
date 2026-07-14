@@ -183,8 +183,8 @@ impl GRF {
     ///     >>> print(f"Memory: {stats['memory_bytes']} bytes")
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("key_count", stats.key_count)?;
             dict.set_item("segment_count", stats.segment_count)?;
             dict.set_item("avg_keys_per_segment", stats.avg_keys_per_segment)?;

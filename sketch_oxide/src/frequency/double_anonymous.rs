@@ -301,3 +301,15 @@ mod tests {
         assert!(a.merge(&b).is_err());
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl Update<u64> for DoubleAnonymousSketch {
+    fn update(&mut self, item: &u64) {
+        self.insert(*item);
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `estimate` returns `f64`
+// (a Space-Saving-style fractional estimate), not PointQuery's `u64`.

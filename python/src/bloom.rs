@@ -143,7 +143,7 @@ impl BloomFilter {
     /// Returns:
     ///     bytes: Serialized filter
     fn to_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        PyBytes::new_bound(py, &self.inner.to_bytes())
+        PyBytes::new(py, &self.inner.to_bytes())
     }
 
     /// Deserialize a filter from bytes
@@ -199,7 +199,7 @@ impl BloomFilter {
     ///     >>> filter = BloomFilter(1000)
     ///     >>> filter.insert_batch([b"key1", b"key2", b"key3"])
     fn insert_batch(&mut self, keys: &Bound<'_, PyAny>) -> PyResult<()> {
-        let keys_list: &Bound<'_, PyList> = keys.downcast()?;
+        let keys_list: &Bound<'_, PyList> = keys.cast()?;
         for key in keys_list {
             let key_bytes: &[u8] = key.extract()?;
             self.inner.insert(key_bytes);
@@ -221,7 +221,7 @@ impl BloomFilter {
     ///     >>> filter = BloomFilter(1000)
     ///     >>> results = filter.contains_batch([b"key1", b"missing"])
     fn contains_batch(&self, keys: &Bound<'_, PyAny>) -> PyResult<Vec<bool>> {
-        let keys_list: &Bound<'_, PyList> = keys.downcast()?;
+        let keys_list: &Bound<'_, PyList> = keys.cast()?;
         let mut results = Vec::new();
         for key in keys_list {
             let key_bytes: &[u8] = key.extract()?;

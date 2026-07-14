@@ -8,7 +8,7 @@ use sketch_oxide::privacy::{Accountant as RustAccountant, PrivacyParams as RustP
 /// Args:
 ///     epsilon (float): the ε privacy parameter (> 0).
 ///     delta (float): the δ privacy parameter (>= 0); use 0 for pure ε-DP.
-#[pyclass(module = "sketch_oxide")]
+#[pyclass(module = "sketch_oxide", from_py_object)]
 #[derive(Clone)]
 pub struct PrivacyParams {
     pub(crate) inner: RustPrivacyParams,

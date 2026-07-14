@@ -6,7 +6,7 @@
 //! - Memory: Same as base sketch
 //! - Achieves 100Gbps line rate in DPDK
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::cardinality::HyperLogLog;
 use sketch_oxide::frequency::{CountMinSketch, NitroSketch};
 

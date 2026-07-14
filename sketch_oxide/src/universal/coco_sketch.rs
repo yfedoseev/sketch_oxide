@@ -178,7 +178,7 @@ impl CocoSketch {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{SeedableRng, rngs::StdRng};
 
     #[test]
     fn rejects_bad_params() {

@@ -258,6 +258,23 @@ impl DyadicCountSketch {
     }
 }
 
+// Capability-trait adoptions (fable5 doc 01 F3): delegate to inherent methods.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::Update;
+
+    // Ingests `u64` values via `add`; `Update<u64>` matches the generic ingest trait.
+    // (`add` panics on out-of-range input, mirroring the inherent contract.)
+    impl Update<u64> for DyadicCountSketch {
+        fn update(&mut self, item: &u64) {
+            self.add(*item);
+        }
+    }
+
+    // QuantileQuery not implemented: quantile returns `u64` (bounded integer
+    // universe), not `Option<f64>`.
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

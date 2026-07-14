@@ -550,3 +550,20 @@ mod tests {
         assert!(stats.unsampled_count >= 0);
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl<S: Sketch, T: std::hash::Hash + ?Sized> Update<T> for NitroSketch<S> {
+    fn update(&mut self, item: &T) {
+        self.update_with_item(item);
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `NitroSketch::query` ignores its
+// key argument and returns the base sketch's scalar `estimate()` cast to `u64`,
+// so it is not a genuine per-item point query.
+//
+// Serializable is intentionally NOT implemented: `Sketch::serialize` is real, but
+// `Sketch::deserialize` is a type-erased stub that always errors, so a round-trip
+// cannot be honored.

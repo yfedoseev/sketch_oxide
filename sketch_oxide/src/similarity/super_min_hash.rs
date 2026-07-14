@@ -261,3 +261,18 @@ mod tests {
         assert!(a.jaccard(&b).is_err());
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// SuperMinHash ingests any hashable item via `add`, so it satisfies `Update`
+// (delegating to `add`). It has no `Sketch` serialize and no cardinality/
+// quantile/point/membership semantics (estimates Jaccard), so only `Update`
+// applies.
+// ---------------------------------------------------------------------------
+use crate::common::Update;
+
+impl<T: Hash> Update<T> for SuperMinHash {
+    fn update(&mut self, item: &T) {
+        self.add(item);
+    }
+}

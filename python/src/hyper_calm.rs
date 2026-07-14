@@ -65,9 +65,7 @@ impl HyperCalm {
         self.inner
             .top_k_periodic()
             .into_iter()
-            .map(|((item, period), count)| {
-                ((PyBytes::new_bound(py, &item).unbind(), period), count)
-            })
+            .map(|((item, period), count)| ((PyBytes::new(py, &item).unbind(), period), count))
             .collect()
     }
 

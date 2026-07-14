@@ -221,3 +221,21 @@ mod tests {
         assert!(a.union_cardinality(&b).is_err());
     }
 }
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Update};
+
+    impl Update<[u8]> for KmvSketch {
+        fn update(&mut self, item: &[u8]) {
+            self.add(item);
+        }
+    }
+
+    impl CardinalityEstimate for KmvSketch {
+        fn estimate_cardinality(&self) -> f64 {
+            self.estimate()
+        }
+    }
+}

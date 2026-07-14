@@ -42,8 +42,8 @@
 //! assert!(cms.estimate(&"banana") >= 1);
 //! ```
 
-use crate::common::hash::hash_value;
 use crate::common::SketchError;
+use crate::common::hash::hash_value;
 use std::hash::Hash;
 
 /// Conservative Update Count-Min Sketch
@@ -352,7 +352,19 @@ impl ConservativeCountMin {
         let delta = f64::from_le_bytes(bytes[24..32].try_into().unwrap());
         let total_count = u64::from_le_bytes(bytes[32..40].try_into().unwrap());
 
-        let expected_len = 40 + depth * 4 + width * depth * 8;
+        // Bound dimensions before any multiply so a crafted width/depth cannot
+        // overflow `expected_len` (fable5 doc 01 F2). Same 2^20 cap as CountMin.
+        const MAX_DIM: usize = 1 << 20;
+        if width == 0 || depth == 0 || width > MAX_DIM || depth > MAX_DIM {
+            return Err(SketchError::DeserializationError(
+                "width/depth out of range".to_string(),
+            ));
+        }
+        let expected_len = depth
+            .checked_mul(4)
+            .and_then(|seeds| width.checked_mul(depth)?.checked_mul(8)?.checked_add(seeds))
+            .and_then(|body| body.checked_add(40))
+            .ok_or_else(|| SketchError::DeserializationError("size overflow".to_string()))?;
         if bytes.len() < expected_len {
             return Err(SketchError::DeserializationError(format!(
                 "Expected {} bytes, got {}",
@@ -565,5 +577,30 @@ mod tests {
     fn test_memory_usage() {
         let cms = ConservativeCountMin::new(0.01, 0.01).unwrap();
         assert!(cms.memory_usage() > 0);
+    }
+}
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Serializable, Update};
+
+impl<T: std::hash::Hash> Update<T> for ConservativeCountMin {
+    fn update(&mut self, item: &T) {
+        ConservativeCountMin::update(self, item);
+    }
+}
+
+impl<T: std::hash::Hash> PointQuery<T> for ConservativeCountMin {
+    fn query(&self, item: &T) -> u64 {
+        self.estimate(item)
+    }
+}
+
+impl Serializable for ConservativeCountMin {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(ConservativeCountMin::to_bytes(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        ConservativeCountMin::from_bytes(bytes)
     }
 }

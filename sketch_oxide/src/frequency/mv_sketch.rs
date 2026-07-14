@@ -197,3 +197,15 @@ mod tests {
         assert_eq!(mv.estimate(b"only"), 200);
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl Update<[u8]> for MvSketch {
+    fn update(&mut self, item: &[u8]) {
+        MvSketch::update(self, item);
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `estimate` returns a *signed*
+// `i64` (majority-vote estimates can be negative), incompatible with `u64`.

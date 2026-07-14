@@ -449,3 +449,18 @@ mod tests {
         assert!(a.merge(&b).is_err());
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl Update<[u8]> for HeavyLocker {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl PointQuery<[u8]> for HeavyLocker {
+    fn query(&self, item: &[u8]) -> u64 {
+        HeavyLocker::query(self, item)
+    }
+}

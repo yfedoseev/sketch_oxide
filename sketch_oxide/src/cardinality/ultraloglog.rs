@@ -35,7 +35,7 @@
 //! // Should be close to 10,000 with ~1.04/sqrt(4096) = ~1.6% error
 //! ```
 
-use crate::common::{validation, Mergeable, Sketch, SketchError};
+use crate::common::{Mergeable, Sketch, SketchError, validation};
 use std::hash::{Hash, Hasher};
 use twox_hash::XxHash64;
 
@@ -441,6 +441,23 @@ mod tests {
     }
 
     #[test]
+    fn test_deserialize_oversized_precision_rejected() {
+        // precision = 200 must be rejected BEFORE it drives `1 << precision`,
+        // returning an Err rather than panicking or over-allocating.
+        let bytes = vec![200u8; 5];
+        let result = UltraLogLog::deserialize(&bytes);
+        assert!(result.is_err(), "oversized precision must be rejected");
+    }
+
+    #[test]
+    fn test_deserialize_truncated_registers_rejected() {
+        // Valid precision but the register tail is short of 2^precision bytes.
+        let mut bytes = vec![0u8; 10];
+        bytes[0] = 12; // expects 1 + 4096 bytes, only 10 provided
+        assert!(UltraLogLog::deserialize(&bytes).is_err());
+    }
+
+    #[test]
     fn test_hip_invalid_after_roundtrip() {
         let mut ull = UltraLogLog::new(12).unwrap();
         for i in 0..500u64 {
@@ -448,5 +465,92 @@ mod tests {
         }
         let restored = UltraLogLog::deserialize(&ull.serialize()).unwrap();
         assert!(restored.estimate_hip().is_none());
+    }
+}
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Serializable, Update};
+    use crate::common::{Result, Sketch};
+    use std::hash::Hash;
+
+    impl<T: Hash> Update<T> for UltraLogLog {
+        fn update(&mut self, item: &T) {
+            self.add(item);
+        }
+    }
+
+    impl CardinalityEstimate for UltraLogLog {
+        fn estimate_cardinality(&self) -> f64 {
+            self.cardinality()
+        }
+    }
+
+    impl Serializable for UltraLogLog {
+        fn to_bytes(&self) -> Result<Vec<u8>> {
+            Ok(<Self as Sketch>::serialize(self))
+        }
+
+        fn from_bytes(bytes: &[u8]) -> Result<Self> {
+            <Self as Sketch>::deserialize(bytes)
+        }
+    }
+}
+
+/// Integration-style smoke test proving the cardinality capability traits are
+/// usable generically across several adopted sketch types.
+#[cfg(test)]
+mod capability_smoke_tests {
+    use crate::cardinality::{CpcSketch, HyperLogLogPlus, ThetaSketch, UltraLogLog};
+    use crate::common::capabilities::{CardinalityEstimate, Serializable, Update};
+
+    // A generic pipeline over ANY cardinality sketch that ingests `u64` hashes —
+    // the exact composition the capability-trait split is meant to enable.
+    fn count_distinct<S: Update<u64> + CardinalityEstimate>(sketch: &mut S, items: &[u64]) -> f64 {
+        for x in items {
+            sketch.update(x);
+        }
+        sketch.estimate_cardinality()
+    }
+
+    #[test]
+    fn cardinality_capabilities_are_generic_over_types() {
+        let items: Vec<u64> = (0..5_000).collect();
+
+        let mut ull = UltraLogLog::new(12).unwrap();
+        let e_ull = count_distinct(&mut ull, &items);
+        assert!(
+            e_ull > 0.0 && (e_ull - 5_000.0).abs() < 5_000.0 * 0.3,
+            "UltraLogLog estimate off: {e_ull}"
+        );
+
+        let mut hpp = HyperLogLogPlus::new(12).unwrap();
+        let e_hpp = count_distinct(&mut hpp, &items);
+        assert!(
+            e_hpp > 0.0 && (e_hpp - 5_000.0).abs() < 5_000.0 * 0.3,
+            "HyperLogLogPlus estimate off: {e_hpp}"
+        );
+
+        let mut theta = ThetaSketch::new(12).unwrap();
+        let e_theta = count_distinct(&mut theta, &items);
+        assert!(
+            e_theta > 0.0,
+            "ThetaSketch estimate should be positive: {e_theta}"
+        );
+    }
+
+    #[test]
+    fn serializable_capability_roundtrips() {
+        let mut cpc = CpcSketch::new(11).unwrap();
+        for x in 0..1_000u64 {
+            cpc.update(&x);
+        }
+        let bytes = Serializable::to_bytes(&cpc).unwrap();
+        let restored = <CpcSketch as Serializable>::from_bytes(&bytes).unwrap();
+        assert!(
+            (restored.estimate_cardinality() - cpc.estimate_cardinality()).abs() < 1e-6,
+            "round-trip changed the estimate"
+        );
     }
 }

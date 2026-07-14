@@ -421,6 +421,18 @@ impl Sketch for OtelExponentialHistogram {
             let offset = rd_i32(off)?;
             let len = rd_u64(off + 4)? as usize;
             off += 12;
+            // Validate the attacker-controlled `len` against the bytes actually
+            // remaining before reserving — otherwise a crafted huge `len` drives
+            // an unbounded `Vec::with_capacity` (OOM) even though the read loop
+            // would eventually error (fable5 doc 01 F2).
+            let needed = len
+                .checked_mul(8)
+                .ok_or_else(|| SketchError::DeserializationError("run length overflow".into()))?;
+            if off.checked_add(needed).is_none_or(|end| end > bytes.len()) {
+                return Err(SketchError::DeserializationError(
+                    "bucket run length exceeds input".into(),
+                ));
+            }
             let mut counts = Vec::with_capacity(len);
             for _ in 0..len {
                 counts.push(rd_u64(off)?);
@@ -434,6 +446,34 @@ impl Sketch for OtelExponentialHistogram {
             }
         }
         Ok(h)
+    }
+}
+
+// Capability-trait adoptions (fable5 doc 01 F3): delegate to inherent methods.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{QuantileQuery, Serializable, Update};
+
+    impl Update<f64> for OtelExponentialHistogram {
+        fn update(&mut self, item: &f64) {
+            self.record(*item);
+        }
+    }
+
+    // `quantile(&self, ..) -> Option<f64>` is immutable, so `QuantileQuery` fits.
+    impl QuantileQuery for OtelExponentialHistogram {
+        fn quantile(&self, rank: f64) -> Option<f64> {
+            OtelExponentialHistogram::quantile(self, rank)
+        }
+    }
+
+    impl Serializable for OtelExponentialHistogram {
+        fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+            Ok(<Self as crate::common::Sketch>::serialize(self))
+        }
+        fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+            <Self as crate::common::Sketch>::deserialize(bytes)
+        }
     }
 }
 

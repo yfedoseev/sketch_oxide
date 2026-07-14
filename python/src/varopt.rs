@@ -75,14 +75,14 @@ impl VarOptSampling {
     ///
     /// Returns:
     ///     list: List of (item, weight) tuples
-    fn sample<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
+    fn sample<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         let items: Vec<(&String, f64)> = self
             .inner
             .sample()
             .iter()
             .map(|wi| (&wi.item, wi.weight))
             .collect();
-        PyList::new_bound(py, items)
+        PyList::new(py, items)
     }
 
     /// Check if empty

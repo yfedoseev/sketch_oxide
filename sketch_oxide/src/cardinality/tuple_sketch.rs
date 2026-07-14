@@ -9,8 +9,8 @@
 //! It wraps the generic [`ThetaCore<S>`](super::ThetaCore) engine; hashing lives here so a
 //! `TupleSketch<NoSummary>` behaves exactly like [`ThetaSketch`](super::ThetaSketch).
 
-use crate::cardinality::theta_core::{Summary, ThetaCore};
 use crate::cardinality::SumDoubles;
+use crate::cardinality::theta_core::{Summary, ThetaCore};
 use crate::error::{Result, SketchError};
 use std::hash::{Hash, Hasher};
 
@@ -213,7 +213,7 @@ mod tests {
 
         let u = a.union(&b).unwrap();
         assert!((u.estimate() - 3.0).abs() < 0.01); // shared, a_only, b_only
-                                                    // shared key's summary folded to 11.
+        // shared key's summary folded to 11.
         let total: f64 = u.estimated_column_sums()[0];
         assert!((total - 13.0).abs() < 0.01, "union column sum {total}");
     }
@@ -237,5 +237,20 @@ mod tests {
         let a = TupleSketch::<NoSummary>::with_seed(12, 1).unwrap();
         let b = TupleSketch::<NoSummary>::with_seed(12, 2).unwrap();
         assert!(a.union(&b).is_err());
+    }
+}
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+///
+/// No `Update` impl: the inherent `update` requires a per-item `summary`
+/// argument, so it does not match the single-item `Update<T>` signature.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::CardinalityEstimate;
+
+    impl<S: Summary> CardinalityEstimate for TupleSketch<S> {
+        fn estimate_cardinality(&self) -> f64 {
+            self.estimate()
+        }
     }
 }

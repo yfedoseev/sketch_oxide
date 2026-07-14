@@ -642,3 +642,19 @@ mod tests {
         assert_ne!(hash1, hash3, "Different items should have different hashes");
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl Update<[u8]> for HeavyKeeper {
+    fn update(&mut self, item: &[u8]) {
+        HeavyKeeper::update(self, item);
+    }
+}
+
+// `estimate` returns `u32`; widening to PointQuery's `u64` is lossless.
+impl PointQuery<[u8]> for HeavyKeeper {
+    fn query(&self, item: &[u8]) -> u64 {
+        u64::from(self.estimate(item))
+    }
+}

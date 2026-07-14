@@ -175,7 +175,7 @@ impl QDigest {
     pub fn rank(&self, value: u64) -> u64 {
         self.nodes
             .iter()
-            .filter(|(&id, _)| self.node_vmax(id) <= value)
+            .filter(|&(&id, _)| self.node_vmax(id) <= value)
             .map(|(_, &c)| c)
             .sum()
     }
@@ -225,6 +225,15 @@ impl QDigest {
         self.levels
     }
 }
+
+// Capability-trait adoptions (fable5 doc 01 F3): no clean match, documented.
+// Update not implemented: the only ingest, `insert(u64) -> Result<()>`, is
+// fallible (rejects out-of-range values), and `Update::update` has no error
+// channel — swallowing the error would repeat the silent-drop anti-pattern this
+// capability layer exists to resolve.
+// QuantileQuery not implemented: quantile takes &mut self and returns
+// `Option<u64>`, not `Option<f64>`.
+// Serializable not implemented: QDigest has no `Sketch::serialize`/`deserialize`.
 
 #[cfg(test)]
 mod tests {
@@ -280,7 +289,7 @@ mod tests {
             qd.insert(v % (1 << 20)).unwrap();
         }
         qd.quantile(0.5); // forces a final compress
-                          // q-digest keeps O(k) nodes; comfortably under a small multiple of k.
+        // q-digest keeps O(k) nodes; comfortably under a small multiple of k.
         assert!(qd.len() < 10 * 500, "node count {}", qd.len());
         assert_eq!(qd.count(), 100_000);
     }

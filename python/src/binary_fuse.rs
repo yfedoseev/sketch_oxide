@@ -133,7 +133,7 @@ impl BinaryFuseFilter {
     /// Returns:
     ///     list: List of booleans, one for each item
     fn contains_batch(&self, items: &Bound<'_, PyAny>) -> PyResult<Vec<bool>> {
-        let items_list: &Bound<'_, PyList> = items.downcast()?;
+        let items_list: &Bound<'_, PyList> = items.cast()?;
         let mut results = Vec::new();
         for item in items_list {
             let item_val: u64 = item.extract()?;

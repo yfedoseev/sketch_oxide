@@ -138,7 +138,7 @@ impl HyperLogLog {
 
     /// Serialize to bytes
     fn serialize<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        PyBytes::new_bound(py, &self.inner.to_bytes())
+        PyBytes::new(py, &self.inner.to_bytes())
     }
 
     /// Deserialize from bytes
@@ -162,7 +162,7 @@ impl HyperLogLog {
     ///     >>> hll.update_batch([1, 2, 3, "user_123", b"data"])
     ///     >>> print(f"Estimate: {hll.estimate():.0f}")
     fn update_batch(&mut self, items: &Bound<'_, PyAny>) -> PyResult<()> {
-        let items_list: &Bound<'_, PyList> = items.downcast()?;
+        let items_list: &Bound<'_, PyList> = items.cast()?;
         for item in items_list {
             let hash_val = python_item_to_hash(&item)?;
             self.inner.update(&hash_val);
@@ -178,7 +178,7 @@ impl HyperLogLog {
     /// Args:
     ///     hashes: Iterable of integer hash values
     fn update_batch_hashes(&mut self, hashes: &Bound<'_, PyAny>) -> PyResult<()> {
-        let hashes_list: &Bound<'_, PyList> = hashes.downcast()?;
+        let hashes_list: &Bound<'_, PyList> = hashes.cast()?;
         for item in hashes_list {
             let hash_val: u64 = item.extract()?;
             self.inner.update(&hash_val);

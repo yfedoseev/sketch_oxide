@@ -627,6 +627,29 @@ impl Mergeable for TDigest {
     }
 }
 
+// Capability-trait adoptions (fable5 doc 01 F3): delegate to inherent methods.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{Serializable, Update};
+
+    impl Update<f64> for TDigest {
+        fn update(&mut self, item: &f64) {
+            TDigest::update(self, *item);
+        }
+    }
+
+    // QuantileQuery not implemented: quantile takes &mut self (needs finalize() refactor)
+
+    impl Serializable for TDigest {
+        fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+            Ok(<Self as crate::common::Sketch>::serialize(self))
+        }
+        fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+            <Self as crate::common::Sketch>::deserialize(bytes)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

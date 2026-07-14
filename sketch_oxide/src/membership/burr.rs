@@ -380,3 +380,16 @@ mod tests {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): this is a build-once/immutable
+// filter (no inherent `insert`), so it implements `Filter` but deliberately
+// NOT `Update` — immutability is enforced by the type system.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Filter<[u8]> for BurrFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        BurrFilter::contains(self, item)
+    }
+}

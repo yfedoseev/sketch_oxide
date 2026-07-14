@@ -45,7 +45,7 @@ impl DpMisraGries {
         self.inner
             .release(&mut self.rng)
             .into_iter()
-            .map(|(k, c)| (PyBytes::new_bound(py, &k).unbind(), c))
+            .map(|(k, c)| (PyBytes::new(py, &k).unbind(), c))
             .collect()
     }
 

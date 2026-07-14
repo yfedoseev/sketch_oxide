@@ -40,7 +40,7 @@
 //! // Should be close to 10,000 with ~1.5% error
 //! ```
 
-use crate::common::{hash::hash_value, Mergeable, Sketch, SketchError};
+use crate::common::{Mergeable, Sketch, SketchError, hash::hash_value};
 use std::collections::HashMap;
 
 /// CPC Sketch for cardinality estimation with maximum space efficiency
@@ -413,6 +413,17 @@ impl CpcSketch {
         }
 
         let lg_k = bytes[0];
+        // Validate lg_k BEFORE it drives the `1u32 << lg_k` shift below. An
+        // attacker-controlled lg_k >= 32 (e.g. 255) makes that left shift
+        // overflow; under this crate's `overflow-checks=true` profile a shift
+        // overflow panics/aborts the process — a DoS. Bound it to the same
+        // [4, 26] range that `new` accepts.
+        if !(4..=26).contains(&lg_k) {
+            return Err(SketchError::DeserializationError(format!(
+                "Invalid lg_k: {} (must be between 4 and 26)",
+                lg_k
+            )));
+        }
         let flavor_byte = bytes[1];
         let num_coupons = u64::from_le_bytes(bytes[2..10].try_into().unwrap());
         let window_offset = bytes[10];
@@ -427,7 +438,7 @@ impl CpcSketch {
                 return Err(SketchError::DeserializationError(format!(
                     "Invalid flavor byte: {}",
                     flavor_byte
-                )))
+                )));
             }
         };
 
@@ -441,6 +452,19 @@ impl CpcSketch {
         }
         let num_surprising = u32::from_le_bytes(bytes[pos..pos + 4].try_into().unwrap());
         pos += 4;
+
+        // Each surprising value occupies 5 bytes on the wire (u32 slot + u8 rho).
+        // Reject a count that cannot possibly fit in the remaining buffer BEFORE
+        // entering the read loop, so a crafted count like u32::MAX with a short
+        // tail fails fast instead of spinning. `checked_mul` avoids overflow.
+        let surprising_bytes = (num_surprising as usize).checked_mul(5).ok_or_else(|| {
+            SketchError::DeserializationError("surprising values size overflow".to_string())
+        })?;
+        if surprising_bytes > bytes.len() - pos {
+            return Err(SketchError::DeserializationError(
+                "surprising values count exceeds buffer".to_string(),
+            ));
+        }
 
         let mut surprising_values = HashMap::new();
         for _ in 0..num_surprising {
@@ -645,5 +669,79 @@ mod tests {
         cpc.clear();
         assert!(cpc.is_empty());
         assert_eq!(cpc.estimate(), 0.0);
+    }
+
+    #[test]
+    fn test_from_bytes_oversized_lg_k_rejected() {
+        // lg_k = 255 would make `1u32 << lg_k` overflow (abort under
+        // overflow-checks). Must be rejected with an Err.
+        let mut bytes = vec![0u8; 14];
+        bytes[0] = 255; // lg_k out of range
+        let result = CpcSketch::from_bytes(&bytes);
+        assert!(result.is_err(), "oversized lg_k must be rejected");
+    }
+
+    #[test]
+    fn test_from_bytes_oversized_surprising_count_rejected() {
+        // Valid header with num_surprising = u32::MAX but no tail.
+        let mut bytes = Vec::new();
+        bytes.push(11u8); // lg_k (valid)
+        bytes.push(1u8); // flavor = Sparse
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // num_coupons
+        bytes.push(0u8); // window_offset
+        bytes.extend_from_slice(&u32::MAX.to_le_bytes()); // num_surprising (huge)
+        assert_eq!(bytes.len(), 15);
+
+        let result = CpcSketch::from_bytes(&bytes);
+        assert!(
+            result.is_err(),
+            "oversized surprising-values count must be rejected"
+        );
+    }
+
+    #[test]
+    fn test_serialization_roundtrip() {
+        let mut cpc = CpcSketch::new(11).unwrap();
+        for i in 0..500u64 {
+            cpc.update(&i);
+        }
+        let bytes = cpc.to_bytes();
+        let restored = CpcSketch::from_bytes(&bytes).unwrap();
+
+        assert_eq!(restored.lg_k(), cpc.lg_k());
+        assert_eq!(restored.flavor(), cpc.flavor());
+        assert!((restored.estimate() - cpc.estimate()).abs() < 1e-6);
+    }
+}
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+///
+/// `CpcSketch` ingests raw `u64` hashes via its `Sketch` impl, estimates
+/// cardinality, and supports (de)serialization — all delegated below.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Serializable, Update};
+    use crate::common::{Result, Sketch};
+
+    impl Update<u64> for CpcSketch {
+        fn update(&mut self, item: &u64) {
+            <Self as Sketch>::update(self, item);
+        }
+    }
+
+    impl CardinalityEstimate for CpcSketch {
+        fn estimate_cardinality(&self) -> f64 {
+            <Self as Sketch>::estimate(self)
+        }
+    }
+
+    impl Serializable for CpcSketch {
+        fn to_bytes(&self) -> Result<Vec<u8>> {
+            Ok(<Self as Sketch>::serialize(self))
+        }
+
+        fn from_bytes(bytes: &[u8]) -> Result<Self> {
+            <Self as Sketch>::deserialize(bytes)
+        }
     }
 }

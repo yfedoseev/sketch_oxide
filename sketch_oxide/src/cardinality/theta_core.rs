@@ -107,6 +107,30 @@ impl<S: Summary> ThetaCore<S> {
         })
     }
 
+    /// Reconstructs a core directly from its parts (used by deserialization).
+    ///
+    /// Unlike replaying [`update`](Self::update), this sets `theta` to the exact
+    /// stored value rather than re-deriving it from capacity — required so a
+    /// sketch that was at capacity round-trips to the same estimate.
+    ///
+    /// # Errors
+    /// [`SketchError::InvalidParameter`] if `lg_k` is out of range.
+    pub(crate) fn from_raw_parts(lg_k: u8, theta: u64, entries: HashMap<u64, S>) -> Result<Self> {
+        if !(Self::MIN_LG_K..=Self::MAX_LG_K).contains(&lg_k) {
+            return Err(SketchError::InvalidParameter {
+                param: "lg_k".to_string(),
+                value: lg_k.to_string(),
+                constraint: format!("must be in range [{}, {}]", Self::MIN_LG_K, Self::MAX_LG_K),
+            });
+        }
+        Ok(Self {
+            lg_k,
+            k: 1_usize << lg_k,
+            entries,
+            theta,
+        })
+    }
+
     /// Records a pre-hashed key with its summary.
     ///
     /// Hashes at or above `theta` are ignored (sampling). If the key is already retained,
@@ -358,5 +382,21 @@ mod tests {
         core.update(42, SumDoubles(vec![2.5]));
         assert_eq!(core.num_retained(), 1);
         assert_eq!(core.entries().get(&42).unwrap().values(), &[3.5]);
+    }
+}
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+///
+/// No `Update` impl: the inherent `update` takes a pre-computed `u64` hash plus
+/// a per-item `summary`, so it does not match the single hashable-item signature
+/// of `Update<T>`. Cardinality estimation is delegated below.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::CardinalityEstimate;
+
+    impl<S: Summary> CardinalityEstimate for ThetaCore<S> {
+        fn estimate_cardinality(&self) -> f64 {
+            self.estimate()
+        }
     }
 }

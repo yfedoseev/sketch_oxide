@@ -137,7 +137,7 @@ impl CountingBloomFilter {
 
     /// Serialize the filter to bytes
     fn to_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        PyBytes::new_bound(py, &self.inner.to_bytes())
+        PyBytes::new(py, &self.inner.to_bytes())
     }
 
     /// Deserialize a filter from bytes
@@ -173,7 +173,7 @@ impl CountingBloomFilter {
     /// Args:
     ///     keys: Iterable of byte strings to insert
     fn insert_batch(&mut self, keys: &Bound<'_, PyAny>) -> PyResult<()> {
-        let keys_list: &Bound<'_, PyList> = keys.downcast()?;
+        let keys_list: &Bound<'_, PyList> = keys.cast()?;
         for key in keys_list {
             let key_bytes: &[u8] = key.extract()?;
             self.insert(key_bytes);
@@ -189,7 +189,7 @@ impl CountingBloomFilter {
     /// Returns:
     ///     list: List of booleans indicating if each key was found and removed
     fn remove_batch(&mut self, keys: &Bound<'_, PyAny>) -> PyResult<Vec<bool>> {
-        let keys_list: &Bound<'_, PyList> = keys.downcast()?;
+        let keys_list: &Bound<'_, PyList> = keys.cast()?;
         let mut results = Vec::new();
         for key in keys_list {
             let key_bytes: &[u8] = key.extract()?;
@@ -208,7 +208,7 @@ impl CountingBloomFilter {
     /// Returns:
     ///     list: List of booleans, one for each key
     fn contains_batch(&self, keys: &Bound<'_, PyAny>) -> PyResult<Vec<bool>> {
-        let keys_list: &Bound<'_, PyList> = keys.downcast()?;
+        let keys_list: &Bound<'_, PyList> = keys.cast()?;
         let mut results = Vec::new();
         for key in keys_list {
             let key_bytes: &[u8] = key.extract()?;
@@ -225,7 +225,7 @@ impl CountingBloomFilter {
     /// Returns:
     ///     list: List of count estimates, one for each key
     fn count_estimate_batch(&self, keys: &Bound<'_, PyAny>) -> PyResult<Vec<u8>> {
-        let keys_list: &Bound<'_, PyList> = keys.downcast()?;
+        let keys_list: &Bound<'_, PyList> = keys.cast()?;
         let mut results = Vec::new();
         for key in keys_list {
             let key_bytes: &[u8] = key.extract()?;

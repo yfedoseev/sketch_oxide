@@ -43,7 +43,7 @@ impl Bloom {
         }
     }
 
-    fn positions(&self, key: &[u8]) -> impl Iterator<Item = usize> + '_ {
+    fn positions(&self, key: &[u8]) -> impl Iterator<Item = usize> + '_ + use<'_> {
         let h1 = xxhash(key, self.seed);
         let h2 = xxhash(key, self.seed.wrapping_add(1));
         (0..self.k).map(move |i| {

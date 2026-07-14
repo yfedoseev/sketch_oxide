@@ -6,13 +6,13 @@
 //! - probabilistic-collections (BloomFilter, CuckooFilter)
 //! - streaming_algorithms (HyperLogLog, CountMinSketch)
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 
 // Our implementations
+use sketch_oxide::Sketch;
 use sketch_oxide::cardinality::{HyperLogLog, UltraLogLog};
 use sketch_oxide::frequency::CountMinSketch;
 use sketch_oxide::membership::{BloomFilter, CuckooFilter};
-use sketch_oxide::Sketch;
 
 // Comparison implementations
 use pdatastructs::countminsketch::CountMinSketch as PdataCMS;

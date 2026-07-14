@@ -299,3 +299,24 @@ mod tests {
         assert_eq!(h.estimate_window(b"y", 0), 2);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// Hokusai ingests byte items via `add` (time is advanced separately via
+// `tick`), so it satisfies `Update<[u8]>`. Its `estimate_current(&[u8]) -> u64`
+// is a clean current-window point query, matching `PointQuery<[u8]>`. The
+// windowed variant needs an extra level argument, so it is not exposed here.
+// ---------------------------------------------------------------------------
+use crate::common::{PointQuery, Update};
+
+impl Update<[u8]> for Hokusai {
+    fn update(&mut self, item: &[u8]) {
+        self.add(item);
+    }
+}
+
+impl PointQuery<[u8]> for Hokusai {
+    fn query(&self, item: &[u8]) -> u64 {
+        self.estimate_current(item)
+    }
+}

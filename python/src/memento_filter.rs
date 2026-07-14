@@ -153,8 +153,8 @@ impl MementoFilter {
     ///     >>> print(f"Load factor: {stats['load_factor']:.2%}")
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("num_elements", stats.num_elements)?;
             dict.set_item("capacity", stats.capacity)?;
             dict.set_item("fpr_target", stats.fpr_target)?;

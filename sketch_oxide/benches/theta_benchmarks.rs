@@ -14,7 +14,7 @@
 //! - Difference: <10µs for typical sketches
 //! - Estimate: <1µs
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::cardinality::ThetaSketch;
 
 // ============================================================================

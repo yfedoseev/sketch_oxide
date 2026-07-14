@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::quantiles::req::{ReqMode, ReqSketch};
 
 fn bench_update(c: &mut Criterion) {

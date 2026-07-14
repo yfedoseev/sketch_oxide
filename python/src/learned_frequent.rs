@@ -45,7 +45,7 @@ impl LearnedFrequent {
         self.inner
             .heavy_hitters()
             .into_iter()
-            .map(|(k, c)| (PyBytes::new_bound(py, &k).unbind(), c))
+            .map(|(k, c)| (PyBytes::new(py, &k).unbind(), c))
             .collect()
     }
 

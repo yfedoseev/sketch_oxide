@@ -40,7 +40,7 @@ impl ReservoirSamplingL {
         self.inner
             .sample()
             .iter()
-            .map(|v| PyBytes::new_bound(py, v).unbind())
+            .map(|v| PyBytes::new(py, v).unbind())
             .collect()
     }
 

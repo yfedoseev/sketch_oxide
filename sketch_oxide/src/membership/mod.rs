@@ -55,3 +55,37 @@ mod tests {
         // This test ensures the module compiles successfully
     }
 }
+
+#[cfg(test)]
+mod capability_smoke_tests {
+    use crate::common::capabilities::{Filter, Update};
+    use crate::membership::{CountingBloomFilter, ScalableBloomFilter, StableBloomFilter};
+
+    // Exercises the capability traits generically: any adopted filter that is
+    // both `Update<[u8]>` and `Filter<[u8]>` can be driven through this one
+    // pipeline, proving the traits are usable across concrete types.
+    fn update_then_query<F: Update<[u8]> + Filter<[u8]>>(filter: &mut F) {
+        let key: &[u8] = b"capability-smoke-key";
+        assert!(
+            !Filter::contains(filter, key),
+            "fresh filter should not contain the key"
+        );
+        Update::update(filter, key);
+        assert!(
+            Filter::contains(filter, key),
+            "filter should contain the key after update"
+        );
+    }
+
+    #[test]
+    fn membership_filters_adopt_update_and_filter_generically() {
+        let mut counting = CountingBloomFilter::new(1000, 0.01);
+        update_then_query(&mut counting);
+
+        let mut scalable = ScalableBloomFilter::new(1000, 0.01).unwrap();
+        update_then_query(&mut scalable);
+
+        let mut stable = StableBloomFilter::new(1000, 0.01).unwrap();
+        update_then_query(&mut stable);
+    }
+}

@@ -246,3 +246,23 @@ mod tests {
         assert_eq!(apbf.num_slices(), 14);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// The Age-Partitioned Bloom Filter ingests byte items via `insert` and answers
+// approximate membership via `contains`, so it satisfies `Update<[u8]>` and
+// `Filter<[u8]>`. It has no cardinality/quantile/point semantics.
+// ---------------------------------------------------------------------------
+use crate::common::{Filter, Update};
+
+impl Update<[u8]> for Apbf {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for Apbf {
+    fn contains(&self, item: &[u8]) -> bool {
+        Apbf::contains(self, item)
+    }
+}

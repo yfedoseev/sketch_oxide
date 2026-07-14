@@ -36,7 +36,6 @@
 //! - Broder, A. Z. (1997). "On the resemblance and containment of documents"
 //! - Used in: LSH, deduplication, recommendation systems, near-duplicate detection
 
-use crate::common::hash::xxhash;
 use crate::common::{Mergeable, Sketch, SketchError};
 use std::hash::Hash;
 
@@ -172,10 +171,16 @@ impl MinHash {
     /// mh.update(&vec![1, 2, 3]);
     /// ```
     pub fn update<T: Hash>(&mut self, item: &T) {
-        // Update each hash function's minimum value
+        // Hash the item ONCE (streaming, zero allocation), then derive all
+        // `num_perm` permuted values by mixing the base hash with each seed via
+        // the murmur3 finalizer — a bijection, so each is a valid MinHash
+        // permutation. The old code hashed the full key `num_perm` times and
+        // heap-allocated a `Vec<u8>` on every one of them (fable5 doc 02 #4:
+        // 128 allocs + 128 full hashes per update). Wire format is unchanged
+        // (still num_perm + seeds + values); only the produced values differ.
+        let base = Self::hash_item(item);
         for i in 0..self.num_perm {
-            // Compute hash with seed
-            let hash = self.hash_with_seed(item, self.hash_seeds[i]);
+            let hash = Self::permute(base, self.hash_seeds[i]);
 
             // Update minimum
             if hash < self.hash_values[i] {
@@ -261,7 +266,7 @@ impl MinHash {
             .hash_values
             .iter()
             .zip(other.hash_values.iter())
-            .filter(|(&a, &b)| a == b)
+            .filter(|&(&a, &b)| a == b)
             .count();
 
         // Estimate Jaccard similarity
@@ -269,32 +274,29 @@ impl MinHash {
         Ok(similarity)
     }
 
-    /// Hashes an item with a specific seed
-    ///
-    /// Uses xxhash with seed for 64-bit hash values
-    fn hash_with_seed<T: Hash>(&self, item: &T, seed: u64) -> u64 {
+    /// Hashes an item once to a 64-bit base value, streaming its bytes through
+    /// xxHash64 with no intermediate allocation.
+    #[inline]
+    fn hash_item<T: Hash>(item: &T) -> u64 {
         use std::hash::Hasher as StdHasher;
-
-        // Convert T to bytes using std Hash trait
-        struct ByteHasher {
-            bytes: Vec<u8>,
-        }
-
-        impl StdHasher for ByteHasher {
-            fn finish(&self) -> u64 {
-                0 // Not used
-            }
-
-            fn write(&mut self, bytes: &[u8]) {
-                self.bytes.extend_from_slice(bytes);
-            }
-        }
-
-        let mut hasher = ByteHasher { bytes: Vec::new() };
+        let mut hasher = twox_hash::XxHash64::with_seed(0);
         item.hash(&mut hasher);
+        hasher.finish()
+    }
 
-        // Use xxhash for high-quality 64-bit hashing
-        xxhash(&hasher.bytes, seed)
+    /// Derives the permutation-`seed` MinHash value from a base hash by mixing
+    /// with the seed through the murmur3 64-bit finalizer. `fmix64` is a
+    /// bijection over `u64`, so `fmix64(base ^ seed)` is a valid random
+    /// permutation of the hash universe for each distinct seed.
+    #[inline]
+    fn permute(base: u64, seed: u64) -> u64 {
+        let mut x = base ^ seed;
+        x ^= x >> 33;
+        x = x.wrapping_mul(0xff51_afd7_ed55_8ccd);
+        x ^= x >> 33;
+        x = x.wrapping_mul(0xc4ce_b9fe_1a85_ec53);
+        x ^= x >> 33;
+        x
     }
 
     /// Returns the number of permutations (hash functions) used
@@ -305,6 +307,41 @@ impl MinHash {
     /// Returns the MinHash signature: the minimum hash value for each permutation.
     pub fn hashes(&self) -> &[u64] {
         &self.hash_values
+    }
+
+    /// Number of permutations in the industry-standard LLM-dedup preset:
+    /// FineWeb / datatrove use **14 bands × 8 rows = 112** hashes over 5-grams
+    /// at a ~0.75 Jaccard threshold (fable5 doc 03 C.4).
+    pub const DATATROVE_NUM_PERM: usize = 112;
+
+    /// Number of LSH bands in the datatrove/FineWeb preset.
+    pub const DATATROVE_BANDS: usize = 14;
+
+    /// Number of rows per LSH band in the datatrove/FineWeb preset.
+    pub const DATATROVE_ROWS: usize = 8;
+
+    /// Creates a MinHash configured to be signature-compatible with the
+    /// FineWeb / datatrove LLM-deduplication pipeline (112 permutations).
+    ///
+    /// Pair with an LSH index of [`DATATROVE_BANDS`](Self::DATATROVE_BANDS) ×
+    /// [`DATATROVE_ROWS`](Self::DATATROVE_ROWS) bands/rows.
+    #[must_use]
+    pub fn datatrove() -> Self {
+        // 112 >= MIN_NUM_PERM, so this never fails.
+        Self::new(Self::DATATROVE_NUM_PERM).expect("112 is a valid num_perm")
+    }
+
+    /// Exports the signature as a little-endian byte vector — the on-wire form
+    /// consumed by vector databases as a bring-your-own signature (e.g. Milvus
+    /// `MINHASH_LSH` / `BINARY_VECTOR`) and by LSHBloom-style combinators
+    /// (fable5 doc 03 C.4). Length is `8 * num_perm` bytes.
+    #[must_use]
+    pub fn to_binary_vector(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(self.hash_values.len() * 8);
+        for &h in &self.hash_values {
+            out.extend_from_slice(&h.to_le_bytes());
+        }
+        out
     }
 }
 
@@ -370,7 +407,19 @@ impl Sketch for MinHash {
                 .map_err(|_| SketchError::DeserializationError("Invalid num_perm".to_string()))?,
         ) as usize;
 
-        let expected_len = 8 + (num_perm * 8 * 2); // num_perm + seeds + values
+        // `num_perm` is attacker-controlled (a full u64 truncated to usize). The
+        // original `8 + (num_perm * 8 * 2)` is unchecked: for a crafted huge
+        // `num_perm` it overflows, which under overflow-checks=true ABORTS the
+        // process (DoS) and otherwise wraps to a small value that passes this
+        // length check, then drives two giant `Vec::with_capacity(num_perm)`
+        // allocations below (OOM). Compute the expected length with checked
+        // arithmetic and reject on overflow. Once `bytes.len() == expected_len`
+        // holds, `num_perm * 16 <= bytes.len()`, so the allocations are bounded
+        // by the actual input size.
+        let expected_len = num_perm
+            .checked_mul(16) // seeds + values, 8 bytes each
+            .and_then(|n| n.checked_add(8)) // + num_perm header
+            .ok_or_else(|| SketchError::DeserializationError("num_perm too large".to_string()))?;
         if bytes.len() != expected_len {
             return Err(SketchError::DeserializationError(format!(
                 "Invalid data length: expected {}, got {}",
@@ -470,6 +519,82 @@ mod tests {
     use super::*;
 
     #[test]
+    fn datatrove_preset_and_binary_export() {
+        let mut mh = MinHash::datatrove();
+        assert_eq!(mh.num_perm(), 112);
+        assert_eq!(
+            MinHash::DATATROVE_BANDS * MinHash::DATATROVE_ROWS,
+            MinHash::DATATROVE_NUM_PERM
+        );
+        for i in 0..1000u64 {
+            mh.update(&i);
+        }
+        // Binary vector is the LE-encoded signature: 8 bytes per permutation.
+        let bin = mh.to_binary_vector();
+        assert_eq!(bin.len(), 112 * 8);
+        // First 8 bytes decode to the first signature value.
+        let first = u64::from_le_bytes(bin[0..8].try_into().unwrap());
+        assert_eq!(first, mh.hashes()[0]);
+    }
+
+    #[test]
+    fn hash_once_permutation_preserves_jaccard_accuracy() {
+        // The hash-once + fmix64 permutation family must still estimate Jaccard
+        // accurately. Two sets with a known overlap of 0.5 should estimate close.
+        let mut a = MinHash::new(256).unwrap();
+        let mut b = MinHash::new(256).unwrap();
+        for i in 0..1000u64 {
+            a.update(&i);
+        }
+        for i in 500..1500u64 {
+            b.update(&i);
+        }
+        // |A ∩ B| = 500, |A ∪ B| = 1500 -> Jaccard = 1/3.
+        let est = a.jaccard_similarity(&b).unwrap();
+        assert!(
+            (est - (1.0 / 3.0)).abs() < 0.06,
+            "Jaccard estimate {est} too far from 1/3"
+        );
+    }
+
+    #[test]
+    fn deserialize_rejects_overflowing_num_perm_without_panic() {
+        // Regression: a crafted `num_perm` near u64::MAX made the old
+        // `8 + (num_perm * 8 * 2)` overflow, aborting under overflow-checks or
+        // wrapping past the length check into a giant `Vec::with_capacity` (OOM).
+        // Must be rejected cleanly.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // num_perm
+        bytes.extend_from_slice(&[0u8; 16]); // short tail
+        assert!(
+            MinHash::deserialize(&bytes).is_err(),
+            "must error, not overflow/OOM"
+        );
+
+        // A large-but-non-overflowing count with a truncated tail must also error.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&1_000_000u64.to_le_bytes());
+        bytes.extend_from_slice(&[0u8; 16]);
+        assert!(MinHash::deserialize(&bytes).is_err());
+
+        // Truncated header.
+        assert!(MinHash::deserialize(&[0u8; 4]).is_err());
+    }
+
+    #[test]
+    fn deserialize_round_trips_populated_sketch() {
+        let mut mh = MinHash::new(64).unwrap();
+        for i in 0..500u64 {
+            mh.update(&i);
+        }
+        let bytes = mh.serialize();
+        let restored = MinHash::deserialize(&bytes).expect("round-trip");
+        assert_eq!(restored.num_perm(), mh.num_perm());
+        assert_eq!(restored.hashes(), mh.hashes());
+        assert!((restored.jaccard_similarity(&mh).unwrap() - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
     fn test_new_minhash() {
         let mh = MinHash::new(128);
         assert!(mh.is_ok());
@@ -553,5 +678,30 @@ mod tests {
         // Seeds should be different from each other
         let unique_seeds: std::collections::HashSet<_> = mh.hash_seeds.iter().collect();
         assert_eq!(unique_seeds.len(), 128, "Seeds should be unique");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// MinHash ingests any hashable item and has a fully working, overflow-hardened
+// `Sketch` serialize/deserialize, so it cleanly satisfies `Update` and
+// `Serializable`. It has no cardinality/quantile/point/membership semantics
+// (it estimates Jaccard similarity between two sketches), so those are skipped.
+// ---------------------------------------------------------------------------
+use crate::common::{Serializable, Update};
+
+impl<T: Hash> Update<T> for MinHash {
+    fn update(&mut self, item: &T) {
+        MinHash::update(self, item);
+    }
+}
+
+impl Serializable for MinHash {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(<Self as Sketch>::serialize(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        <Self as Sketch>::deserialize(bytes)
     }
 }

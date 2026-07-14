@@ -25,11 +25,11 @@ impl WavingSketch {
     fn estimate(&self, item: &Bound<'_, PyAny>) -> PyResult<i64> {
         Ok(self.inner.estimate(&python_item_to_bytes(item)?))
     }
-    fn heavy_hitters(&self, py: Python<'_>, min_count: i64) -> Vec<(PyObject, i64)> {
+    fn heavy_hitters(&self, py: Python<'_>, min_count: i64) -> Vec<(Py<PyAny>, i64)> {
         self.inner
             .heavy_hitters(min_count)
             .into_iter()
-            .map(|(k, c)| (PyBytes::new_bound(py, &k).into_any().unbind(), c))
+            .map(|(k, c)| (PyBytes::new(py, &k).into_any().unbind(), c))
             .collect()
     }
     fn __repr__(&self) -> String {

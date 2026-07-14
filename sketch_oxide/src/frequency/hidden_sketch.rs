@@ -253,3 +253,18 @@ mod tests {
         assert_eq!(hs.estimate(7), 0);
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl Update<u64> for HiddenSketch {
+    fn update(&mut self, item: &u64) {
+        self.insert(*item);
+    }
+}
+
+impl PointQuery<u64> for HiddenSketch {
+    fn query(&self, item: &u64) -> u64 {
+        self.estimate(*item)
+    }
+}

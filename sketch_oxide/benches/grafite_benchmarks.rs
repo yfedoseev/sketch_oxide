@@ -8,7 +8,7 @@
 //! - Throughput testing
 //! - Comparison with different bits_per_key values
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::common::RangeFilter;
 use sketch_oxide::range_filters::Grafite;
 

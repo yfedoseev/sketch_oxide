@@ -317,14 +317,30 @@ impl Sketch for UddSketch {
         }
         let initial_alpha = f64::from_le_bytes(bytes[0..8].try_into().unwrap());
         let max_buckets = u64::from_le_bytes(bytes[8..16].try_into().unwrap()) as usize;
-        let collapses = u64::from_le_bytes(bytes[16..24].try_into().unwrap()) as u32;
+        let collapses = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
         let zero_count = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
+
+        // `collapses` is attacker-controlled and drives `collapse_to`, which
+        // loops `collapses` times (each pass remaps both bucket maps). A crafted
+        // value near u64::MAX would spin for billions of iterations — a pure-CPU
+        // DoS. Cap it: `gamma` (which squares each collapse) saturates to
+        // infinity after ~20 collapses, so no legitimately-serialized sketch has
+        // more than a handful; 4096 is far beyond any real value.
+        const MAX_COLLAPSES: u64 = 4096;
+        if collapses > MAX_COLLAPSES {
+            return Err(SketchError::DeserializationError(
+                "collapse count out of range".to_string(),
+            ));
+        }
+        let collapses = collapses as u32;
 
         let mut sketch = UddSketch::new(initial_alpha, max_buckets.max(2))?;
         // Replay collapses to reach the stored accuracy/gamma.
         sketch.collapse_to(collapses);
         sketch.zero_count = zero_count;
 
+        // Each serialized bucket entry is 13 bytes: [label:1][key:4][count:8].
+        const BUCKET_ENTRY_LEN: usize = 13;
         let mut off = 32;
         for store in [0u8, 1u8] {
             let _ = store;
@@ -336,11 +352,25 @@ impl Sketch for UddSketch {
                     .unwrap(),
             ) as usize;
             off += 8;
+
+            // `n` is attacker-controlled. Validate that the declared buckets
+            // actually fit in the remaining bytes BEFORE the loop, so the
+            // per-entry slicing below cannot panic (out-of-bounds index) or spin
+            // over a huge count. `checked_mul` guards the size computation itself.
+            let needed = n.checked_mul(BUCKET_ENTRY_LEN).ok_or_else(|| {
+                SketchError::DeserializationError("bucket count overflow".to_string())
+            })?;
+            if needed > bytes.len() - off {
+                return Err(SketchError::DeserializationError(
+                    "declared more buckets than remaining bytes".to_string(),
+                ));
+            }
+
             for _ in 0..n {
                 let label = bytes[off];
                 let k = i32::from_le_bytes(bytes[off + 1..off + 5].try_into().unwrap());
                 let c = u64::from_le_bytes(bytes[off + 5..off + 13].try_into().unwrap());
-                off += 13;
+                off += BUCKET_ENTRY_LEN;
                 if label == 0 {
                     sketch.positive.insert(k, c);
                 } else {
@@ -349,6 +379,34 @@ impl Sketch for UddSketch {
             }
         }
         Ok(sketch)
+    }
+}
+
+// Capability-trait adoptions (fable5 doc 01 F3): delegate to inherent methods.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{QuantileQuery, Serializable, Update};
+
+    impl Update<f64> for UddSketch {
+        fn update(&mut self, item: &f64) {
+            self.add(*item);
+        }
+    }
+
+    // `quantile(&self, ..) -> Option<f64>` is immutable, so `QuantileQuery` fits.
+    impl QuantileQuery for UddSketch {
+        fn quantile(&self, rank: f64) -> Option<f64> {
+            UddSketch::quantile(self, rank)
+        }
+    }
+
+    impl Serializable for UddSketch {
+        fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+            Ok(<Self as crate::common::Sketch>::serialize(self))
+        }
+        fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+            <Self as crate::common::Sketch>::deserialize(bytes)
+        }
     }
 }
 
@@ -442,6 +500,41 @@ mod tests {
         let mut a = UddSketch::new(0.01, 256).unwrap();
         let b = UddSketch::new(0.02, 256).unwrap();
         assert!(a.merge(&b).is_err());
+    }
+
+    #[test]
+    fn deserialize_rejects_malicious_headers_without_panic() {
+        // Helper to build a header: [alpha:8][max_buckets:8][collapses:8][zero:8].
+        fn header(collapses: u64, tail: &[u8]) -> Vec<u8> {
+            let mut b = Vec::new();
+            b.extend_from_slice(&0.01f64.to_le_bytes());
+            b.extend_from_slice(&256u64.to_le_bytes());
+            b.extend_from_slice(&collapses.to_le_bytes());
+            b.extend_from_slice(&0u64.to_le_bytes());
+            b.extend_from_slice(tail);
+            b
+        }
+
+        // Oversized collapse count would spin `collapse_to` for billions of
+        // iterations (CPU DoS) — must be rejected.
+        assert!(UddSketch::deserialize(&header(u64::MAX, &[])).is_err());
+
+        // Oversized positive-bucket count with a short tail previously indexed
+        // out of bounds (panic). First store-count = u64::MAX, no bucket bytes.
+        let mut bytes = header(0, &u64::MAX.to_le_bytes());
+        bytes.extend_from_slice(&[0u8; 4]); // fewer than one 13-byte entry
+        assert!(
+            UddSketch::deserialize(&bytes).is_err(),
+            "must error, not panic/OOM"
+        );
+
+        // Large-but-non-overflowing bucket count exceeding the tail.
+        let mut bytes = header(0, &1_000_000u64.to_le_bytes());
+        bytes.extend_from_slice(&[0u8; 13]); // only one real entry present
+        assert!(UddSketch::deserialize(&bytes).is_err());
+
+        // Truncated header.
+        assert!(UddSketch::deserialize(&[0u8; 16]).is_err());
     }
 
     #[test]

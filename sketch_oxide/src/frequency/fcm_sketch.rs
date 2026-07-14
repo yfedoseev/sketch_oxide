@@ -190,3 +190,18 @@ mod tests {
         assert_eq!(f.memory_bytes(), 4 * (1000 + 400));
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl Update<[u8]> for FcmSketch {
+    fn update(&mut self, item: &[u8]) {
+        FcmSketch::update(self, item);
+    }
+}
+
+impl PointQuery<[u8]> for FcmSketch {
+    fn query(&self, item: &[u8]) -> u64 {
+        self.estimate(item)
+    }
+}

@@ -339,11 +339,89 @@ impl ThetaSketch {
         item.hash(&mut hasher);
         hasher.finish()
     }
+
+    /// Serializes the sketch to bytes (fable5 doc 01 F2 — Theta previously had
+    /// no serialization despite union/intersect/difference being its selling
+    /// point).
+    ///
+    /// Format: `[lg_k:1][seed:8][theta:8][num_entries:8][entry:8]*` (all LE).
+    #[must_use]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        use crate::common::WriteBuf;
+        let entries = self.core.entries();
+        let mut buf = WriteBuf::with_capacity(25 + entries.len() * 8);
+        buf.write_u8(self.core.lg_k());
+        buf.write_u64_le(self.seed);
+        buf.write_u64_le(self.core.theta());
+        buf.write_u64_le(entries.len() as u64);
+        for &hash in entries.keys() {
+            buf.write_u64_le(hash);
+        }
+        buf.into_bytes()
+    }
+
+    /// Deserializes a sketch from bytes produced by [`to_bytes`](Self::to_bytes).
+    ///
+    /// # Errors
+    /// Returns `DeserializationError` on truncated/invalid input (panic-free) or
+    /// `InvalidParameter` if the stored `lg_k` is out of range.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        use crate::common::ReadCursor;
+        let mut cur = ReadCursor::new(bytes);
+        let lg_k = cur.read_u8()?;
+        let seed = cur.read_u64_le()?;
+        let theta = cur.read_u64_le()?;
+        // Each entry is 8 bytes; count is validated against the remaining input.
+        let count = cur.read_len_prefixed_count(8)?;
+        let mut entries = std::collections::HashMap::with_capacity(count);
+        for _ in 0..count {
+            entries.insert(cur.read_u64_le()?, NoSummary);
+        }
+        Ok(ThetaSketch {
+            core: ThetaCore::from_raw_parts(lg_k, theta, entries)?,
+            seed,
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn serialize_round_trips_and_supports_merge_after_deserialize() {
+        // The canonical Theta workflow (fable5 doc 01 F2): build, serialize,
+        // deserialize, then union — must preserve the estimate and set ops.
+        let mut a = ThetaSketch::new(12).unwrap();
+        for i in 0..5000u64 {
+            a.update(&i);
+        }
+        let bytes = a.to_bytes();
+        let restored = ThetaSketch::from_bytes(&bytes).expect("round-trip");
+        assert_eq!(restored.num_retained(), a.num_retained());
+        assert!((restored.estimate() - a.estimate()).abs() < 1e-9);
+
+        // Union of the deserialized sketch with an overlapping one.
+        let mut b = ThetaSketch::new(12).unwrap();
+        for i in 2500..7500u64 {
+            b.update(&i);
+        }
+        let union = restored.union(&b).unwrap();
+        // True union cardinality is 7500; Theta estimate within a few %.
+        assert!((union.estimate() - 7500.0).abs() / 7500.0 < 0.1);
+    }
+
+    #[test]
+    fn deserialize_rejects_malformed_bytes_without_panic() {
+        assert!(ThetaSketch::from_bytes(&[]).is_err());
+        assert!(ThetaSketch::from_bytes(&[12]).is_err()); // lg_k only, truncated
+        // lg_k=12, seed, theta, then a huge entry count with no data.
+        let mut b = vec![12u8];
+        b.extend_from_slice(&0u64.to_le_bytes());
+        b.extend_from_slice(&u64::MAX.to_le_bytes());
+        b.extend_from_slice(&u64::MAX.to_le_bytes()); // count
+        assert!(ThetaSketch::from_bytes(&b).is_err());
+    }
 
     #[test]
     fn test_basic_creation() {
@@ -373,5 +451,33 @@ mod tests {
             hash1, hash2,
             "Different seeds should produce different hashes"
         );
+    }
+}
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Update};
+    use std::hash::Hash;
+
+    impl<T: Hash> Update<T> for ThetaSketch {
+        fn update(&mut self, item: &T) {
+            ThetaSketch::update(self, item);
+        }
+    }
+
+    impl CardinalityEstimate for ThetaSketch {
+        fn estimate_cardinality(&self) -> f64 {
+            self.estimate()
+        }
+    }
+
+    impl crate::common::capabilities::Serializable for ThetaSketch {
+        fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+            Ok(ThetaSketch::to_bytes(self))
+        }
+        fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+            ThetaSketch::from_bytes(bytes)
+        }
     }
 }

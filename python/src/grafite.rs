@@ -136,8 +136,8 @@ impl Grafite {
     ///     >>> assert stats['bits_per_key'] == 6
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("key_count", stats.key_count)?;
             dict.set_item("bits_per_key", stats.bits_per_key)?;
             dict.set_item("total_bits", stats.total_bits)?;

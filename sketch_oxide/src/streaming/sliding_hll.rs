@@ -701,4 +701,47 @@ mod tests {
         assert_eq!(hll.precision, restored.precision);
         assert_eq!(hll.max_window_seconds, restored.max_window_seconds);
     }
+
+    #[test]
+    fn test_deserialize_rejects_out_of_range_precision_without_panic() {
+        // A precision byte of 200 is far outside [4, 16]; it must be rejected
+        // BEFORE `1usize << precision` is computed (a shift >= 64 would overflow
+        // and ABORT the process). No panic/abort/OOM: just an Err.
+        let mut bytes = vec![200u8];
+        bytes.extend_from_slice(&3600u64.to_le_bytes());
+        assert!(SlidingHyperLogLog::deserialize(&bytes).is_err());
+
+        // A valid precision paired with a too-short body must also be rejected
+        // (the exact-length check guards `Vec::with_capacity(m)`), not panic.
+        let mut short = vec![12u8];
+        short.extend_from_slice(&3600u64.to_le_bytes());
+        assert!(SlidingHyperLogLog::deserialize(&short).is_err());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// SlidingHyperLogLog estimates set cardinality over its whole history
+// (`estimate_total`) and has a working serialize/deserialize round-trip, so it
+// satisfies `CardinalityEstimate` and `Serializable`. `Update` is deliberately
+// NOT implemented: the meaningful ingest is `update(item, timestamp)` — the
+// windowed time dimension is intrinsic — and the plain `Update` shape has no
+// timestamp, so adopting it would silently collapse every event to one instant.
+// ---------------------------------------------------------------------------
+use crate::common::{CardinalityEstimate, Serializable};
+
+impl CardinalityEstimate for SlidingHyperLogLog {
+    fn estimate_cardinality(&self) -> f64 {
+        self.estimate_total()
+    }
+}
+
+impl Serializable for SlidingHyperLogLog {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(<Self as Sketch>::serialize(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        <Self as Sketch>::deserialize(bytes)
+    }
 }

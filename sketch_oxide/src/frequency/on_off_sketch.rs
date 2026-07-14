@@ -201,3 +201,20 @@ mod tests {
         assert!(!hits.iter().any(|(k, _)| *k == b"never"));
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl Update<[u8]> for OnOffSketch {
+    fn update(&mut self, item: &[u8]) {
+        OnOffSketch::update(self, item);
+    }
+}
+
+// The per-item integer estimate here is item *persistence* (distinct periods
+// seen), which is exactly the point-query capability for this sketch.
+impl PointQuery<[u8]> for OnOffSketch {
+    fn query(&self, item: &[u8]) -> u64 {
+        self.persistence(item)
+    }
+}

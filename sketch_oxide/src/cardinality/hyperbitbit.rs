@@ -137,3 +137,22 @@ mod tests {
         );
     }
 }
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Update};
+    use std::hash::Hash;
+
+    impl<T: Hash> Update<T> for HyperBitBit {
+        fn update(&mut self, item: &T) {
+            self.add(item);
+        }
+    }
+
+    impl CardinalityEstimate for HyperBitBit {
+        fn estimate_cardinality(&self) -> f64 {
+            self.estimate()
+        }
+    }
+}

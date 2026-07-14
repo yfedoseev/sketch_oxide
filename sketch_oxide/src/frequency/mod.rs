@@ -61,3 +61,36 @@ pub use sticky_sampling::StickySampling;
 pub use tower_sketch::TowerSketch;
 pub use unbiased_space_saving::UnbiasedSpaceSaving;
 pub use waving_sketch::WavingSketch;
+
+#[cfg(test)]
+mod capability_smoke_tests {
+    use crate::common::capabilities::{PointQuery, Update};
+    use crate::frequency::{FcmSketch, StableSketch, TowerSketch};
+
+    /// Generic pipeline over ANY byte-keyed frequency sketch that adopted the new
+    /// `Update` + `PointQuery` capability traits — the composition the trait split
+    /// is meant to enable. It ingests via `Update` and reads back via `PointQuery`
+    /// without naming a concrete type.
+    fn hammer<S: Update<[u8]> + PointQuery<[u8]>>(sketch: &mut S, key: &[u8], times: usize) -> u64 {
+        for _ in 0..times {
+            sketch.update(key);
+        }
+        sketch.query(key)
+    }
+
+    #[test]
+    fn frequency_capability_traits_smoke() {
+        let key = b"capability-adoption".as_slice();
+
+        // Count-Min-family: never underestimates.
+        let mut fcm = FcmSketch::new(4, 256, 256).unwrap();
+        assert!(hammer(&mut fcm, key, 50) >= 50);
+
+        let mut tower = TowerSketch::new(256).unwrap();
+        assert!(hammer(&mut tower, key, 50) >= 50);
+
+        // One-sided estimator: never exceeds the true count, but records it here.
+        let mut stable = StableSketch::new(4, 256).unwrap();
+        assert!(hammer(&mut stable, key, 50) >= 1);
+    }
+}

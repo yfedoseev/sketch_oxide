@@ -22,6 +22,7 @@
 /// assert_eq!(diff.to_remove.len(), 1);
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SetDifference {
     /// Items (key-value pairs) that should be inserted into the target set
     pub to_insert: Vec<(Vec<u8>, Vec<u8>)>,
@@ -103,5 +104,17 @@ mod tests {
         let diff = SetDifference::new();
         let debug_str = format!("{:?}", diff);
         assert!(debug_str.contains("SetDifference"));
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_round_trip() {
+        let diff = SetDifference::with_changes(
+            vec![(b"k".to_vec(), b"v".to_vec())],
+            vec![(b"x".to_vec(), b"y".to_vec())],
+        );
+        let json = serde_json::to_string(&diff).unwrap();
+        let back: SetDifference = serde_json::from_str(&json).unwrap();
+        assert_eq!(diff, back);
     }
 }

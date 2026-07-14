@@ -101,7 +101,7 @@ impl NitroSketch {
             self.inner.update_sampled(&val.to_le_bytes());
         } else if let Ok(val) = item.extract::<String>() {
             self.inner.update_sampled(val.as_bytes());
-        } else if let Ok(b) = item.downcast::<PyBytes>() {
+        } else if let Ok(b) = item.cast::<PyBytes>() {
             self.inner.update_sampled(b.as_bytes());
         } else {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -135,7 +135,7 @@ impl NitroSketch {
             Ok(self.inner.query(&val.to_le_bytes()))
         } else if let Ok(val) = item.extract::<String>() {
             Ok(self.inner.query(val.as_bytes()))
-        } else if let Ok(b) = item.downcast::<PyBytes>() {
+        } else if let Ok(b) = item.cast::<PyBytes>() {
             Ok(self.inner.query(b.as_bytes()))
         } else {
             Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -186,8 +186,8 @@ impl NitroSketch {
     ///     >>> print(f"Sampled: {stats['sampled_count']}, Total: {stats['total_items_estimated']}")
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("sample_rate", stats.sample_rate)?;
             dict.set_item("sampled_count", stats.sampled_count)?;
             dict.set_item("unsampled_count", stats.unsampled_count)?;

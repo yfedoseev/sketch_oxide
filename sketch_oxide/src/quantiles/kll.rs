@@ -49,7 +49,7 @@
 //! println!("Median: {:?}, P99: {:?}", median, p99);
 //! ```
 
-use crate::common::{Mergeable, Sketch, SketchError};
+use crate::common::{Mergeable, ReadCursor, Sketch, SketchError};
 
 /// KLL Sketch for quantile estimation
 ///
@@ -223,7 +223,7 @@ impl KllSketch {
 
         while level < self.levels.len() && self.levels[level].len() >= self.level_capacity(level) {
             // Sort level if needed
-            self.levels[level].sort_by(|a, b| a.partial_cmp(b).unwrap());
+            self.levels[level].sort_by(|a, b| a.total_cmp(b));
 
             // Select every other item (compaction)
             let compacted: Vec<f64> = self.levels[level]
@@ -252,7 +252,7 @@ impl KllSketch {
     fn ensure_sorted(&mut self) {
         if self.needs_sort {
             for level in &mut self.levels {
-                level.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                level.sort_by(|a, b| a.total_cmp(b));
             }
             self.needs_sort = false;
         }
@@ -307,7 +307,7 @@ impl KllSketch {
         }
 
         // Sort by value
-        items.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        items.sort_by(|a, b| a.0.total_cmp(&b.0));
 
         // Find the item at the target rank
         let target = (rank * self.n as f64) as u64;
@@ -380,7 +380,7 @@ impl KllSketch {
         }
 
         // Sort by value
-        items.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        items.sort_by(|a, b| a.0.total_cmp(&b.0));
 
         // Compute cumulative ranks
         let mut result = Vec::with_capacity(items.len());
@@ -422,45 +422,25 @@ impl KllSketch {
 
     /// Deserializes a KLL Sketch from bytes
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, SketchError> {
-        if bytes.len() < 28 {
-            return Err(SketchError::DeserializationError(
-                "Insufficient data for KLL header".to_string(),
-            ));
-        }
+        // Panic-free bounds-checked parsing (fable5 doc 05 #1): the previous
+        // code used `bytes[o..o+8].try_into().unwrap()` and `o + num_items * 8`
+        // which overflows/panics on crafted input.
+        let mut cur = ReadCursor::new(bytes);
 
-        let k = u16::from_le_bytes(bytes[0..2].try_into().unwrap());
-        let n = u64::from_le_bytes(bytes[2..10].try_into().unwrap());
-        let min_value = f64::from_le_bytes(bytes[10..18].try_into().unwrap());
-        let max_value = f64::from_le_bytes(bytes[18..26].try_into().unwrap());
-        let num_levels = u16::from_le_bytes(bytes[26..28].try_into().unwrap()) as usize;
+        let k = u16::from_le_bytes(cur.read_array::<2>()?);
+        let n = cur.read_u64_le()?;
+        let min_value = cur.read_f64_le()?;
+        let max_value = cur.read_f64_le()?;
+        let num_levels = u16::from_le_bytes(cur.read_array::<2>()?) as usize;
 
-        let mut offset = 28;
         let mut levels = Vec::with_capacity(num_levels);
-
         for _ in 0..num_levels {
-            if offset + 4 > bytes.len() {
-                return Err(SketchError::DeserializationError(
-                    "Truncated level data".to_string(),
-                ));
-            }
-
-            let num_items =
-                u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap()) as usize;
-            offset += 4;
-
-            if offset + num_items * 8 > bytes.len() {
-                return Err(SketchError::DeserializationError(
-                    "Truncated item data".to_string(),
-                ));
-            }
-
+            // Each item is 8 bytes (f64); the u32 count is validated against the tail.
+            let num_items = cur.read_u32_len_prefixed_count(8)?;
             let mut level = Vec::with_capacity(num_items);
             for _ in 0..num_items {
-                let item = f64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
-                level.push(item);
-                offset += 8;
+                level.push(cur.read_f64_le()?);
             }
-
             levels.push(level);
         }
 
@@ -547,9 +527,66 @@ impl Mergeable for KllSketch {
 /// Type alias for float sketches (common use case)
 pub type KllFloatSketch = KllSketch;
 
+// Capability-trait adoptions (fable5 doc 01 F3): delegate to inherent methods.
+// (Also covers the `KllFloatSketch` alias, which is `KllSketch`.)
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{Serializable, Update};
+
+    impl Update<f64> for KllSketch {
+        fn update(&mut self, item: &f64) {
+            KllSketch::update(self, *item);
+        }
+    }
+
+    // QuantileQuery not implemented: quantile takes &mut self (needs finalize() refactor)
+
+    impl Serializable for KllSketch {
+        fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+            Ok(<Self as crate::common::Sketch>::serialize(self))
+        }
+        fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+            <Self as crate::common::Sketch>::deserialize(bytes)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deserialize_rejects_truncated_and_oversized_levels_without_panic() {
+        // Regression (fable5 doc 05 #1): unchecked slices + `num_items * 8`.
+        // Header (28 bytes) claims 1 level with u32::MAX items but no data.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&200u16.to_le_bytes()); // k
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // n
+        bytes.extend_from_slice(&0.0f64.to_le_bytes()); // min
+        bytes.extend_from_slice(&0.0f64.to_le_bytes()); // max
+        bytes.extend_from_slice(&1u16.to_le_bytes()); // num_levels = 1
+        bytes.extend_from_slice(&u32::MAX.to_le_bytes()); // num_items huge
+        assert!(
+            KllSketch::from_bytes(&bytes).is_err(),
+            "must error, not panic/OOM"
+        );
+
+        // Truncated header
+        assert!(KllSketch::from_bytes(&[0u8; 5]).is_err());
+    }
+
+    #[test]
+    fn deserialize_round_trips_populated_kll() {
+        let mut kll = KllSketch::new(200).unwrap();
+        for i in 0..2000 {
+            kll.update(i as f64);
+        }
+        let bytes = kll.to_bytes();
+        let mut restored = KllSketch::from_bytes(&bytes).expect("round-trip");
+        let a = kll.quantile(0.5).unwrap();
+        let b = restored.quantile(0.5).unwrap();
+        assert!((a - b).abs() < 1e-9, "median differs after round-trip");
+    }
 
     #[test]
     fn test_new_kll() {

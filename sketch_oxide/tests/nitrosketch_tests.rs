@@ -5,9 +5,9 @@
 //! through selective sampling and background synchronization.
 
 use proptest::prelude::*;
+use sketch_oxide::Sketch;
 use sketch_oxide::cardinality::HyperLogLog;
 use sketch_oxide::frequency::{CountMinSketch, NitroSketch};
-use sketch_oxide::Sketch;
 
 // ============================================================================
 // PHASE 1: Construction Tests (4 tests)

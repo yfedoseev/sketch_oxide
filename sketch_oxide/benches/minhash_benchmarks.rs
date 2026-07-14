@@ -5,9 +5,9 @@
 //! - Jaccard similarity: <1µs (k comparisons)
 //! - Merge: <1µs (k min operations)
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use sketch_oxide::similarity::MinHash;
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::Mergeable;
+use sketch_oxide::similarity::MinHash;
 
 fn bench_construction(c: &mut Criterion) {
     let mut group = c.benchmark_group("minhash_construction");

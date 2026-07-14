@@ -22,7 +22,7 @@
 //! - Database query optimization
 //! - Real-time analytics systems
 
-use crate::common::{validation, Mergeable, Sketch, SketchError};
+use crate::common::{Mergeable, Sketch, SketchError, validation};
 use std::hash::{Hash, Hasher};
 use twox_hash::XxHash64;
 
@@ -69,6 +69,24 @@ pub struct CountMinSketch {
 }
 
 impl CountMinSketch {
+    /// Computes two 64-bit hashes for an item with a single pass over its bytes,
+    /// used as the `(h1, h2)` base for Kirsch–Mitzenmacher row derivation.
+    ///
+    /// The item is hashed once; the second value is a strong finalizer
+    /// (splitmix64-style) of the first, forced odd so the `h1 + i*h2` stride
+    /// visits distinct columns across rows under the power-of-two mask.
+    #[inline]
+    fn base_hashes<T: Hash>(item: &T) -> (u64, u64) {
+        let mut hasher = XxHash64::with_seed(0);
+        item.hash(&mut hasher);
+        let h1 = hasher.finish();
+        let mut z = h1.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        let h2 = (z ^ (z >> 31)) | 1;
+        (h1, h2)
+    }
+
     /// Create a new Count-Min Sketch with specified error bounds
     ///
     /// # Arguments
@@ -158,28 +176,28 @@ impl CountMinSketch {
     /// ```
     #[inline]
     pub fn update<T: Hash>(&mut self, item: &T) {
-        // Hash item once
-        let mut hasher = XxHash64::with_seed(0);
-        item.hash(&mut hasher);
+        // Hash the item ONCE, then derive all d columns via Kirsch–Mitzenmacher
+        // double hashing (`h1 + i*h2`). The old code re-ran the xxh64 finalizer
+        // per row (`finish()` then `write(0x7B)`), a serial dependency chain
+        // that defeated ILP/prefetch (fable5 doc 02 #3).
+        let (h1, h2) = Self::base_hashes(item);
 
         let width = self.width;
         let mask = self.mask;
         let depth = self.depth;
 
-        // Derive d positions from single hash
+        let mut col_hash = h1;
         for row_idx in 0..depth {
-            let hash = hasher.finish();
-            let col_idx = (hash as usize) & mask;
+            let col_idx = (col_hash as usize) & mask;
             let idx = row_idx * width + col_idx;
 
-            // SAFETY: idx is always in bounds due to mask operation
+            // SAFETY: col_idx <= mask < width and row_idx < depth, so idx is in bounds.
             unsafe {
                 *self.table.get_unchecked_mut(idx) =
                     self.table.get_unchecked(idx).saturating_add(1);
             }
 
-            // Mix state for next row
-            hasher.write(&[0x7B]);
+            col_hash = col_hash.wrapping_add(h2);
         }
     }
 
@@ -215,35 +233,28 @@ impl CountMinSketch {
     /// ```
     #[inline]
     pub fn estimate<T: Hash>(&self, item: &T) -> u64 {
-        // Hash item once
-        let mut hasher = XxHash64::with_seed(0);
-        item.hash(&mut hasher);
+        // Must mirror `update`'s column derivation exactly.
+        let (h1, h2) = Self::base_hashes(item);
 
         let width = self.width;
         let mask = self.mask;
         let depth = self.depth;
         let mut min_count = u64::MAX;
 
-        // Derive d positions from single hash
+        let mut col_hash = h1;
         for row_idx in 0..depth {
-            let hash = hasher.finish();
-            let col_idx = (hash as usize) & mask;
+            let col_idx = (col_hash as usize) & mask;
             let idx = row_idx * width + col_idx;
 
-            // SAFETY: idx is always in bounds due to mask operation
+            // SAFETY: col_idx <= mask < width and row_idx < depth, so idx is in bounds.
             let count = unsafe { *self.table.get_unchecked(idx) };
             min_count = min_count.min(count);
 
-            // Mix state for next row
-            hasher.write(&[0x7B]);
+            col_hash = col_hash.wrapping_add(h2);
         }
 
         // If all counters are still u64::MAX, the sketch is empty
-        if min_count == u64::MAX {
-            0
-        } else {
-            min_count
-        }
+        if min_count == u64::MAX { 0 } else { min_count }
     }
 
     /// Get the width of the sketch
@@ -352,7 +363,16 @@ impl Sketch for CountMinSketch {
         );
         offset += 8;
 
-        // Validate width and depth dimensions
+        // Validate width and depth on the full usize values BEFORE any lossy
+        // `as u32` cast: a crafted width like `2^32 + 5` truncates to a small
+        // u32 that passes `validate_width_depth`, then drives a huge
+        // `depth * width * 8` (fable5 doc 01 F2). Cap at the same 2^20 bound.
+        const MAX_DIM_USIZE: usize = 1 << 20;
+        if width == 0 || depth == 0 || width > MAX_DIM_USIZE || depth > MAX_DIM_USIZE {
+            return Err(SketchError::DeserializationError(
+                "width/depth out of range".to_string(),
+            ));
+        }
         validation::validate_width_depth(width as u32, depth as u32)?;
 
         // Read parameters
@@ -377,16 +397,23 @@ impl Sketch for CountMinSketch {
         // Compute mask
         let mask = width - 1;
 
-        // Read table with validated size
-        let expected_table_size = depth * width * 8;
+        // Read table with validated size (checked arithmetic; dims are already
+        // bounded by MAX_DIM_USIZE above so these cannot overflow, but keep it
+        // explicit rather than relying on that invariant).
+        let cells = depth
+            .checked_mul(width)
+            .ok_or_else(|| SketchError::DeserializationError("table size overflow".to_string()))?;
+        let expected_table_size = cells
+            .checked_mul(8)
+            .ok_or_else(|| SketchError::DeserializationError("table size overflow".to_string()))?;
         if bytes.len() < offset + expected_table_size {
             return Err(SketchError::DeserializationError(
                 "insufficient bytes for table".to_string(),
             ));
         }
 
-        let mut table = Vec::with_capacity(depth * width);
-        for _ in 0..(depth * width) {
+        let mut table = Vec::with_capacity(cells);
+        for _ in 0..cells {
             let count = u64::from_le_bytes(
                 bytes[offset..offset + 8]
                     .try_into()
@@ -475,6 +502,52 @@ impl Mergeable for CountMinSketch {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deserialize_rejects_truncating_dims_without_panic() {
+        // Regression (fable5 doc 01 F2): a width like `2^32 + 5` truncates to a
+        // small u32 that passes validate_width_depth, then drives a huge table
+        // size. Must be rejected on the full usize value.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&((1usize << 32) + 5).to_le_bytes()); // width
+        bytes.extend_from_slice(&4usize.to_le_bytes()); // depth
+        bytes.extend_from_slice(&0.01f64.to_le_bytes()); // epsilon
+        bytes.extend_from_slice(&0.01f64.to_le_bytes()); // delta
+        bytes.extend_from_slice(&[0u8; 8]); // partial table
+        assert!(
+            CountMinSketch::deserialize(&bytes).is_err(),
+            "must error, not panic/OOM"
+        );
+
+        // Truncated header
+        assert!(CountMinSketch::deserialize(&[0u8; 16]).is_err());
+    }
+
+    #[test]
+    fn km_derivation_never_underestimates_and_round_trips() {
+        // After switching to Kirsch–Mitzenmacher row derivation, the core CMS
+        // guarantee (estimate >= true count) and serialization must still hold.
+        let mut cms = CountMinSketch::new(0.001, 0.01).unwrap();
+        let mut truth = std::collections::HashMap::new();
+        for i in 0..5000u64 {
+            let key = i % 500; // 500 distinct keys, varying frequencies
+            cms.update(&key);
+            *truth.entry(key).or_insert(0u64) += 1;
+        }
+        for (&key, &count) in &truth {
+            assert!(
+                cms.estimate(&key) >= count,
+                "CMS underestimated key {key}: est {} < true {count}",
+                cms.estimate(&key)
+            );
+        }
+        // Round-trip preserves estimates.
+        let bytes = cms.serialize();
+        let restored = CountMinSketch::deserialize(&bytes).unwrap();
+        for &key in truth.keys() {
+            assert_eq!(cms.estimate(&key), restored.estimate(&key));
+        }
+    }
 
     #[test]
     fn test_basic_construction() {

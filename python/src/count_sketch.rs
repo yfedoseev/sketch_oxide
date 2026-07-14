@@ -144,9 +144,8 @@ impl CountSketch {
     ///
     /// Returns:
     ///     bytes: Serialized sketch data
-    fn serialize(&self) -> PyObject {
-        let py = unsafe { pyo3::Python::assume_gil_acquired() };
-        PyBytes::new_bound(py, &self.inner.serialize()).into()
+    fn serialize(&self, py: Python<'_>) -> Py<PyAny> {
+        PyBytes::new(py, &self.inner.serialize()).into()
     }
 
     /// Deserialize a sketch from bytes
@@ -161,7 +160,7 @@ impl CountSketch {
     ///     ValueError: If data is invalid
     #[staticmethod]
     fn deserialize(data: &Bound<'_, PyAny>) -> PyResult<Self> {
-        let bytes = if let Ok(b) = data.downcast::<PyBytes>() {
+        let bytes = if let Ok(b) = data.cast::<PyBytes>() {
             b.as_bytes().to_vec()
         } else {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -241,10 +240,10 @@ impl CountSketch {
     /// Args:
     ///     items: Iterable of tuples (item, delta) or items (delta defaults to 1)
     fn update_batch(&mut self, items: &Bound<'_, PyAny>) -> PyResult<()> {
-        let items_list: &Bound<'_, PyList> = items.downcast()?;
+        let items_list: &Bound<'_, PyList> = items.cast()?;
         for item_tuple in items_list {
             // Try to unpack as (item, delta) tuple first
-            if let Ok(tuple) = item_tuple.downcast::<pyo3::types::PyTuple>() {
+            if let Ok(tuple) = item_tuple.cast::<pyo3::types::PyTuple>() {
                 if tuple.len() == 2 {
                     let item = &tuple.get_item(0)?;
                     let delta: i64 = tuple.get_item(1)?.extract()?;
@@ -268,7 +267,7 @@ impl CountSketch {
     /// Returns:
     ///     list: List of estimated frequencies (can be negative), one per item
     fn estimate_batch(&self, items: &Bound<'_, PyAny>) -> PyResult<Vec<i64>> {
-        let items_list: &Bound<'_, PyList> = items.downcast()?;
+        let items_list: &Bound<'_, PyList> = items.cast()?;
         let mut estimates = Vec::new();
         for item in items_list {
             estimates.push(self.estimate(&item)?);

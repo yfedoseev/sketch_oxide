@@ -77,11 +77,7 @@ impl<T: Clone> ReservoirSamplingL<T> {
     #[inline]
     fn unit(&mut self) -> f64 {
         let u: f64 = self.rng.random();
-        if u > 0.0 {
-            u
-        } else {
-            f64::MIN_POSITIVE
-        }
+        if u > 0.0 { u } else { f64::MIN_POSITIVE }
     }
 
     /// Computes the jump to the next accepted index after a replacement.

@@ -161,3 +161,9 @@ mod tests {
         assert!((s.spread(&20u64.to_le_bytes()) - 200.0).abs() < 60.0);
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+// No capability trait matches cleanly:
+//  * ingest is `update(&mut self, src: &[u8], dst: &[u8])` — a (source,
+//    destination) pair, not the single-item `Update<T>` shape.
+//  * `spread` returns `f64` (an HLL-based fan-out estimate), not `u64`.

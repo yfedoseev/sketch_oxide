@@ -52,11 +52,30 @@ impl BloomFilter {
     /// # Panics
     /// Panics if `n` is 0 or `fpr` is not in range (0, 1)
     pub fn new(n: usize, fpr: f64) -> Self {
-        assert!(n > 0, "Expected number of elements must be > 0");
-        assert!(
-            fpr > 0.0 && fpr < 1.0,
-            "False positive rate must be in (0, 1)"
-        );
+        Self::try_new(n, fpr).expect("invalid Bloom filter parameters")
+    }
+
+    /// Creates a Bloom filter, returning an error on invalid parameters instead
+    /// of panicking — the library-wide constructor convention (fable5 doc 01 F4).
+    ///
+    /// # Errors
+    /// Returns `InvalidParameter` if `n == 0` or `fpr` is not in `(0, 1)`.
+    pub fn try_new(n: usize, fpr: f64) -> Result<Self, crate::common::SketchError> {
+        use crate::common::SketchError;
+        if n == 0 {
+            return Err(SketchError::InvalidParameter {
+                param: "n".to_string(),
+                value: n.to_string(),
+                constraint: "must be greater than 0".to_string(),
+            });
+        }
+        if !(fpr > 0.0 && fpr < 1.0) {
+            return Err(SketchError::InvalidParameter {
+                param: "fpr".to_string(),
+                value: fpr.to_string(),
+                constraint: "must be in (0, 1)".to_string(),
+            });
+        }
 
         // Optimal bit count: m = -n * ln(fpr) / (ln(2)^2)
         let m = (-(n as f64) * fpr.ln() / (std::f64::consts::LN_2.powi(2))).ceil() as usize;
@@ -67,12 +86,12 @@ impl BloomFilter {
 
         let num_words = m.div_ceil(64); // Round up to nearest 64 bits
 
-        Self {
+        Ok(Self {
             bits: vec![0u64; num_words],
             k,
             m,
             n,
-        }
+        })
     }
 
     /// Creates a Bloom filter with specific parameters
@@ -216,8 +235,21 @@ impl BloomFilter {
         let m = usize::from_le_bytes(bytes[8..16].try_into().unwrap());
         let k = usize::from_le_bytes(bytes[16..24].try_into().unwrap());
 
+        // Bound `m` (the bit count) read from untrusted input BEFORE it drives
+        // any allocation or size arithmetic. A crafted `m` near usize::MAX would
+        // overflow `num_words * 8` — under overflow-checks=true that aborts the
+        // process (DoS). Cap at 2^32 bits (<=512 MiB of backing storage).
+        const MAX_M_BITS: usize = 1 << 32;
+        if m > MAX_M_BITS {
+            return Err("Invalid byte array size");
+        }
+
         let num_words = m.div_ceil(64);
-        let expected_size = 24 + num_words * 8;
+        // Checked arithmetic so overflow returns an Err instead of aborting.
+        let expected_size = num_words
+            .checked_mul(8)
+            .and_then(|words_bytes| words_bytes.checked_add(24))
+            .ok_or("Invalid byte array size")?;
 
         if bytes.len() != expected_size {
             return Err("Invalid byte array size");
@@ -259,19 +291,38 @@ impl BloomFilter {
         estimate.round() as usize
     }
 
-    /// Merges another Bloom filter into this one (union operation)
+    /// Merges another Bloom filter into this one (union operation).
     ///
     /// # Panics
-    /// Panics if the filters have different sizes
+    /// Panics if the filters have different sizes. Prefer [`try_merge`](Self::try_merge),
+    /// which returns a `Result` (the library-wide merge convention — fable5 doc 01 F4);
+    /// this method is retained for backward compatibility and delegates to it.
     pub fn merge(&mut self, other: &Self) {
-        assert_eq!(
-            self.bits.len(),
-            other.bits.len(),
-            "Bloom filters must have same size to merge"
-        );
+        self.try_merge(other)
+            .expect("Bloom filters must have same size to merge");
+    }
+
+    /// Merges another Bloom filter into this one (union), returning an error
+    /// instead of panicking on a size mismatch — matching the `Mergeable::merge`
+    /// convention used across the library (fable5 doc 01 F4).
+    ///
+    /// # Errors
+    /// Returns `IncompatibleSketches` if the two filters have different bit-array
+    /// sizes (they must be built with the same parameters to be mergeable).
+    pub fn try_merge(&mut self, other: &Self) -> Result<(), crate::common::SketchError> {
+        if self.bits.len() != other.bits.len() {
+            return Err(crate::common::SketchError::IncompatibleSketches {
+                reason: format!(
+                    "Bloom filter size mismatch: {} vs {} words",
+                    self.bits.len(),
+                    other.bits.len()
+                ),
+            });
+        }
         for (a, b) in self.bits.iter_mut().zip(other.bits.iter()) {
             *a |= *b;
         }
+        Ok(())
     }
 }
 
@@ -294,6 +345,28 @@ impl std::fmt::Debug for BloomFilter {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn try_new_validates_parameters_instead_of_panicking() {
+        assert!(BloomFilter::try_new(0, 0.01).is_err());
+        assert!(BloomFilter::try_new(1000, 0.0).is_err());
+        assert!(BloomFilter::try_new(1000, 1.0).is_err());
+        assert!(BloomFilter::try_new(1000, 0.01).is_ok());
+    }
+
+    #[test]
+    fn try_merge_errors_on_size_mismatch_and_unions_on_match() {
+        let mut a = BloomFilter::new(1000, 0.01);
+        let mut b = BloomFilter::new(1000, 0.01);
+        a.insert(b"x");
+        b.insert(b"y");
+        assert!(a.try_merge(&b).is_ok());
+        assert!(a.contains(b"x") && a.contains(b"y"));
+
+        // Different size -> Err, not panic.
+        let differently_sized = BloomFilter::new(5000, 0.01);
+        assert!(a.try_merge(&differently_sized).is_err());
+    }
 
     #[test]
     fn test_new() {
@@ -472,13 +545,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Expected number of elements must be > 0")]
+    #[should_panic(expected = "param: \"n\"")]
     fn test_new_panics_on_zero_n() {
         BloomFilter::new(0, 0.01);
     }
 
     #[test]
-    #[should_panic(expected = "False positive rate must be in (0, 1)")]
+    #[should_panic(expected = "param: \"fpr\"")]
     fn test_new_panics_on_invalid_fpr() {
         BloomFilter::new(100, 1.5);
     }
@@ -493,5 +566,28 @@ mod tests {
         assert!(debug_str.contains("n"));
         assert!(debug_str.contains("m"));
         assert!(debug_str.contains("k"));
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_oversized_m_without_panic() {
+        // Craft a header claiming an enormous bit count `m` with a short tail.
+        // Must return Err, never panic, overflow-abort, or attempt a huge alloc.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // n
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // m (oversized)
+        bytes.extend_from_slice(&1u64.to_le_bytes()); // k
+        // no bit-array body follows
+        assert!(BloomFilter::from_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_truncated_body() {
+        // `m` within the cap but the declared body is missing.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&1000u64.to_le_bytes()); // n
+        bytes.extend_from_slice(&100_000u64.to_le_bytes()); // m
+        bytes.extend_from_slice(&7u64.to_le_bytes()); // k
+        // header only, no words
+        assert!(BloomFilter::from_bytes(&bytes).is_err());
     }
 }

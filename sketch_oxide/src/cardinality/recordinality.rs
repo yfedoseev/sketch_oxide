@@ -191,3 +191,21 @@ mod tests {
         assert_eq!(rec.records(), 0);
     }
 }
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Update};
+
+    impl Update<[u8]> for Recordinality {
+        fn update(&mut self, item: &[u8]) {
+            self.insert(item);
+        }
+    }
+
+    impl CardinalityEstimate for Recordinality {
+        fn estimate_cardinality(&self) -> f64 {
+            self.estimate()
+        }
+    }
+}

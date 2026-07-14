@@ -64,9 +64,9 @@ impl ReservoirSampling {
     ///
     /// Returns:
     ///     list: List of sampled items (at most k items)
-    fn sample<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
+    fn sample<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         let items: Vec<&String> = self.inner.sample().iter().collect();
-        PyList::new_bound(py, items)
+        PyList::new(py, items)
     }
 
     /// Check if the reservoir is empty

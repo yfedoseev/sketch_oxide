@@ -12,13 +12,13 @@
 //! 9. Frequent Items - Top-K heavy hitters
 
 use sketch_oxide::{
+    Sketch, // Import the Sketch trait for update() and estimate() methods
     cardinality::{CpcSketch, ThetaSketch, UltraLogLog},
     error::SketchError,
     frequency::{CountMinSketch, FrequentItems},
     membership::BinaryFuseFilter,
     quantiles::{DDSketch, ReqMode, ReqSketch},
     similarity::MinHash,
-    Sketch, // Import the Sketch trait for update() and estimate() methods
 };
 
 fn main() -> Result<(), SketchError> {

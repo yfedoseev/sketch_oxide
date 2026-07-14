@@ -3,8 +3,8 @@
 //! This example demonstrates using MinHash for document similarity detection,
 //! a common real-world use case for near-duplicate detection and clustering.
 
-use sketch_oxide::similarity::MinHash;
 use sketch_oxide::Mergeable;
+use sketch_oxide::similarity::MinHash;
 
 fn main() {
     println!("=== MinHash Document Similarity Demo ===\n");

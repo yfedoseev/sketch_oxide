@@ -93,7 +93,7 @@ impl VacuumFilter {
             self.inner
                 .insert(val.as_bytes())
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
-        } else if let Ok(b) = item.downcast::<PyBytes>() {
+        } else if let Ok(b) = item.cast::<PyBytes>() {
             self.inner
                 .insert(b.as_bytes())
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
@@ -125,7 +125,7 @@ impl VacuumFilter {
             Ok(self.inner.contains(&val.to_le_bytes()))
         } else if let Ok(val) = item.extract::<String>() {
             Ok(self.inner.contains(val.as_bytes()))
-        } else if let Ok(b) = item.downcast::<PyBytes>() {
+        } else if let Ok(b) = item.cast::<PyBytes>() {
             Ok(self.inner.contains(b.as_bytes()))
         } else {
             Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -161,7 +161,7 @@ impl VacuumFilter {
             self.inner
                 .delete(val.as_bytes())
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
-        } else if let Ok(b) = item.downcast::<PyBytes>() {
+        } else if let Ok(b) = item.cast::<PyBytes>() {
             self.inner
                 .delete(b.as_bytes())
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
@@ -268,8 +268,8 @@ impl VacuumFilter {
     ///     >>> print(f"Memory: {stats['memory_bits'] // 8} bytes")
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("capacity", stats.capacity)?;
             dict.set_item("num_items", stats.num_items)?;
             dict.set_item("load_factor", stats.load_factor)?;

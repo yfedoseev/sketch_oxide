@@ -8,7 +8,7 @@
 //! 5. Decay operation
 //! 6. Throughput under load
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::frequency::HeavyKeeper;
 
 /// Benchmark 1: Single item update latency

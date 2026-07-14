@@ -5,9 +5,9 @@
 //! - Estimate: <100ns (k lookups + min)
 //! - Merge: <1ms
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use sketch_oxide::frequency::CountMinSketch;
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::Mergeable;
+use sketch_oxide::frequency::CountMinSketch;
 
 fn bench_construction(c: &mut Criterion) {
     let mut group = c.benchmark_group("count_min_construction");

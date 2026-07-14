@@ -44,25 +44,25 @@ fn test_with_params() {
 }
 
 #[test]
-#[should_panic(expected = "Expected number of elements must be > 0")]
+#[should_panic(expected = "param: \"n\"")]
 fn test_invalid_n_zero() {
     BloomFilter::new(0, 0.01);
 }
 
 #[test]
-#[should_panic(expected = "False positive rate must be in (0, 1)")]
+#[should_panic(expected = "param: \"fpr\"")]
 fn test_invalid_fpr_zero() {
     BloomFilter::new(100, 0.0);
 }
 
 #[test]
-#[should_panic(expected = "False positive rate must be in (0, 1)")]
+#[should_panic(expected = "param: \"fpr\"")]
 fn test_invalid_fpr_one() {
     BloomFilter::new(100, 1.0);
 }
 
 #[test]
-#[should_panic(expected = "False positive rate must be in (0, 1)")]
+#[should_panic(expected = "param: \"fpr\"")]
 fn test_invalid_fpr_negative() {
     BloomFilter::new(100, -0.1);
 }

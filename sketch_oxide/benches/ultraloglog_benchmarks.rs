@@ -3,7 +3,7 @@
 //! These benchmarks measure the performance of UltraLogLog operations
 //! to ensure they meet the sub-microsecond targets.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::cardinality::UltraLogLog;
 use sketch_oxide::{Mergeable, Sketch};
 

@@ -60,11 +60,30 @@ impl BlockedBloomFilter {
     /// # Panics
     /// Panics if `n` is 0 or `fpr` is not in range (0, 1)
     pub fn new(n: usize, fpr: f64) -> Self {
-        assert!(n > 0, "Expected number of elements must be > 0");
-        assert!(
-            fpr > 0.0 && fpr < 1.0,
-            "False positive rate must be in (0, 1)"
-        );
+        Self::try_new(n, fpr).expect("invalid Blocked Bloom filter parameters")
+    }
+
+    /// Creates a filter, returning an error on invalid parameters instead of
+    /// panicking — the library-wide constructor convention (fable5 doc 01 F4).
+    ///
+    /// # Errors
+    /// Returns `InvalidParameter` if `n == 0` or `fpr` is not in `(0, 1)`.
+    pub fn try_new(n: usize, fpr: f64) -> Result<Self, crate::common::SketchError> {
+        use crate::common::SketchError;
+        if n == 0 {
+            return Err(SketchError::InvalidParameter {
+                param: "n".to_string(),
+                value: n.to_string(),
+                constraint: "must be greater than 0".to_string(),
+            });
+        }
+        if !(fpr > 0.0 && fpr < 1.0) {
+            return Err(SketchError::InvalidParameter {
+                param: "fpr".to_string(),
+                value: fpr.to_string(),
+                constraint: "must be in (0, 1)".to_string(),
+            });
+        }
 
         // Calculate total bits needed (same formula as standard Bloom)
         let total_bits =
@@ -78,12 +97,12 @@ impl BlockedBloomFilter {
         let k = ((total_bits as f64 / n as f64) * std::f64::consts::LN_2).ceil() as usize;
         let k = k.clamp(1, BITS_PER_BLOCK / 2); // At least 1, at most half the block size
 
-        Self {
+        Ok(Self {
             blocks: vec![[0u64; U64_PER_BLOCK]; num_blocks],
             num_blocks,
             k,
             n,
-        }
+        })
     }
 
     /// Creates a Blocked Bloom filter with specific parameters
@@ -107,18 +126,16 @@ impl BlockedBloomFilter {
 
     /// Inserts an element into the filter
     pub fn insert(&mut self, key: &[u8]) {
-        let block_idx = self.hash_block(key);
-
-        // Compute all bit indices first to avoid borrow checker issues
+        // Hash the key ONCE, then derive the block and all k bit positions from
+        // the two halves — previously the key was hashed k+1 times and a
+        // `Vec<usize>` was heap-allocated on every insert (fable5 doc 02 #6).
+        let (h1, h2) = Self::base_hashes(key);
+        let block_idx = self.block_index(h1);
         let k = self.k;
-        let bit_indices: Vec<usize> = (0..k).map(|i| self.hash_within_block(key, i)).collect();
-
-        // Now we can mutably borrow the block
         let block = &mut self.blocks[block_idx];
-        for bit_index in bit_indices {
-            let word_index = bit_index / 64;
-            let bit_offset = bit_index % 64;
-            block[word_index] |= 1u64 << bit_offset;
+        for i in 0..k {
+            let bit_index = Self::bit_in_block(h1, h2, i);
+            block[bit_index / 64] |= 1u64 << (bit_index % 64);
         }
     }
 
@@ -127,15 +144,11 @@ impl BlockedBloomFilter {
     /// Returns `true` if the element might be in the set (may be false positive)
     /// Returns `false` if the element is definitely not in the set (no false negatives)
     pub fn contains(&self, key: &[u8]) -> bool {
-        let block_idx = self.hash_block(key);
-        let block = &self.blocks[block_idx];
-
+        let (h1, h2) = Self::base_hashes(key);
+        let block = &self.blocks[self.block_index(h1)];
         for i in 0..self.k {
-            let bit_index = self.hash_within_block(key, i);
-            let word_index = bit_index / 64;
-            let bit_offset = bit_index % 64;
-
-            if block[word_index] & (1u64 << bit_offset) == 0 {
+            let bit_index = Self::bit_in_block(h1, h2, i);
+            if block[bit_index / 64] & (1u64 << (bit_index % 64)) == 0 {
                 return false;
             }
         }
@@ -199,7 +212,13 @@ impl BlockedBloomFilter {
         let num_blocks = usize::from_le_bytes(bytes[8..16].try_into().unwrap());
         let k = usize::from_le_bytes(bytes[16..24].try_into().unwrap());
 
-        let expected_size = 24 + num_blocks * CACHE_LINE_SIZE;
+        // Checked arithmetic: `num_blocks` is attacker-controlled and
+        // `num_blocks * CACHE_LINE_SIZE` can overflow (aborting under
+        // overflow-checks) before the length check runs (fable5 doc 01 F2).
+        let expected_size = num_blocks
+            .checked_mul(CACHE_LINE_SIZE)
+            .and_then(|b| b.checked_add(24))
+            .ok_or("Invalid byte array size")?;
 
         if bytes.len() != expected_size {
             return Err("Invalid byte array size");
@@ -263,20 +282,28 @@ impl BlockedBloomFilter {
         }
     }
 
-    /// Hash function to determine block index
+    /// Computes the two base hashes for a key in a single pass each (two xxh64
+    /// calls with different seeds), from which the block index and all k bit
+    /// positions are derived via Kirsch–Mitzenmacher double hashing.
     #[inline]
-    fn hash_block(&self, key: &[u8]) -> usize {
+    fn base_hashes(key: &[u8]) -> (u64, u64) {
         use xxhash_rust::xxh64::xxh64;
-        let hash = xxh64(key, 0);
-        (hash as usize) % self.num_blocks
+        (xxh64(key, 0), xxh64(key, 1))
     }
 
-    /// Hash function for bit position within block
+    /// Maps the first hash to a block index using Lemire's fast-range (a
+    /// multiply-shift) instead of a slow `%` (fable5 doc 02 #6).
     #[inline]
-    fn hash_within_block(&self, key: &[u8], seed: usize) -> usize {
-        use xxhash_rust::xxh64::xxh64;
-        let hash = xxh64(key, seed as u64 + 1); // +1 to differentiate from block hash
-        (hash as usize) % BITS_PER_BLOCK
+    fn block_index(&self, h1: u64) -> usize {
+        ((h1 as u128 * self.num_blocks as u128) >> 64) as usize
+    }
+
+    /// Derives the i-th bit position within a 512-bit block via K–M double
+    /// hashing. `BITS_PER_BLOCK` is a power of two, so `% 512` is a mask.
+    #[inline]
+    fn bit_in_block(h1: u64, h2: u64, i: usize) -> usize {
+        let combined = h2.wrapping_add((i as u64).wrapping_mul(h1));
+        (combined as usize) & (BITS_PER_BLOCK - 1)
     }
 }
 
@@ -490,27 +517,39 @@ mod tests {
     }
 
     #[test]
+    fn from_bytes_rejects_overflowing_num_blocks_without_panic() {
+        // Regression (fable5 doc 01 F2): `num_blocks * CACHE_LINE_SIZE` overflow.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&1000usize.to_le_bytes()); // n
+        bytes.extend_from_slice(&usize::MAX.to_le_bytes()); // num_blocks (overflows *64)
+        bytes.extend_from_slice(&7usize.to_le_bytes()); // k
+        bytes.extend_from_slice(&[0u8; 8]); // partial body
+        assert!(BlockedBloomFilter::from_bytes(&bytes).is_err());
+    }
+
+    #[test]
     fn test_single_block_access() {
         // This test verifies that all hash lookups for a single key
         // access only one block
         let mut filter = BlockedBloomFilter::new(100, 0.01);
         filter.insert(b"test_key");
 
-        // The property we're testing: for any key, hash_block should return
-        // the same block index, ensuring all k hash functions operate on
-        // the same cache line
-        let block_idx = filter.hash_block(b"test_key");
+        // The property we're testing: for any key, the derived block index is
+        // in range and stable, ensuring all k hash functions operate on the
+        // same cache line.
+        let (h1, _h2) = BlockedBloomFilter::base_hashes(b"test_key");
+        let block_idx = filter.block_index(h1);
         assert!(block_idx < filter.num_blocks);
     }
 
     #[test]
-    #[should_panic(expected = "Expected number of elements must be > 0")]
+    #[should_panic(expected = "param: \"n\"")]
     fn test_new_panics_on_zero_n() {
         BlockedBloomFilter::new(0, 0.01);
     }
 
     #[test]
-    #[should_panic(expected = "False positive rate must be in (0, 1)")]
+    #[should_panic(expected = "param: \"fpr\"")]
     fn test_new_panics_on_invalid_fpr() {
         BlockedBloomFilter::new(100, 1.5);
     }
@@ -525,5 +564,37 @@ mod tests {
         assert!(debug_str.contains("n"));
         assert!(debug_str.contains("num_blocks"));
         assert!(debug_str.contains("k"));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): express the inherent API via
+// the orthogonal capability traits, delegating to the inherent methods.
+// ---------------------------------------------------------------------------
+use crate::common::SketchError;
+use crate::common::capabilities::*;
+
+impl Update<[u8]> for BlockedBloomFilter {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for BlockedBloomFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        BlockedBloomFilter::contains(self, item)
+    }
+}
+
+impl Serializable for BlockedBloomFilter {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(BlockedBloomFilter::to_bytes(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        // Inherent `from_bytes` uses a `&'static str` error; map it into the
+        // capability's `SketchError` so callers see a uniform error type.
+        BlockedBloomFilter::from_bytes(bytes)
+            .map_err(|e| SketchError::DeserializationError(e.to_string()))
     }
 }

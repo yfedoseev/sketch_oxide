@@ -126,11 +126,7 @@ mod tests {
     fn heavy_oracle(heavy_keys: &'static [&'static [u8]]) -> ClosureOracle<impl Fn(&[u8]) -> f64> {
         ClosureOracle::new(
             move |k: &[u8]| {
-                if heavy_keys.contains(&k) {
-                    1.0
-                } else {
-                    0.0
-                }
+                if heavy_keys.contains(&k) { 1.0 } else { 0.0 }
             },
         )
     }

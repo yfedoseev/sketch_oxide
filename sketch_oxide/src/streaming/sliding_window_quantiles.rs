@@ -164,3 +164,23 @@ mod tests {
         assert!(swq.quantile(0.5).is_none());
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// SlidingWindowQuantiles ingests scalar samples via `update(f64)` and answers
+// rank queries via `quantile(phi) -> Option<f64>`, so it satisfies
+// `Update<f64>` and `QuantileQuery`.
+// ---------------------------------------------------------------------------
+use crate::common::{QuantileQuery, Update};
+
+impl Update<f64> for SlidingWindowQuantiles {
+    fn update(&mut self, item: &f64) {
+        SlidingWindowQuantiles::update(self, *item);
+    }
+}
+
+impl QuantileQuery for SlidingWindowQuantiles {
+    fn quantile(&self, rank: f64) -> Option<f64> {
+        SlidingWindowQuantiles::quantile(self, rank)
+    }
+}

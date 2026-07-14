@@ -86,6 +86,7 @@ mod gk;
 mod kll;
 mod moments_sketch;
 mod otel_histogram;
+pub mod otlp;
 mod per_flow_quantiles;
 mod per_key;
 mod q_digest;
@@ -101,6 +102,9 @@ pub use gk::GreenwaldKhanna;
 pub use kll::{KllFloatSketch, KllSketch};
 pub use moments_sketch::MomentsSketch;
 pub use otel_histogram::OtelExponentialHistogram;
+pub use otlp::{
+    OtlpBuckets, OtlpExponentialHistogramDataPoint, PrometheusNativeHistogram, PrometheusSpan,
+};
 pub use per_flow_quantiles::PerFlowQuantiles;
 pub use per_key::PerKeyQuantiles;
 pub use q_digest::QDigest;
@@ -109,3 +113,43 @@ pub use sketch_polymer::SketchPolymer;
 pub use spline_sketch::SplineSketch;
 pub use tdigest::TDigest;
 pub use udd_sketch::UddSketch;
+
+#[cfg(test)]
+mod capability_smoke_tests {
+    use crate::common::capabilities::{QuantileQuery, Update};
+    use crate::quantiles::{GreenwaldKhanna, ReqMode, ReqSketch, UddSketch};
+
+    // A pipeline generic over ANY quantile sketch that ingests `f64` and answers
+    // immutable rank queries purely through the capability traits — the
+    // composition the `Sketch`-trait split is meant to enable.
+    fn median_via_capabilities<S: Update<f64> + QuantileQuery>(sketch: &mut S) -> f64 {
+        for i in 1..=1000 {
+            sketch.update(&(i as f64));
+        }
+        QuantileQuery::quantile(sketch, 0.5).expect("non-empty sketch has a median")
+    }
+
+    #[test]
+    fn quantile_capability_traits_compose_across_types() {
+        let mut gk = GreenwaldKhanna::new(0.01).unwrap();
+        let gk_median = median_via_capabilities(&mut gk);
+        assert!(
+            (gk_median - 500.0).abs() <= 50.0,
+            "GK median off: {gk_median}"
+        );
+
+        let mut req = ReqSketch::new(128, ReqMode::HighRankAccuracy).unwrap();
+        let req_median = median_via_capabilities(&mut req);
+        assert!(
+            (req_median - 500.0).abs() <= 50.0,
+            "REQ median off: {req_median}"
+        );
+
+        let mut udd = UddSketch::new(0.01, 256).unwrap();
+        let udd_median = median_via_capabilities(&mut udd);
+        assert!(
+            (udd_median - 500.0).abs() / 500.0 <= 0.05,
+            "UDD median off: {udd_median}"
+        );
+    }
+}

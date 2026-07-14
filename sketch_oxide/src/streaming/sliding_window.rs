@@ -250,7 +250,17 @@ impl SlidingWindowCounter {
         let total = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
         let num_buckets = u64::from_le_bytes(bytes[32..40].try_into().unwrap()) as usize;
 
-        let expected_len = 40 + num_buckets * 16;
+        // `num_buckets` is attacker-controlled. Use checked arithmetic so a crafted
+        // count cannot overflow `num_buckets * 16` (which ABORTS under
+        // overflow-checks = a DoS), and require the buckets to actually be present in
+        // the input before the `Vec::with_capacity` below so a huge count cannot drive
+        // an OOM allocation (count * 16 <= remaining bytes).
+        let buckets_bytes = num_buckets.checked_mul(16).ok_or_else(|| {
+            SketchError::DeserializationError("bucket table size overflow".to_string())
+        })?;
+        let expected_len = 40usize.checked_add(buckets_bytes).ok_or_else(|| {
+            SketchError::DeserializationError("bucket table size overflow".to_string())
+        })?;
         if bytes.len() < expected_len {
             return Err(SketchError::DeserializationError(format!(
                 "Expected {} bytes, got {}",
@@ -433,5 +443,44 @@ mod tests {
     fn test_memory_usage() {
         let counter = SlidingWindowCounter::new(1000, 0.1).unwrap();
         assert!(counter.memory_usage() > 0);
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_oversized_num_buckets_without_panic() {
+        // Craft a valid 40-byte header claiming a huge bucket count with no
+        // bucket data following. Must return Err rather than panicking,
+        // ABORTing on `num_buckets * 16` overflow, or OOMing on with_capacity.
+        let mut header = Vec::new();
+        header.extend_from_slice(&1000u64.to_le_bytes()); // window_size
+        header.extend_from_slice(&0.1f64.to_le_bytes()); // epsilon
+        header.extend_from_slice(&10u64.to_le_bytes()); // k (ignored)
+        header.extend_from_slice(&0u64.to_le_bytes()); // total
+        header.extend_from_slice(&u64::MAX.to_le_bytes()); // num_buckets (malicious)
+        assert!(SlidingWindowCounter::from_bytes(&header).is_err());
+
+        // A count whose `* 16` overflows usize must also be rejected, not abort.
+        let mut overflow = header.clone();
+        overflow[32..40].copy_from_slice(&((u64::MAX / 8).to_le_bytes()));
+        assert!(SlidingWindowCounter::from_bytes(&overflow).is_err());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// SlidingWindowCounter has a working inherent byte round-trip, so it satisfies
+// `Serializable` (delegating to the inherent `to_bytes`/`from_bytes`; the
+// inherent methods win name resolution, so no recursion). `Update` is NOT
+// implemented: its ingest is `increment(timestamp)` — an event over time with
+// no `&T` item to fold — and `count` requires a current-time argument.
+// ---------------------------------------------------------------------------
+use crate::common::Serializable;
+
+impl Serializable for SlidingWindowCounter {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(SlidingWindowCounter::to_bytes(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        SlidingWindowCounter::from_bytes(bytes)
     }
 }

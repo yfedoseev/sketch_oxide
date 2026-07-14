@@ -350,7 +350,7 @@ mod tests {
     fn respects_leaf_budget() {
         let mut arf = Arf::new(16, 32).unwrap();
         arf.insert(65000); // sits above every learned gap, so it is never (falsely) marked empty
-                           // Learning many fine-grained gaps would grow the trie unboundedly without de-escalation.
+        // Learning many fine-grained gaps would grow the trie unboundedly without de-escalation.
         for g in 0..400u64 {
             arf.learn_empty(g * 100, g * 100 + 10);
         }

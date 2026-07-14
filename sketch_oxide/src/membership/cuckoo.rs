@@ -364,7 +364,25 @@ impl CuckooFilter {
         let num_buckets = u64::from_le_bytes(bytes[0..8].try_into().unwrap()) as usize;
         let count = u64::from_le_bytes(bytes[8..16].try_into().unwrap()) as usize;
 
-        let expected_len = 16 + num_buckets * BUCKET_SIZE * 2;
+        // Bound `num_buckets` read from untrusted input BEFORE it drives the
+        // `num_buckets * BUCKET_SIZE * 2` size arithmetic and the bucket
+        // allocation. A crafted value would overflow the multiply (which aborts
+        // under overflow-checks=true) or force a huge allocation. Reject any
+        // count whose backing bytes would exceed MAX_BYTE_SIZE (each bucket is
+        // BUCKET_SIZE * 2 bytes on the wire).
+        const BUCKET_BYTES: usize = BUCKET_SIZE * 2;
+        let max_buckets = crate::common::validation::MAX_BYTE_SIZE / BUCKET_BYTES;
+        if num_buckets > max_buckets {
+            return Err(SketchError::DeserializationError(
+                "num_buckets out of range".to_string(),
+            ));
+        }
+
+        // Checked arithmetic so overflow returns an Err instead of aborting.
+        let expected_len = num_buckets
+            .checked_mul(BUCKET_BYTES)
+            .and_then(|body| body.checked_add(16))
+            .ok_or_else(|| SketchError::DeserializationError("bucket size overflow".to_string()))?;
         if bytes.len() < expected_len {
             return Err(SketchError::DeserializationError(format!(
                 "Expected {} bytes, got {}",
@@ -485,5 +503,57 @@ mod tests {
         }
 
         assert!(filter.load_factor() > 0.0);
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_oversized_num_buckets_without_panic() {
+        // Craft a header claiming an enormous `num_buckets` with a short tail.
+        // Must return Err, never panic, overflow-abort, or attempt a huge alloc.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // num_buckets (oversized)
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // count
+        // no bucket body follows
+        assert!(CuckooFilter::from_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_truncated_body() {
+        // `num_buckets` within the cap but the declared bucket body is missing.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&1024u64.to_le_bytes()); // num_buckets
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // count
+        // header only, no bucket bytes
+        assert!(CuckooFilter::from_bytes(&bytes).is_err());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): express the inherent API via
+// the orthogonal capability traits, delegating to the inherent methods.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Update<[u8]> for CuckooFilter {
+    fn update(&mut self, item: &[u8]) {
+        // Inherent `insert` is fallible (returns `Err` when the filter is full);
+        // the streaming `Update` contract is infallible, so the outcome is
+        // discarded to mirror the lossy best-effort semantics of a full filter.
+        let _ = self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for CuckooFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        CuckooFilter::contains(self, item)
+    }
+}
+
+impl Serializable for CuckooFilter {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(CuckooFilter::to_bytes(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        CuckooFilter::from_bytes(bytes)
     }
 }

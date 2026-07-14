@@ -137,11 +137,7 @@ impl JoinSketch {
     }
     fn ifp_sign(&self, item: &[u8], row: usize) -> i64 {
         let seed = SEED_IFP_XI.wrapping_add((row as u64).wrapping_mul(ROW_STRIDE));
-        if xxhash(item, seed) & 1 == 0 {
-            1
-        } else {
-            -1
-        }
+        if xxhash(item, seed) & 1 == 0 { 1 } else { -1 }
     }
 
     /// Adds an item with weight `weight` into the infrequent Fast-AGMS sketch.

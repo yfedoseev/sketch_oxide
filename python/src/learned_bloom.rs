@@ -92,7 +92,7 @@ impl LearnedBloomFilter {
         let mut keys: Vec<Vec<u8>> = Vec::new();
 
         for item in training_keys {
-            if let Ok(b) = item.downcast::<PyBytes>() {
+            if let Ok(b) = item.cast::<PyBytes>() {
                 keys.push(b.as_bytes().to_vec());
             } else if let Ok(s) = item.extract::<String>() {
                 keys.push(s.into_bytes());
@@ -133,7 +133,7 @@ impl LearnedBloomFilter {
     ///     >>> assert lbf.contains(b"hello")  # True positive
     ///     >>> lbf.contains(b"other")  # May be false positive
     fn contains(&self, key: &Bound<'_, PyAny>) -> PyResult<bool> {
-        if let Ok(b) = key.downcast::<PyBytes>() {
+        if let Ok(b) = key.cast::<PyBytes>() {
             Ok(self.inner.contains(b.as_bytes()))
         } else if let Ok(s) = key.extract::<String>() {
             Ok(self.inner.contains(s.as_bytes()))
@@ -190,8 +190,8 @@ impl LearnedBloomFilter {
     ///     >>> print(f"FNR: {stats['false_negative_rate']}")  # Always 0.0
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("model_accuracy", stats.model_accuracy)?;
             dict.set_item("backup_fpr", stats.backup_fpr)?;
             dict.set_item("memory_bits", stats.memory_bits)?;

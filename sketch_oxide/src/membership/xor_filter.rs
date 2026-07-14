@@ -294,3 +294,17 @@ mod tests {
         assert!(!filter.contains(1));
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): build-once/immutable filter
+// (constructed via `from_keys`, no inherent `insert`), so it implements
+// `Filter` but deliberately NOT `Update`. The inherent `contains` takes a
+// `u64` by value, so `Filter<u64>` dereferences the item.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Filter<u64> for XorFilter {
+    fn contains(&self, item: &u64) -> bool {
+        XorFilter::contains(self, *item)
+    }
+}

@@ -120,6 +120,10 @@ impl PerFlowQuantiles {
     }
 }
 
+// No capability-trait match: this is a keyed multiplexer — `update(flow, value)`
+// and `quantile(flow, phi)` both take a per-flow key, so neither the scalar
+// `Update<f64>` nor `QuantileQuery` (single-argument) applies. No serialization.
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -71,7 +71,7 @@ pub use arf::Arf;
 pub use bloom_rf::BloomRf;
 pub use diva::DivaFilter;
 pub use grafite::{Grafite, GrafiteStats};
-pub use grf::{GRFStats, GRF};
+pub use grf::{GRF, GRFStats};
 pub use memento_filter::{MementoFilter, MementoStats};
 pub use pgm_index::PgmIndex;
 pub use proteus::Proteus;

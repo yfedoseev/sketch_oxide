@@ -26,11 +26,11 @@ impl BubbleSketch {
         Ok(self.inner.estimate(&python_item_to_bytes(item)?))
     }
     /// Returns the top-k items as a list of (bytes, count).
-    fn top_k(&self, py: Python<'_>) -> Vec<(PyObject, u64)> {
+    fn top_k(&self, py: Python<'_>) -> Vec<(Py<PyAny>, u64)> {
         self.inner
             .top_k()
             .into_iter()
-            .map(|(k, c)| (PyBytes::new_bound(py, &k).into_any().unbind(), c))
+            .map(|(k, c)| (PyBytes::new(py, &k).into_any().unbind(), c))
             .collect()
     }
     fn __repr__(&self) -> String {

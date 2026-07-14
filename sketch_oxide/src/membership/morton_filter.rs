@@ -441,3 +441,21 @@ mod tests {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): express the inherent API via
+// the orthogonal capability traits, delegating to the inherent methods.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Update<[u8]> for MortonFilter {
+    fn update(&mut self, item: &[u8]) {
+        let _ = self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for MortonFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        MortonFilter::contains(self, item)
+    }
+}

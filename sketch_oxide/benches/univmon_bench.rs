@@ -3,9 +3,9 @@
 //! This benchmark suite evaluates UnivMon performance across 15+ scenarios,
 //! demonstrating its efficiency for multi-metric streaming analytics.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use sketch_oxide::universal::UnivMon;
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::Mergeable;
+use sketch_oxide::universal::UnivMon;
 
 // ============================================================================
 // Benchmark 1: Update Latency (Single Item)

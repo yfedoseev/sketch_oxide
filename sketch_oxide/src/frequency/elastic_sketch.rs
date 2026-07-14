@@ -375,11 +375,7 @@ impl ElasticSketch {
         }
 
         // Return the best estimate if found, otherwise 0
-        if found_count > 0 {
-            max_estimate
-        } else {
-            0
-        }
+        if found_count > 0 { max_estimate } else { 0 }
     }
 
     /// Find all items with frequency >= threshold
@@ -672,6 +668,19 @@ impl Sketch for ElasticSketch {
         ) as usize;
         offset += 8;
 
+        // Validate dimensions BEFORE any multiply. An attacker-controlled
+        // bucket_count/depth would otherwise drive an unchecked
+        // `bucket_size * bucket_count * depth`, which ABORTS under this crate's
+        // overflow-checks=true release profile (a DoS), plus a huge
+        // `Vec::with_capacity`. Cap at 2^20 and reject 0 (so `bucket_count - 1`
+        // below also cannot underflow).
+        const MAX_DIM: usize = 1 << 20;
+        if bucket_count == 0 || depth == 0 || bucket_count > MAX_DIM || depth > MAX_DIM {
+            return Err(SketchError::DeserializationError(
+                "bucket_count/depth out of range".to_string(),
+            ));
+        }
+
         let elastic_ratio =
             f64::from_le_bytes(bytes[offset..offset + 8].try_into().map_err(|_| {
                 SketchError::DeserializationError("invalid elastic_ratio".to_string())
@@ -684,9 +693,21 @@ impl Sketch for ElasticSketch {
             })?);
         offset += 8;
 
-        // Read buckets
-        let bucket_size = 8 + 8 + 8 + 1; // item_hash + frequency + elastic_counter + is_occupied
-        let expected_bytes = offset + bucket_size * bucket_count * depth;
+        // Read buckets. Compute the total size with checked arithmetic;
+        // `bucket_count`/`depth` are bounded by MAX_DIM above so these cannot
+        // actually overflow, but keep it explicit.
+        let bucket_size = 8usize + 8 + 8 + 1; // item_hash + frequency + elastic_counter + is_occupied
+        let cells = bucket_count.checked_mul(depth).ok_or_else(|| {
+            SketchError::DeserializationError("bucket count overflow".to_string())
+        })?;
+        let bucket_bytes = cells
+            .checked_mul(bucket_size)
+            .ok_or_else(|| SketchError::DeserializationError("bucket size overflow".to_string()))?;
+        // Validate the declared buckets fit in the remaining bytes BEFORE
+        // allocating, so `cells * bucket_size <= remaining_bytes`.
+        let expected_bytes = offset
+            .checked_add(bucket_bytes)
+            .ok_or_else(|| SketchError::DeserializationError("bucket size overflow".to_string()))?;
 
         if bytes.len() < expected_bytes {
             return Err(SketchError::DeserializationError(
@@ -694,9 +715,9 @@ impl Sketch for ElasticSketch {
             ));
         }
 
-        let mut buckets = Vec::with_capacity(bucket_count * depth);
+        let mut buckets = Vec::with_capacity(cells);
 
-        for _ in 0..(bucket_count * depth) {
+        for _ in 0..cells {
             let item_hash =
                 u64::from_le_bytes(bytes[offset..offset + 8].try_into().map_err(|_| {
                     SketchError::DeserializationError("invalid bucket".to_string())
@@ -726,6 +747,7 @@ impl Sketch for ElasticSketch {
             });
         }
 
+        // Safe: bucket_count >= 1 (validated above), so this cannot underflow.
         let mask = bucket_count - 1;
 
         Ok(ElasticSketch {
@@ -901,6 +923,45 @@ mod tests {
         assert_eq!(deserialized.estimate(b"item2"), 3);
     }
 
+    // Test 12b: Deserialization is panic/OOM-safe against crafted headers
+    #[test]
+    fn deserialize_rejects_oversized_dims_without_panic() {
+        // Regression: an oversized bucket_count/depth must be rejected before it
+        // drives `bucket_size * bucket_count * depth` (which aborts under
+        // overflow-checks) or a giant allocation.
+
+        // u64::MAX bucket_count/depth: the multiply would overflow.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // bucket_count
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // depth
+        bytes.extend_from_slice(&0.2f64.to_le_bytes()); // elastic_ratio
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // total_count
+        bytes.extend_from_slice(&[0u8; 8]); // partial bucket data
+        assert!(
+            ElasticSketch::deserialize(&bytes).is_err(),
+            "oversized dims must error, not panic/OOM"
+        );
+
+        // bucket_count just over MAX_DIM (2^20) with a short tail must also error.
+        let mut bytes2 = Vec::new();
+        bytes2.extend_from_slice(&((1u64 << 20) + 1).to_le_bytes()); // > MAX_DIM
+        bytes2.extend_from_slice(&3u64.to_le_bytes());
+        bytes2.extend_from_slice(&0.2f64.to_le_bytes());
+        bytes2.extend_from_slice(&0u64.to_le_bytes());
+        assert!(ElasticSketch::deserialize(&bytes2).is_err());
+
+        // Zero bucket_count would underflow `bucket_count - 1`; must be rejected.
+        let mut bytes3 = Vec::new();
+        bytes3.extend_from_slice(&0u64.to_le_bytes()); // bucket_count = 0
+        bytes3.extend_from_slice(&3u64.to_le_bytes());
+        bytes3.extend_from_slice(&0.2f64.to_le_bytes());
+        bytes3.extend_from_slice(&0u64.to_le_bytes());
+        assert!(ElasticSketch::deserialize(&bytes3).is_err());
+
+        // Truncated header.
+        assert!(ElasticSketch::deserialize(&[0u8; 16]).is_err());
+    }
+
     // Test 13: Stability - consistent estimates
     #[test]
     fn test_stability() {
@@ -972,5 +1033,30 @@ mod tests {
 
         let sketch3 = ElasticSketch::new(1000, 3).unwrap();
         assert_eq!(sketch3.bucket_count(), 1024); // Next power of 2
+    }
+}
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Serializable, Update};
+
+impl Update<[u8]> for ElasticSketch {
+    fn update(&mut self, item: &[u8]) {
+        ElasticSketch::update(self, item, 1);
+    }
+}
+
+impl PointQuery<[u8]> for ElasticSketch {
+    fn query(&self, item: &[u8]) -> u64 {
+        self.estimate(item)
+    }
+}
+
+impl Serializable for ElasticSketch {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(<Self as Sketch>::serialize(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        <Self as Sketch>::deserialize(bytes)
     }
 }

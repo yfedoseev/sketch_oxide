@@ -136,7 +136,7 @@ impl KllSketch {
 
     /// Serialize to bytes
     fn serialize<'py>(&mut self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        PyBytes::new_bound(py, &self.inner.to_bytes())
+        PyBytes::new(py, &self.inner.to_bytes())
     }
 
     /// Deserialize from bytes
@@ -173,7 +173,7 @@ impl KllSketch {
     /// Args:
     ///     values: Iterable of numeric values to add
     fn update_batch(&mut self, values: &Bound<'_, PyAny>) -> PyResult<()> {
-        let values_list: &Bound<'_, PyList> = values.downcast()?;
+        let values_list: &Bound<'_, PyList> = values.cast()?;
         for value in values_list {
             let val: f64 = value.extract()?;
             self.update(val);
@@ -191,7 +191,7 @@ impl KllSketch {
     /// Returns:
     ///     list: List of estimated quantile values (or None if sketch is empty)
     fn quantile_batch(&mut self, ranks: &Bound<'_, PyAny>) -> PyResult<Vec<Option<f64>>> {
-        let ranks_list: &Bound<'_, PyList> = ranks.downcast()?;
+        let ranks_list: &Bound<'_, PyList> = ranks.cast()?;
         let mut results = Vec::new();
         for rank in ranks_list {
             let r: f64 = rank.extract()?;
@@ -208,7 +208,7 @@ impl KllSketch {
     /// Returns:
     ///     list: List of ranks (0.0 to 1.0) for each value
     fn rank_batch(&mut self, values: &Bound<'_, PyAny>) -> PyResult<Vec<f64>> {
-        let values_list: &Bound<'_, PyList> = values.downcast()?;
+        let values_list: &Bound<'_, PyList> = values.cast()?;
         let mut results = Vec::new();
         for value in values_list {
             let val: f64 = value.extract()?;

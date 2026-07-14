@@ -234,3 +234,16 @@ mod tests {
         assert_eq!(run(), run());
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl Update<u64> for Rhhh {
+    fn update(&mut self, item: &u64) {
+        Rhhh::update(self, *item);
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `estimate(key, level)` needs a
+// hierarchy `level` argument and returns `f64`, matching neither PointQuery's
+// single-item shape nor its `u64` return.

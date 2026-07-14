@@ -267,7 +267,7 @@ mod tests {
         // With granularity 16, timestamps in the same leaf block are indistinguishable.
         let mut pbf = PersistentBloomFilter::new(1024, 16, 4096, 5).unwrap();
         pbf.insert(5, 20); // leaf block [17, 32]
-                           // Anything in the same block queries positive; a different block does not.
+        // Anything in the same block queries positive; a different block does not.
         assert!(pbf.query(5, 17, 32));
         assert!(pbf.query(5, 25, 25)); // same block, partial leaf
         assert!(!pbf.query(5, 100, 120), "different block should reject");

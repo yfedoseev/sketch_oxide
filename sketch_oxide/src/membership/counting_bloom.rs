@@ -419,7 +419,21 @@ impl CountingBloomFilter {
         let k = u64::from_le_bytes(bytes[8..16].try_into().unwrap()) as usize;
         let n = u64::from_le_bytes(bytes[16..24].try_into().unwrap()) as usize;
 
-        let expected_len = 24 + m.div_ceil(2);
+        // Bound `m` (the counter count) read from untrusted input BEFORE it
+        // drives the `m.div_ceil(2)` size arithmetic, the counter buffer, and
+        // the `0..m` scan below. Each counter occupies half a byte on the wire,
+        // so reject any `m` whose backing bytes would exceed MAX_BYTE_SIZE.
+        let max_m = crate::common::validation::MAX_BYTE_SIZE.saturating_mul(2);
+        if m > max_m {
+            return Err(SketchError::DeserializationError(
+                "m out of range".to_string(),
+            ));
+        }
+
+        // Checked arithmetic so overflow returns an Err instead of aborting.
+        let expected_len = m.div_ceil(2).checked_add(24).ok_or_else(|| {
+            SketchError::DeserializationError("counter size overflow".to_string())
+        })?;
         if bytes.len() < expected_len {
             return Err(SketchError::DeserializationError(format!(
                 "Expected {} bytes, got {}",
@@ -554,5 +568,56 @@ mod tests {
         filter.clear();
         assert!(filter.is_empty());
         assert!(!filter.contains(b"hello"));
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_oversized_m_without_panic() {
+        // Craft a header claiming an enormous counter count `m` with a short
+        // tail. Must return Err, never panic, overflow-abort, or over-allocate.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // m (oversized)
+        bytes.extend_from_slice(&1u64.to_le_bytes()); // k
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // n
+        // no counter body follows
+        assert!(CountingBloomFilter::from_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_truncated_body() {
+        // `m` within the cap but the declared counter body is missing.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&100_000u64.to_le_bytes()); // m
+        bytes.extend_from_slice(&7u64.to_le_bytes()); // k
+        bytes.extend_from_slice(&1000u64.to_le_bytes()); // n
+        // header only, no counters
+        assert!(CountingBloomFilter::from_bytes(&bytes).is_err());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): express the inherent API via
+// the orthogonal capability traits, delegating to the inherent methods.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Update<[u8]> for CountingBloomFilter {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for CountingBloomFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        CountingBloomFilter::contains(self, item)
+    }
+}
+
+impl Serializable for CountingBloomFilter {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(CountingBloomFilter::to_bytes(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        CountingBloomFilter::from_bytes(bytes)
     }
 }

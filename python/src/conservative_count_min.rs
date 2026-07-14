@@ -152,7 +152,7 @@ impl ConservativeCountMin {
 
     /// Serialize the sketch to bytes
     fn to_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        PyBytes::new_bound(py, &self.inner.to_bytes())
+        PyBytes::new(py, &self.inner.to_bytes())
     }
 
     /// Deserialize a sketch from bytes
@@ -182,7 +182,7 @@ impl ConservativeCountMin {
     /// Args:
     ///     items: Iterable of byte strings to add
     fn update_batch(&mut self, items: &Bound<'_, PyAny>) -> PyResult<()> {
-        let items_list: &Bound<'_, PyList> = items.downcast()?;
+        let items_list: &Bound<'_, PyList> = items.cast()?;
         for item in items_list {
             let item_bytes: &[u8] = item.extract()?;
             self.update(item_bytes);
@@ -200,7 +200,7 @@ impl ConservativeCountMin {
     /// Returns:
     ///     list: List of estimated frequencies (>= true frequencies), one per item
     fn estimate_batch(&self, items: &Bound<'_, PyAny>) -> PyResult<Vec<u64>> {
-        let items_list: &Bound<'_, PyList> = items.downcast()?;
+        let items_list: &Bound<'_, PyList> = items.cast()?;
         let mut estimates = Vec::new();
         for item in items_list {
             let item_bytes: &[u8] = item.extract()?;

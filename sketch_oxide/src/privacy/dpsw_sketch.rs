@@ -389,8 +389,8 @@ impl DpswSketch {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::rngs::StdRng;
     use rand::SeedableRng;
+    use rand::rngs::StdRng;
 
     fn rng() -> StdRng {
         StdRng::seed_from_u64(0xD957_1234_5678_9ABC)

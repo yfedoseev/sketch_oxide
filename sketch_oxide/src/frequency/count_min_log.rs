@@ -293,3 +293,15 @@ mod tests {
         assert!(est > 18_000.0 && est < 22_000.0, "estimate {est}");
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl Update<[u8]> for CountMinLog {
+    fn update(&mut self, item: &[u8]) {
+        self.add(item);
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `CountMinLog::estimate` returns
+// `f64` (a Morris-counter approximation), not the `u64` count PointQuery requires.

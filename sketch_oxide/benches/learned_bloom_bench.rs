@@ -9,7 +9,7 @@
 //! 4. Varying FPR targets
 //! 5. Different data distributions
 
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion, Throughput};
+use criterion::{BatchSize, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::membership::{BloomFilter, LearnedBloomFilter};
 
 /// Benchmark training time for different dataset sizes

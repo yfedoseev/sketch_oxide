@@ -172,7 +172,7 @@ impl DensitySketch {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{SeedableRng, rngs::StdRng};
 
     /// A standard-normal variate via Box–Muller.
     fn normal(rng: &mut StdRng) -> f64 {

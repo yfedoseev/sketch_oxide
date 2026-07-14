@@ -408,7 +408,10 @@ impl Sketch for SimHash {
 
     fn serialize(&self) -> Vec<u8> {
         let mut sh = self.clone();
-        sh.to_bytes()
+        // Disambiguate to the inherent `to_bytes(&mut self) -> Vec<u8>`: the
+        // `Serializable::to_bytes(&self) -> Result<..>` capability impl otherwise
+        // wins method resolution at the `&self` autoref level (and would recurse).
+        SimHash::to_bytes(&mut sh)
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self, SketchError> {
@@ -540,7 +543,7 @@ mod tests {
         sh.update("hello");
         sh.update("world");
 
-        let bytes = sh.to_bytes();
+        let bytes = SimHash::to_bytes(&mut sh);
         let restored = SimHash::from_bytes(&bytes).unwrap();
 
         assert_eq!(sh.fingerprint, restored.fingerprint);
@@ -557,5 +560,31 @@ mod tests {
 
         let similarity = SimHash::similarity_from_fingerprints(fp1, fp2);
         assert!((similarity - 63.0 / 64.0).abs() < 0.001);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// SimHash ingests any hashable feature and has working `Sketch`
+// serialize/deserialize, so it satisfies `Update` and `Serializable`.
+// Its `Sketch::estimate` returns the raw fingerprint (not a cardinality) and
+// its similarity/hamming methods need `&mut self` (they finalize) plus a peer,
+// so `CardinalityEstimate`/`PointQuery`/`Filter`/`QuantileQuery` are skipped.
+// ---------------------------------------------------------------------------
+use crate::common::{Serializable, Update};
+
+impl<T: Hash + ?Sized> Update<T> for SimHash {
+    fn update(&mut self, item: &T) {
+        SimHash::update(self, item);
+    }
+}
+
+impl Serializable for SimHash {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(<Self as Sketch>::serialize(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        <Self as Sketch>::deserialize(bytes)
     }
 }

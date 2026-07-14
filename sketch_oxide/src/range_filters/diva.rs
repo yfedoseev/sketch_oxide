@@ -246,9 +246,9 @@ mod tests {
         // A short infix that is a prefix of `low` must still be found (the predecessor scan).
         let mut f = DivaFilter::with_resolution(3);
         f.insert(b"apple"); // infix "app"
-                            // Range [apq, b): "apple" (=> "app...") should be considered since "app" < "apq" but
-                            // "apple" itself is < "apq"? "apple" vs "apq": 'a','p' equal, 'p' < 'q' => "apple" < "apq".
-                            // So apple is NOT in [apq, b). Confirm we correctly reject.
+        // Range [apq, b): "apple" (=> "app...") should be considered since "app" < "apq" but
+        // "apple" itself is < "apq"? "apple" vs "apq": 'a','p' equal, 'p' < 'q' => "apple" < "apq".
+        // So apple is NOT in [apq, b). Confirm we correctly reject.
         assert!(!f.may_contain_range(b"apq", b"b"));
         // But [apa, b) DOES contain "apple".
         assert!(f.may_contain_range(b"apa", b"b"));

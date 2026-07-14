@@ -222,3 +222,15 @@ mod tests {
         assert!(fss.top_k(3).is_empty());
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl<T: std::hash::Hash + Eq + Clone> Update<T> for FilteredSpaceSaving<T> {
+    fn update(&mut self, item: &T) {
+        FilteredSpaceSaving::update(self, item.clone());
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `estimate` returns
+// `Option<(u64, u64)>` (count + error, or `None` when unseen), not a bare `u64`.

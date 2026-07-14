@@ -3,7 +3,12 @@
 use std::fmt;
 
 /// Errors that can occur during sketch operations
+///
+/// This enum is `#[non_exhaustive]`: downstream code must include a wildcard
+/// arm when matching, which lets new variants be added without a breaking
+/// (semver-major) change.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SketchError {
     /// Invalid parameter provided to sketch constructor or operation
     InvalidParameter {
@@ -32,6 +37,22 @@ pub enum SketchError {
         /// Reason for reconciliation failure
         reason: String,
     },
+
+    /// The requested operation is not supported by this sketch
+    ///
+    /// Used by immutable/build-once structures (e.g. Binary Fuse filters) that
+    /// cannot support in-place streaming `update`, and by types whose format is
+    /// not yet implemented.
+    Unsupported {
+        /// The name of the unsupported operation
+        op: &'static str,
+    },
+
+    /// The sketch is in an invalid state for the requested operation
+    InvalidState {
+        /// Description of the invalid state
+        reason: String,
+    },
 }
 
 impl fmt::Display for SketchError {
@@ -55,6 +76,12 @@ impl fmt::Display for SketchError {
             }
             SketchError::ReconciliationError { reason } => {
                 write!(f, "Reconciliation error: {}", reason)
+            }
+            SketchError::Unsupported { op } => {
+                write!(f, "Unsupported operation: {}", op)
+            }
+            SketchError::InvalidState { reason } => {
+                write!(f, "Invalid state: {}", reason)
             }
         }
     }

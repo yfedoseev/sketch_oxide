@@ -9,11 +9,39 @@ on:
         description: 'Version to publish'
         required: true
 
+# Least-privilege default; jobs opt into id-token below for OIDC trusted publishing.
+permissions:
+  contents: read
+
 jobs:
-  # Publish to crates.io (Rust)
+  # Gate: nothing publishes unless the core test suite is green on this ref.
+  # (fable5 doc 05 #4: the publish pipeline was decoupled from tests.)
+  test-gate:
+    name: Test gate (must pass before publish)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format check
+        working-directory: ./sketch_oxide
+        run: cargo fmt -- --check
+      - name: Clippy
+        working-directory: ./sketch_oxide
+        run: cargo clippy --lib --all-features -- -D warnings
+      - name: Tests
+        working-directory: ./sketch_oxide
+        run: cargo test --lib --all-features
+
+  # Publish to crates.io (Rust) via OIDC trusted publishing (GA Jul 2025).
   publish-rust:
     name: Publish to crates.io
     runs-on: ubuntu-latest
+    needs: test-gate
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -23,35 +51,45 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Authenticate to crates.io (OIDC)
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
       - name: Publish to crates.io
         working-directory: ./sketch_oxide
         run: cargo publish
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   # Publish to PyPI (Python) - Multi-platform wheels
   build-python-wheels:
     name: Build Python wheels
     runs-on: ${{ matrix.os }}
+    needs: test-gate
     strategy:
       matrix:
         include:
-          # Linux wheels
+          # Linux x86_64 (manylinux_2_28)
           - os: ubuntu-latest
-            python-version: "3.11"
-            target: x86_64-unknown-linux-gnu
+            target: x86_64
+            manylinux: manylinux_2_28
+          # Linux aarch64 (manylinux_2_28)
+          - os: ubuntu-latest
+            target: aarch64
+            manylinux: manylinux_2_28
+          # Linux x86_64 musl
+          - os: ubuntu-latest
+            target: x86_64
+            manylinux: musllinux_1_2
           # macOS Intel
           - os: macos-latest
-            python-version: "3.11"
-            target: x86_64-apple-darwin
+            target: x86_64
           # macOS ARM64 (Apple Silicon)
           - os: macos-latest
-            python-version: "3.11"
-            target: aarch64-apple-darwin
+            target: aarch64
           # Windows x86_64
           - os: windows-latest
-            python-version: "3.11"
-            target: x86_64-pc-windows-msvc
+            target: x64
     steps:
       - uses: actions/checkout@v4
 
@@ -59,80 +97,74 @@ jobs:
         run: bash ./scripts/sync-version.sh
         shell: bash
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Build wheels (maturin-action, manylinux/musllinux)
+        uses: PyO3/maturin-action@v1
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Install Rust toolchain for macOS ARM64
-        if: matrix.target == 'aarch64-apple-darwin'
-        run: rustup target add aarch64-apple-darwin
-
-      - name: Install maturin
-        run: pip install maturin
-
-      - name: Build wheels
-        working-directory: ./python
-        run: maturin build --release --target ${{ matrix.target }}
+          working-directory: ./python
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: --release --out ../dist
+          sccache: 'true'
 
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: python-wheels-${{ matrix.target }}
-          path: target/wheels/
+          name: python-wheels-${{ matrix.os }}-${{ matrix.target }}-${{ matrix.manylinux || 'native' }}
+          path: dist/
           retention-days: 1
           if-no-files-found: warn
 
-  # Publish all Python wheels to PyPI
+  # Always ship an sdist too.
+  build-python-sdist:
+    name: Build Python sdist
+    runs-on: ubuntu-latest
+    needs: test-gate
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync versions
+        run: bash ./scripts/sync-version.sh
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: ./python
+          command: sdist
+          args: --out ../dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-sdist
+          path: dist/
+          retention-days: 1
+
+  # Publish all Python wheels + sdist to PyPI via Trusted Publishing (OIDC + PEP 740 attestations).
   publish-python:
     name: Publish Python to PyPI
     runs-on: ubuntu-latest
-    needs: build-python-wheels
+    needs: [build-python-wheels, build-python-sdist]
+    permissions:
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all wheel artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: all-wheels
-          pattern: python-wheels-*
+          path: dist
+          pattern: python-*
+          merge-multiple: true
 
-      - name: Organize wheels
-        run: |
-          mkdir -p wheels
-          # Copy all wheels from all downloaded artifacts
-          find all-wheels -type f -name "*.whl" -exec cp {} wheels/ \;
+      - name: Publish to PyPI (trusted publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          skip-existing: true
 
-          echo "=== Downloaded wheels ==="
-          ls -lh wheels/
-          wheel_count=$(find wheels -name "*.whl" | wc -l)
-          echo "Total wheels found: $wheel_count"
-          if [ "$wheel_count" -lt 4 ]; then
-            echo "Warning: Expected at least 4 wheels, found $wheel_count"
-          fi
-
-      - name: Install build dependencies
-        run: pip install maturin twine
-
-      - name: Publish to PyPI
-        run: |
-          twine upload wheels/* \
-            -u __token__ \
-            -p ${{ secrets.MATURIN_PYPI_TOKEN }} \
-            --skip-existing \
-            --non-interactive
-        env:
-          TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
-
-  # Publish to npm (Node.js)
+  # Publish to npm (Node.js) via OIDC trusted publishing (npm classic tokens
+  # were revoked Dec 2025 post-Shai-Hulud; token path is dead — doc 04 #1).
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
+    needs: test-gate
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -142,7 +174,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
+          node-version: 22.x
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install Rust
@@ -152,69 +184,31 @@ jobs:
         working-directory: ./nodejs
         run: npm ci
 
-      - name: Build and publish
+      - name: Build and publish (with provenance)
         working-directory: ./nodejs
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
 
-  # Publish to Maven Central (Java)
+  # Publish to Maven Central (Java) — DISABLED.
+  # NOTE: OSSRH/Nexus shut down 2025-06-30. When re-enabling, migrate to the
+  # Central Publisher Portal + central-publishing-maven-plugin (doc 04 #7).
   publish-maven:
     name: Publish to Maven Central
     runs-on: ubuntu-latest
-    if: false  # Disabled until GPG secrets are configured
+    if: false  # Disabled: needs Central Portal migration + GPG secrets
     steps:
       - uses: actions/checkout@v4
+      - name: Placeholder
+        run: echo "Maven publishing disabled pending Central Portal migration"
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: "17"
-          distribution: temurin
-          cache: maven
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Import GPG key
-        run: |
-          mkdir -p ~/.gnupg
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d > ~/.gnupg/private.key
-          gpg --import ~/.gnupg/private.key
-
-      - name: Deploy to Maven Central
-        working-directory: ./java
-        run: |
-          mvn clean deploy -Pmaven-central \
-            -DskipTests \
-            -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
-        env:
-          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-
-  # Publish to NuGet (C#)
+  # Publish to NuGet (C#) — DISABLED pending [LibraryImport]/trim fix (doc 04 #6).
   publish-nuget:
     name: Publish to NuGet
     runs-on: windows-latest
-    if: false  # Disabled until .NET trimming issue is resolved
+    if: false
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Build package
-        working-directory: ./dotnet
-        run: dotnet pack -c Release
-
-      - name: Publish to NuGet
-        working-directory: ./dotnet
-        run: dotnet nuget push "SketchOxide/bin/Release/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Placeholder
+        run: echo "NuGet publishing disabled pending .NET modernization"
 
   # Create release summary
   release-summary:
@@ -223,38 +217,11 @@ jobs:
     needs: [publish-rust, publish-python, publish-npm]
     if: always() && !failure()
     steps:
-      - uses: actions/checkout@v4
-
       - name: Create release summary
         run: |
-          echo "✅ Release Publishing Summary"
+          echo "Release Publishing Summary"
           echo "=============================="
-          echo ""
-          echo "✅ Rust (crates.io): Published"
-          echo "✅ Python (PyPI): Published"
-          echo "✅ Node.js (npm): Published"
-          echo ""
-          echo "⏭️ Disabled (no GPG/TLS certs):"
-          echo "  - Java (Maven Central)"
-          echo "  - C# (NuGet)"
-          echo ""
-          echo "Release is live on GitHub!"
-
-  # Build and test on publish
-  verify:
-    name: Verify Published Packages
-    runs-on: ubuntu-latest
-    needs: [publish-rust, publish-python, publish-npm]
-    if: always() && !failure()
-    steps:
-      - name: Verify crates.io
-        run: |
-          cargo search sketch_oxide --limit 1
-
-      - name: Verify PyPI
-        run: |
-          pip index versions sketch-oxide 2>/dev/null || echo "Package may take time to appear on PyPI"
-
-      - name: Verify npm
-        run: |
-          npm view sketch-oxide-node 2>/dev/null || echo "Package may take time to appear on npm"
+          echo "Rust (crates.io): Published (OIDC)"
+          echo "Python (PyPI): Published (trusted publishing + attestations)"
+          echo "Node.js (npm): Published (OIDC + provenance)"
+          echo "Disabled: Java (Maven Central), C# (NuGet)"

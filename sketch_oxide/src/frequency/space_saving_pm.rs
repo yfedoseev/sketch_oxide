@@ -184,3 +184,18 @@ mod tests {
         assert_eq!(ss.estimate(&101), 10, "odd key net");
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl<T: std::hash::Hash + Eq + Clone> Update<T> for SpaceSavingPlusMinus<T> {
+    fn update(&mut self, item: &T) {
+        self.insert(item.clone());
+    }
+}
+
+impl<T: std::hash::Hash + Eq + Clone> PointQuery<T> for SpaceSavingPlusMinus<T> {
+    fn query(&self, item: &T) -> u64 {
+        self.estimate(item)
+    }
+}

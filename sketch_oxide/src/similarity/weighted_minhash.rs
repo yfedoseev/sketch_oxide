@@ -137,11 +137,7 @@ mod tests {
             num += x.min(y);
             den += x.max(y);
         }
-        if den == 0.0 {
-            0.0
-        } else {
-            num / den
-        }
+        if den == 0.0 { 0.0 } else { num / den }
     }
 
     #[test]

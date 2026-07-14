@@ -231,7 +231,7 @@ impl ElasticSketch {
     ///     >>> data = sketch.serialize()
     ///     >>> restored = ElasticSketch.deserialize(data)
     fn serialize<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        PyBytes::new_bound(py, &self.inner.serialize())
+        PyBytes::new(py, &self.inner.serialize())
     }
 
     /// Deserialize a sketch from bytes

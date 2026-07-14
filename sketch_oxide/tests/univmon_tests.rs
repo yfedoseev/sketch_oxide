@@ -911,7 +911,7 @@ fn test_heavy_hitters_top_k() {
     }
 
     let hh = univmon.heavy_hitters(0.15); // >15% threshold
-                                          // Should find top 3 items (they're >15% each)
+    // Should find top 3 items (they're >15% each)
     assert!(hh.len() >= 3);
 }
 

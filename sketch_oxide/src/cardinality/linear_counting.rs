@@ -175,3 +175,21 @@ mod tests {
         assert!(a.merge(&b).is_err());
     }
 }
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Update};
+
+    impl Update<[u8]> for LinearCounting {
+        fn update(&mut self, item: &[u8]) {
+            self.add(item);
+        }
+    }
+
+    impl CardinalityEstimate for LinearCounting {
+        fn estimate_cardinality(&self) -> f64 {
+            self.estimate()
+        }
+    }
+}

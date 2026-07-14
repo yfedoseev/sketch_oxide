@@ -52,7 +52,7 @@
 //! Based on "Grafite: Taming Adversarial Queries with Optimal Range Filters"
 //! (2024 research on optimal range filtering)
 
-use crate::common::{hash::xxhash, RangeFilter, SketchError};
+use crate::common::{RangeFilter, SketchError, hash::xxhash};
 use std::collections::HashSet;
 
 /// Optimal range filter with robust FPR bounds

@@ -122,7 +122,7 @@ impl<K: std::hash::Hash + Eq + Clone> LruTable<K> {
         if let Some(victim) = self
             .map
             .iter()
-            .min_by_key(|(_, &(_, tk))| tk)
+            .min_by_key(|&(_, &(_, tk))| tk)
             .map(|(k, _)| k.clone())
         {
             self.map.remove(&victim);
@@ -191,7 +191,7 @@ impl CalmSs {
         if let Some((victim, f_min)) = self
             .ss
             .iter()
-            .min_by_key(|(_, &c)| c)
+            .min_by_key(|&(_, &c)| c)
             .map(|(k, &c)| (k.clone(), c))
         {
             self.ss.remove(&victim);

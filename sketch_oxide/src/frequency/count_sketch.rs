@@ -27,7 +27,7 @@
 //! - Network anomaly detection
 //! - Streaming linear algebra
 
-use crate::common::{Mergeable, Sketch, SketchError};
+use crate::common::{Mergeable, Sketch, SketchError, validation};
 use std::hash::{Hash, Hasher};
 use twox_hash::XxHash64;
 
@@ -118,8 +118,23 @@ impl CountSketch {
         }
 
         // Calculate dimensions for L2 guarantee
-        // Width: w = ceil(3/epsilon^2), then round up to power of 2
-        let width_min = (3.0 / (epsilon * epsilon)).ceil() as usize;
+        // Width: w = ceil(3/epsilon^2), then round up to power of 2.
+        // Guard against a tiny epsilon: `3/epsilon^2` can overflow f64 to +inf
+        // (then `as usize` saturates to usize::MAX and `next_power_of_two`
+        // panics) or demand an absurd allocation. Cap at MAX_CAPACITY and
+        // reject rather than abort/OOM (flagged via univmon in fable5 review).
+        let width_f = (3.0 / (epsilon * epsilon)).ceil();
+        if !width_f.is_finite() || width_f > validation::MAX_CAPACITY as f64 {
+            return Err(SketchError::InvalidParameter {
+                param: "epsilon".to_string(),
+                value: epsilon.to_string(),
+                constraint: format!(
+                    "too small: requires width > {} counters",
+                    validation::MAX_CAPACITY
+                ),
+            });
+        }
+        let width_min = width_f as usize;
         let width = width_min.next_power_of_two();
         let mask = width - 1;
 
@@ -434,6 +449,19 @@ impl Sketch for CountSketch {
         );
         offset += 8;
 
+        // Validate dimensions on the full usize values BEFORE any multiply.
+        // An attacker-controlled width/depth would otherwise drive an unchecked
+        // `depth * width * 8`, which ABORTS under this crate's
+        // overflow-checks=true release profile (a DoS), plus a huge
+        // `Vec::with_capacity`. Mirror frequency/count_min.rs: cap at 2^20 and
+        // reject 0 (so `width - 1` below also cannot underflow).
+        const MAX_DIM: usize = 1 << 20;
+        if width == 0 || depth == 0 || width > MAX_DIM || depth > MAX_DIM {
+            return Err(SketchError::DeserializationError(
+                "width/depth out of range".to_string(),
+            ));
+        }
+
         // Read parameters
         let epsilon = f64::from_le_bytes(
             bytes[offset..offset + 8]
@@ -449,18 +477,28 @@ impl Sketch for CountSketch {
         );
         offset += 8;
 
+        // Safe: width >= 1 (validated above), so this cannot underflow.
         let mask = width - 1;
 
-        // Read table
-        let expected_table_size = depth * width * 8;
+        // Read table with a checked size. `depth`/`width` are bounded by
+        // MAX_DIM above so these cannot actually overflow, but keep the checked
+        // arithmetic explicit rather than relying on that invariant.
+        let cells = depth
+            .checked_mul(width)
+            .ok_or_else(|| SketchError::DeserializationError("table size overflow".to_string()))?;
+        let expected_table_size = cells
+            .checked_mul(8)
+            .ok_or_else(|| SketchError::DeserializationError("table size overflow".to_string()))?;
+        // Validate the declared table fits in the remaining bytes BEFORE
+        // allocating, so `cells * element_size <= remaining_bytes`.
         if bytes.len() < offset + expected_table_size {
             return Err(SketchError::DeserializationError(
                 "insufficient bytes for table".to_string(),
             ));
         }
 
-        let mut table = Vec::with_capacity(depth * width);
-        for _ in 0..(depth * width) {
+        let mut table = Vec::with_capacity(cells);
+        for _ in 0..cells {
             let count = i64::from_le_bytes(
                 bytes[offset..offset + 8]
                     .try_into()
@@ -537,6 +575,16 @@ impl Mergeable for CountSketch {
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[test]
+    fn new_rejects_tiny_epsilon_instead_of_overflowing() {
+        // 3/epsilon^2 overflows to +inf for a tiny epsilon; must be a clean
+        // Err, not a next_power_of_two panic or a multi-exabyte allocation.
+        assert!(CountSketch::new(1e-200, 0.01).is_err());
+        assert!(CountSketch::new(1e-9, 0.01).is_err());
+        // Reasonable epsilon still works.
+        assert!(CountSketch::new(0.01, 0.01).is_ok());
+    }
 
     // ========================================================================
     // Test 1: Basic positive counts
@@ -923,6 +971,44 @@ mod tests {
     }
 
     #[test]
+    fn deserialize_rejects_oversized_dims_without_panic() {
+        // Regression: an oversized width/depth in the header must be rejected
+        // before it drives `depth * width * 8` (which aborts under
+        // overflow-checks) or a giant allocation. Craft headers with short tails.
+
+        // usize::MAX width/depth: the multiply would overflow.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&usize::MAX.to_le_bytes()); // width
+        bytes.extend_from_slice(&usize::MAX.to_le_bytes()); // depth
+        bytes.extend_from_slice(&0.1f64.to_le_bytes()); // epsilon
+        bytes.extend_from_slice(&0.01f64.to_le_bytes()); // delta
+        bytes.extend_from_slice(&[0u8; 8]); // partial table
+        assert!(
+            CountSketch::deserialize(&bytes).is_err(),
+            "oversized dims must error, not panic/OOM"
+        );
+
+        // width just over MAX_DIM (2^20) with a short tail must also error.
+        let mut bytes2 = Vec::new();
+        bytes2.extend_from_slice(&((1usize << 20) + 1).to_le_bytes()); // width > MAX_DIM
+        bytes2.extend_from_slice(&3usize.to_le_bytes()); // depth
+        bytes2.extend_from_slice(&0.1f64.to_le_bytes());
+        bytes2.extend_from_slice(&0.01f64.to_le_bytes());
+        assert!(CountSketch::deserialize(&bytes2).is_err());
+
+        // Zero width would underflow `width - 1`; must be rejected.
+        let mut bytes3 = Vec::new();
+        bytes3.extend_from_slice(&0usize.to_le_bytes()); // width = 0
+        bytes3.extend_from_slice(&3usize.to_le_bytes());
+        bytes3.extend_from_slice(&0.1f64.to_le_bytes());
+        bytes3.extend_from_slice(&0.01f64.to_le_bytes());
+        assert!(CountSketch::deserialize(&bytes3).is_err());
+
+        // Truncated header.
+        assert!(CountSketch::deserialize(&[0u8; 16]).is_err());
+    }
+
+    #[test]
     fn test_serialization_roundtrip() {
         let mut cs = CountSketch::new(0.1, 0.01).unwrap();
         cs.update(&"test_item", 42);
@@ -997,5 +1083,28 @@ mod tests {
             "Only {} of 10 sampled items within error bound",
             within_bound
         );
+    }
+}
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{Serializable, Update};
+
+impl<T: std::hash::Hash> Update<T> for CountSketch {
+    fn update(&mut self, item: &T) {
+        CountSketch::update(self, item, 1);
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `CountSketch::estimate` returns a
+// *signed* `i64` (Count Sketch estimates can be negative), which cannot honor
+// PointQuery's unsigned `u64` contract.
+
+impl Serializable for CountSketch {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(<Self as Sketch>::serialize(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        <Self as Sketch>::deserialize(bytes)
     }
 }

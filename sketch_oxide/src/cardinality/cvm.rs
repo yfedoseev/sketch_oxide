@@ -193,3 +193,24 @@ mod tests {
         assert_eq!(cvm.estimate_distinct(), 0.0);
     }
 }
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+///
+/// `CvmSketch<T>` ingests owned hashable items and estimates distinct count.
+/// `Update` takes `&T` (per the trait) and clones into the by-value `insert`.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Update};
+
+    impl<T: Hash + Eq + Clone> Update<T> for CvmSketch<T> {
+        fn update(&mut self, item: &T) {
+            self.insert(item.clone());
+        }
+    }
+
+    impl<T: Hash + Eq + Clone> CardinalityEstimate for CvmSketch<T> {
+        fn estimate_cardinality(&self) -> f64 {
+            self.estimate_distinct()
+        }
+    }
+}

@@ -245,7 +245,7 @@ impl QSketch {
     ///     >>> assert len(data) > 0
     fn serialize(&self, py: Python) -> PyResult<Py<pyo3::types::PyBytes>> {
         let data = self.inner.serialize();
-        Ok(pyo3::types::PyBytes::new_bound(py, &data).into())
+        Ok(pyo3::types::PyBytes::new(py, &data).into())
     }
 
     /// Deserialize a sketch from bytes

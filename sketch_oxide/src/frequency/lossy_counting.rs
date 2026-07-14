@@ -243,3 +243,18 @@ mod tests {
         assert!(lc.query(0.1).is_empty());
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl<T: std::hash::Hash + Eq + Clone> Update<T> for LossyCounting<T> {
+    fn update(&mut self, item: &T) {
+        self.insert(item.clone());
+    }
+}
+
+impl<T: std::hash::Hash + Eq + Clone> PointQuery<T> for LossyCounting<T> {
+    fn query(&self, item: &T) -> u64 {
+        self.estimate(item)
+    }
+}

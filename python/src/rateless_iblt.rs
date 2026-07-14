@@ -144,27 +144,27 @@ impl RatelessIBLT {
             .decode()
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
 
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
 
             // Convert to_insert list
-            let to_insert_list = pyo3::types::PyList::empty_bound(py);
+            let to_insert_list = pyo3::types::PyList::empty(py);
             for (key, value) in diff.to_insert {
-                let key_bytes = PyBytes::new_bound(py, &key);
-                let value_bytes = PyBytes::new_bound(py, &value);
+                let key_bytes = PyBytes::new(py, &key);
+                let value_bytes = PyBytes::new(py, &value);
                 let tuple =
-                    pyo3::types::PyTuple::new_bound(py, [key_bytes.as_any(), value_bytes.as_any()]);
+                    pyo3::types::PyTuple::new(py, [key_bytes.as_any(), value_bytes.as_any()])?;
                 to_insert_list.append(tuple)?;
             }
             dict.set_item("to_insert", to_insert_list)?;
 
             // Convert to_remove list
-            let to_remove_list = pyo3::types::PyList::empty_bound(py);
+            let to_remove_list = pyo3::types::PyList::empty(py);
             for (key, value) in diff.to_remove {
-                let key_bytes = PyBytes::new_bound(py, &key);
-                let value_bytes = PyBytes::new_bound(py, &value);
+                let key_bytes = PyBytes::new(py, &key);
+                let value_bytes = PyBytes::new(py, &value);
                 let tuple =
-                    pyo3::types::PyTuple::new_bound(py, [key_bytes.as_any(), value_bytes.as_any()]);
+                    pyo3::types::PyTuple::new(py, [key_bytes.as_any(), value_bytes.as_any()])?;
                 to_remove_list.append(tuple)?;
             }
             dict.set_item("to_remove", to_remove_list)?;
@@ -186,8 +186,8 @@ impl RatelessIBLT {
     ///     >>> print(f"Cells: {stats['num_cells']}, Size: {stats['cell_size']}")
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("num_cells", stats.num_cells)?;
             dict.set_item("cell_size", stats.cell_size)?;
             Ok(dict.into())

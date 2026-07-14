@@ -70,12 +70,7 @@ impl Iblt {
         let conv = |pairs: Vec<(Vec<u8>, Vec<u8>)>| {
             pairs
                 .into_iter()
-                .map(|(k, v)| {
-                    (
-                        PyBytes::new_bound(py, &k).unbind(),
-                        PyBytes::new_bound(py, &v).unbind(),
-                    )
-                })
+                .map(|(k, v)| (PyBytes::new(py, &k).unbind(), PyBytes::new(py, &v).unbind()))
                 .collect::<Vec<_>>()
         };
         Ok((conv(diff.to_insert), conv(diff.to_remove)))

@@ -254,7 +254,7 @@ mod tests {
         let mut d = ForwardDecay::new(0.3).unwrap();
         d.update(1.0, 0); // old
         d.update(1.0, 100); // recent (landmark)
-                            // At the landmark, the recent item has weight 1, the old item ~e^{-30} ≈ 0.
+        // At the landmark, the recent item has weight 1, the old item ~e^{-30} ≈ 0.
         let c = d.decayed_count(100);
         assert!((c - 1.0).abs() < 0.01, "recent dominates: count {c}");
     }

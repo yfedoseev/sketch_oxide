@@ -12,9 +12,9 @@
 //! - Scalability (1K-1M keys)
 //! - Memory efficiency
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::common::RangeFilter;
-use sketch_oxide::range_filters::{Grafite, GRF};
+use sketch_oxide::range_filters::{GRF, Grafite};
 
 // ============================================================================
 // 1. Build Performance Benchmarks

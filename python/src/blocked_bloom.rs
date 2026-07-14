@@ -141,7 +141,7 @@ impl BlockedBloomFilter {
     /// Returns:
     ///     bytes: Serialized filter
     fn to_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        PyBytes::new_bound(py, &self.inner.to_bytes())
+        PyBytes::new(py, &self.inner.to_bytes())
     }
 
     /// Deserialize a filter from bytes

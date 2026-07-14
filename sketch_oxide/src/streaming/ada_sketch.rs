@@ -227,3 +227,18 @@ mod tests {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// AdaSketch ingests raw byte items via `update` (no timestamp) so it satisfies
+// `Update<[u8]>`. Its `estimate(&[u8])` returns a time-decayed frequency as
+// `f64`, not a u64 count or a set cardinality, so `PointQuery`/
+// `CardinalityEstimate` are skipped.
+// ---------------------------------------------------------------------------
+use crate::common::Update;
+
+impl Update<[u8]> for AdaSketch {
+    fn update(&mut self, item: &[u8]) {
+        AdaSketch::update(self, item);
+    }
+}

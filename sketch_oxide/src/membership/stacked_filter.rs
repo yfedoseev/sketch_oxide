@@ -39,7 +39,7 @@ impl Bloom {
         }
     }
 
-    fn positions(&self, key: &[u8]) -> impl Iterator<Item = usize> + '_ {
+    fn positions(&self, key: &[u8]) -> impl Iterator<Item = usize> + '_ + use<'_> {
         let h1 = xxhash(key, self.seed);
         let h2 = xxhash(key, self.seed.wrapping_add(1));
         (0..self.k)
@@ -202,5 +202,18 @@ mod tests {
         let positives: Vec<&[u8]> = pk.iter().map(|k| k.as_slice()).collect();
         let f = StackedFilter::build(&positives, &[], 0.1).unwrap();
         assert!(f.size_bits() > 0);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): this is a build-once/immutable
+// filter (no inherent `insert`), so it implements `Filter` but deliberately
+// NOT `Update` — immutability is enforced by the type system.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Filter<[u8]> for StackedFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        StackedFilter::contains(self, item)
     }
 }

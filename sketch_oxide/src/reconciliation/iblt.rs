@@ -94,7 +94,7 @@
 //!   without prior context" (introduces the key-check hash used here)
 //! - Ozisik, A. P., et al. (2017). "Graphene: A new protocol for block propagation"
 
-use crate::common::{hash::xxhash, Reconcilable, Result, SetDifference, SketchError};
+use crate::common::{Reconcilable, Result, SetDifference, SketchError, hash::xxhash};
 
 /// Seed for the per-cell key-check hash. Distinct from the position-hash seeds
 /// (`0..k`) so the check is independent of cell placement.

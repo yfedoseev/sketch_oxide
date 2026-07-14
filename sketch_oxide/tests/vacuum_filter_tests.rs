@@ -2,8 +2,8 @@
 //!
 //! 60+ tests across 8 categories ensuring production readiness
 
-use sketch_oxide::membership::VacuumFilter;
 use sketch_oxide::SketchError;
+use sketch_oxide::membership::VacuumFilter;
 
 // ============================================================================
 // Category 1: Construction Tests (8 tests)
@@ -99,7 +99,7 @@ fn test_insert_duplicate() {
     let mut filter = VacuumFilter::new(100, 0.01).unwrap();
     filter.insert(b"hello").unwrap();
     filter.insert(b"hello").unwrap(); // Should not error, just add duplicate
-                                      // Note: Vacuum filter may store duplicates (by design)
+    // Note: Vacuum filter may store duplicates (by design)
     assert!(filter.len() >= 1);
 }
 

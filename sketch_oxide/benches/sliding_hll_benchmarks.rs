@@ -2,9 +2,9 @@
 //!
 //! Tests performance characteristics of time-windowed cardinality estimation
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use sketch_oxide::streaming::SlidingHyperLogLog;
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::Mergeable;
+use sketch_oxide::streaming::SlidingHyperLogLog;
 
 /// Benchmark single update operations
 fn bench_single_update(c: &mut Criterion) {

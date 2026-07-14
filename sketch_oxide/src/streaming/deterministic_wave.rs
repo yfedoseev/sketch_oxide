@@ -252,3 +252,18 @@ mod tests {
         assert_eq!(w.position(), 200);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// DeterministicWave ingests a stream of bits via `update(bool)`, so it
+// satisfies `Update<bool>`. Its `estimate(window)` requires a window argument
+// (it is a windowed bit-counter, not a per-key point query or set cardinality),
+// so `PointQuery`/`CardinalityEstimate` are skipped.
+// ---------------------------------------------------------------------------
+use crate::common::Update;
+
+impl Update<bool> for DeterministicWave {
+    fn update(&mut self, item: &bool) {
+        DeterministicWave::update(self, *item);
+    }
+}

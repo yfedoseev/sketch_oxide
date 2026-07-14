@@ -26,11 +26,11 @@ impl MvSketch {
         Ok(self.inner.estimate(&python_item_to_bytes(item)?))
     }
     /// Items whose estimated frequency exceeds `threshold`, as (bytes, count).
-    fn heavy_hitters(&self, py: Python<'_>, threshold: i64) -> Vec<(PyObject, i64)> {
+    fn heavy_hitters(&self, py: Python<'_>, threshold: i64) -> Vec<(Py<PyAny>, i64)> {
         self.inner
             .heavy_hitters(threshold)
             .into_iter()
-            .map(|(k, c)| (PyBytes::new_bound(py, &k).into_any().unbind(), c))
+            .map(|(k, c)| (PyBytes::new(py, &k).into_any().unbind(), c))
             .collect()
     }
     fn __repr__(&self) -> String {

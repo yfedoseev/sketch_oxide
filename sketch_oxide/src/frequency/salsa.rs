@@ -303,3 +303,15 @@ mod tests {
         assert!(result.is_err());
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl<T: std::hash::Hash> Update<T> for SALSA {
+    fn update(&mut self, item: &T) {
+        SALSA::update(self, item, 1);
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `estimate` returns a
+// `(u64, u64)` (estimate, confidence) tuple, not a single `u64`.

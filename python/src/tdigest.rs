@@ -145,7 +145,7 @@ impl TDigest {
 
     /// Serialize to bytes
     fn serialize<'py>(&mut self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        PyBytes::new_bound(py, &self.inner.to_bytes())
+        PyBytes::new(py, &self.inner.to_bytes())
     }
 
     /// Deserialize from bytes

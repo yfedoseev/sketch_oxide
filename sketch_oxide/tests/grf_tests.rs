@@ -13,9 +13,9 @@
 //! 7. Edge Cases (8 tests)
 //! 8. Property Tests (5 tests)
 
+use sketch_oxide::SketchError;
 use sketch_oxide::common::RangeFilter;
 use sketch_oxide::range_filters::GRF;
-use sketch_oxide::SketchError;
 
 // ============================================================================
 // 1. Construction Tests (5 tests)

@@ -409,3 +409,15 @@ mod tests {
         assert!(upper >= 42);
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl<T: std::hash::Hash + Eq + Clone> Update<T> for FrequentItems<T> {
+    fn update(&mut self, item: &T) {
+        FrequentItems::update(self, item.clone());
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `get_estimate` returns
+// `Option<(u64, u64)>` (lower/upper frequency bounds), not a single `u64`.

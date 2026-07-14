@@ -51,9 +51,21 @@
 //! // Should be close to 10,000 with ~1.04/sqrt(4096) ≈ 1.6% error
 //! ```
 
-use crate::common::{validation, Mergeable, Sketch, SketchError};
+use crate::common::{Mergeable, Sketch, SketchError, validation};
 use std::hash::{Hash, Hasher};
 use twox_hash::XxHash64;
+
+/// Returns `2^-r` exactly, constructing the IEEE-754 double directly from its
+/// exponent field instead of calling `2.0_f64.powi(...)` (a libm call).
+///
+/// Register values `r` are always in `0..=64`, so `1023 - r` never underflows
+/// (bias 1023, `2^-r` has biased exponent `1023 - r` and zero mantissa). This
+/// is bit-for-bit identical to `powi` for integer exponents but avoids the
+/// function call on the HLL estimate/update hot paths (fable5 doc 02 finding 7).
+#[inline(always)]
+fn inv_pow2(r: u8) -> f64 {
+    f64::from_bits((1023u64 - r as u64) << 52)
+}
 
 /// HyperLogLog sketch for cardinality estimation
 ///
@@ -152,7 +164,7 @@ impl HyperLogLog {
     /// Builds a sketch from existing registers, deriving the HIP `kxq` sum and setting
     /// whether the HIP estimate should be considered valid.
     fn from_registers(precision: u8, registers: Vec<u8>, hip_valid: bool) -> Self {
-        let kxq = registers.iter().map(|&r| 2.0_f64.powi(-(r as i32))).sum();
+        let kxq = registers.iter().map(|&r| inv_pow2(r)).sum();
         HyperLogLog {
             precision,
             registers,
@@ -164,11 +176,7 @@ impl HyperLogLog {
 
     /// Recomputes the `kxq` sum from the registers (used after bulk register changes).
     fn recompute_kxq(&mut self) {
-        self.kxq = self
-            .registers
-            .iter()
-            .map(|&r| 2.0_f64.powi(-(r as i32)))
-            .sum();
+        self.kxq = self.registers.iter().map(|&r| inv_pow2(r)).sum();
     }
 
     /// Returns the precision parameter
@@ -244,7 +252,7 @@ impl HyperLogLog {
             if self.hip_valid {
                 self.hip_accum += self.num_registers() as f64 / self.kxq;
             }
-            self.kxq += 2.0_f64.powi(-(rho as i32)) - 2.0_f64.powi(-(old as i32));
+            self.kxq += inv_pow2(rho) - inv_pow2(old);
             self.registers[idx] = rho;
         }
     }
@@ -285,11 +293,7 @@ impl HyperLogLog {
         let m = self.num_registers() as f64;
 
         // Compute harmonic mean of 2^(-register[j])
-        let sum: f64 = self
-            .registers
-            .iter()
-            .map(|&r| 2.0_f64.powi(-(r as i32)))
-            .sum();
+        let sum: f64 = self.registers.iter().map(|&r| inv_pow2(r)).sum();
 
         // Alpha_m constant for bias correction
         let alpha_m = self.alpha();
@@ -308,9 +312,12 @@ impl HyperLogLog {
         }
     }
 
-    /// Counts the number of zero registers
+    /// Counts the number of zero registers.
+    ///
+    /// Routes through the SIMD dispatcher (`common::simd`): an AVX2 kernel with
+    /// the `simd` feature on capable hardware, an identical scalar loop otherwise.
     fn count_zeros(&self) -> usize {
-        self.registers.iter().filter(|&&r| r == 0).count()
+        crate::common::simd::count_zero_bytes(&self.registers)
     }
 
     /// Linear counting estimate for small cardinalities
@@ -588,6 +595,20 @@ impl Mergeable for HyperLogLog {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn inv_pow2_is_bit_identical_to_powi() {
+        // The LUT-free 2^-r must match the old `2.0_f64.powi(-(r as i32))`
+        // exactly for every register value that can occur (0..=64).
+        for r in 0u8..=64 {
+            let expected = 2.0_f64.powi(-(r as i32));
+            assert_eq!(
+                inv_pow2(r).to_bits(),
+                expected.to_bits(),
+                "inv_pow2({r}) != powi at r={r}"
+            );
+        }
+    }
 
     #[test]
     fn test_new_hyperloglog() {

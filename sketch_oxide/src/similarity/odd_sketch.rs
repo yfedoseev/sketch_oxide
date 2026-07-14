@@ -219,3 +219,24 @@ mod tests {
         assert!(a.symmetric_difference_size(&b).is_err());
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// OddSketch ingests raw byte items (`insert`) and estimates the number of
+// distinct items of odd multiplicity (`estimate_size`), so it satisfies
+// `Update<[u8]>` and `CardinalityEstimate`. It has no `Sketch` serialize and no
+// quantile/point/membership semantics.
+// ---------------------------------------------------------------------------
+use crate::common::{CardinalityEstimate, Update};
+
+impl Update<[u8]> for OddSketch {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl CardinalityEstimate for OddSketch {
+    fn estimate_cardinality(&self) -> f64 {
+        self.estimate_size()
+    }
+}

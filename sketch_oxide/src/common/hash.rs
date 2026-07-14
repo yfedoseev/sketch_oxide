@@ -224,9 +224,11 @@ pub fn xxhash(data: &[u8], seed: u64) -> u64 {
     hasher.finish()
 }
 
-/// MurmurHash3 64-bit implementation
+/// Deprecated misnomer for a 64-bit hash.
 ///
-/// Extended version of MurmurHash3 that produces 64-bit hashes.
+/// Despite the name this never was MurmurHash3 — it delegates to [`xxhash`].
+/// Kept as a deprecation alias for one release cycle; call [`hash_64`] or
+/// [`xxhash`] directly instead.
 ///
 /// # Arguments
 /// * `data` - The data to hash
@@ -234,14 +236,15 @@ pub fn xxhash(data: &[u8], seed: u64) -> u64 {
 ///
 /// # Returns
 /// A 64-bit hash value
+#[deprecated(
+    since = "0.2.0",
+    note = "misnamed: this delegates to xxhash, not MurmurHash3. Use `hash_64` or `xxhash`."
+)]
 pub fn murmur3_hash64(data: &[u8], seed: u64) -> u64 {
-    // Use xxhash for 64-bit hashing (it's faster and better distributed)
     xxhash(data, seed)
 }
 
-/// Generic 64-bit hash function
-///
-/// Convenience alias for murmur3_hash64
+/// Generic 64-bit hash function (xxHash64).
 ///
 /// # Arguments
 /// * `data` - The data to hash

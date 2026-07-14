@@ -117,7 +117,7 @@ impl ExaLogLog {
     /// Probability `h(r)` that the next distinct element changes register value `r`.
     fn h(&self, r: u64) -> f64 {
         let u = (r >> self.d) as u32; // max update value
-                                      // ω(u): probability of an update value strictly greater than u.
+        // ω(u): probability of an update value strictly greater than u.
         let mut sum = self.omega_tail[u as usize];
         // Plus updates in [u-d, u-1] whose tracking bit is not yet set.
         if u >= 1 {
@@ -276,5 +276,24 @@ mod tests {
         }
         let est = ell.estimate();
         assert!((est - 20_000.0).abs() < 0.05 * 20_000.0, "estimate {est}");
+    }
+}
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Update};
+    use std::hash::Hash;
+
+    impl<T: Hash> Update<T> for ExaLogLog {
+        fn update(&mut self, item: &T) {
+            self.add(item);
+        }
+    }
+
+    impl CardinalityEstimate for ExaLogLog {
+        fn estimate_cardinality(&self) -> f64 {
+            self.estimate()
+        }
     }
 }

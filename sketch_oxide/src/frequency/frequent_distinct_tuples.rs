@@ -175,3 +175,10 @@ mod tests {
         assert!(fdt.top_k(3).is_empty());
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+// No capability trait matches cleanly:
+//  * ingest is `update<V: Hash>(&mut self, key: K, value: &V)` — a two-argument
+//    (key, value) tuple ingest, not the single-item `Update<T>` shape.
+//  * `distinct_estimate` returns `f64` (an HLL cardinality per key), not the
+//    `u64` frequency PointQuery describes.

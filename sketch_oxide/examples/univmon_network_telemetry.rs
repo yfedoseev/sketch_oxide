@@ -5,8 +5,8 @@
 //!
 //! Run with: cargo run --example univmon_network_telemetry
 
-use sketch_oxide::universal::UnivMon;
 use sketch_oxide::Mergeable;
+use sketch_oxide::universal::UnivMon;
 use std::time::Instant;
 
 fn main() {

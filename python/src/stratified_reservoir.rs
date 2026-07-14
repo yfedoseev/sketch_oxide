@@ -44,12 +44,10 @@ impl StratifiedReservoir {
         stratum: &Bound<'_, PyAny>,
     ) -> PyResult<Option<Vec<Py<PyBytes>>>> {
         let s = python_item_to_bytes(stratum)?;
-        Ok(self.inner.sample(&s).map(|items| {
-            items
-                .iter()
-                .map(|v| PyBytes::new_bound(py, v).unbind())
-                .collect()
-        }))
+        Ok(self
+            .inner
+            .sample(&s)
+            .map(|items| items.iter().map(|v| PyBytes::new(py, v).unbind()).collect()))
     }
 
     /// Reservoir capacity per stratum.

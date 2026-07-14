@@ -44,7 +44,7 @@ pub fn python_item_to_hash(item: &Bound<'_, PyAny>) -> PyResult<u64> {
         Ok(xxhash(&val.to_le_bytes(), 0))
     } else if let Ok(val) = item.extract::<String>() {
         Ok(xxhash(val.as_bytes(), 0))
-    } else if let Ok(b) = item.downcast::<PyBytes>() {
+    } else if let Ok(b) = item.cast::<PyBytes>() {
         let val = b.as_bytes();
         Ok(xxhash(val, 0))
     } else if let Ok(val) = item.extract::<f64>() {
@@ -68,7 +68,7 @@ pub fn python_item_to_bytes(item: &Bound<'_, PyAny>) -> PyResult<Vec<u8>> {
         Ok(val.to_le_bytes().to_vec())
     } else if let Ok(val) = item.extract::<String>() {
         Ok(val.into_bytes())
-    } else if let Ok(b) = item.downcast::<PyBytes>() {
+    } else if let Ok(b) = item.cast::<PyBytes>() {
         Ok(b.as_bytes().to_vec())
     } else if let Ok(val) = item.extract::<f64>() {
         Ok(val.to_bits().to_le_bytes().to_vec())
@@ -104,7 +104,7 @@ macro_rules! with_python_item {
             Ok($closure(&val))
         } else if let Ok(val) = $item.extract::<String>() {
             Ok($closure(&val))
-        } else if let Ok(b) = $item.downcast::<PyBytes>() {
+        } else if let Ok(b) = $item.cast::<PyBytes>() {
             let val = b.as_bytes();
             Ok($closure(&val))
         } else {

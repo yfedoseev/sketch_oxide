@@ -37,12 +37,9 @@ impl EbppsSketch {
 
     /// Draws the current sample, each item returned as `bytes`, or None if empty.
     fn sample(&mut self, py: Python<'_>) -> Option<Vec<Py<PyBytes>>> {
-        self.inner.sample().map(|items| {
-            items
-                .iter()
-                .map(|v| PyBytes::new_bound(py, v).unbind())
-                .collect()
-        })
+        self.inner
+            .sample()
+            .map(|items| items.iter().map(|v| PyBytes::new(py, v).unbind()).collect())
     }
 
     /// Number of items processed.

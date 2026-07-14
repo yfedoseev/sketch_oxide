@@ -3,7 +3,7 @@
 //! This benchmark suite measures the performance of Rateless IBLT operations
 //! across various scenarios and scales.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::common::Reconcilable;
 use sketch_oxide::reconciliation::RatelessIBLT;
 

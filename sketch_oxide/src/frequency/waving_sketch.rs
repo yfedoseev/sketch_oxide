@@ -89,11 +89,7 @@ impl WavingSketch {
     /// The `±1` sign of `item`.
     #[inline]
     fn sign(item: &[u8]) -> i64 {
-        if xxhash(item, 1) & 1 == 0 {
-            1
-        } else {
-            -1
-        }
+        if xxhash(item, 1) & 1 == 0 { 1 } else { -1 }
     }
 
     /// Inserts one occurrence of `item`.
@@ -261,3 +257,15 @@ mod tests {
         assert!(est >= 50 && est <= 200, "estimate {est} for true 100");
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl Update<[u8]> for WavingSketch {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `estimate` returns a *signed*
+// `i64` (WavingSketch counters can be negative), incompatible with `u64`.

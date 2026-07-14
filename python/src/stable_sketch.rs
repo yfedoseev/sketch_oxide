@@ -25,11 +25,11 @@ impl StableSketch {
     fn estimate(&self, item: &Bound<'_, PyAny>) -> PyResult<u64> {
         Ok(self.inner.estimate(&python_item_to_bytes(item)?))
     }
-    fn heavy_hitters(&self, py: Python<'_>, threshold: u64) -> Vec<(PyObject, u64)> {
+    fn heavy_hitters(&self, py: Python<'_>, threshold: u64) -> Vec<(Py<PyAny>, u64)> {
         self.inner
             .heavy_hitters(threshold)
             .into_iter()
-            .map(|(k, c)| (PyBytes::new_bound(py, &k).into_any().unbind(), c))
+            .map(|(k, c)| (PyBytes::new(py, &k).into_any().unbind(), c))
             .collect()
     }
     fn __repr__(&self) -> String {

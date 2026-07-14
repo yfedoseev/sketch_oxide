@@ -347,12 +347,53 @@ impl StableBloomFilter {
         let p = u64::from_le_bytes(bytes[18..26].try_into().unwrap()) as usize;
         let counter_len = u64::from_le_bytes(bytes[26..34].try_into().unwrap()) as usize;
 
-        if bytes.len() < 34 + counter_len {
+        // Validate `counter_bits` read from untrusted input: it drives
+        // `8 / counter_bits` in get/set_counter, so a value of 0 would divide
+        // by zero (panic). The valid construction range is [1, 8].
+        if counter_bits == 0 || counter_bits > 8 {
+            return Err(SketchError::DeserializationError(
+                "counter_bits out of range".to_string(),
+            ));
+        }
+
+        // Validate `m` (the counter count): it is used as `% self.m` and
+        // `random_range(0..self.m)` at query/insert time, both of which panic
+        // when m == 0. Cap it so it cannot drive an oversized structure either.
+        if m == 0 || m > crate::common::validation::MAX_CAPACITY as usize {
+            return Err(SketchError::DeserializationError(
+                "m out of range".to_string(),
+            ));
+        }
+
+        // Bound `counter_len` (the raw counter-buffer length) before it drives
+        // the `34 + counter_len` size arithmetic and the buffer allocation.
+        if counter_len > crate::common::validation::MAX_BYTE_SIZE {
+            return Err(SketchError::DeserializationError(
+                "counter_len out of range".to_string(),
+            ));
+        }
+
+        // Checked arithmetic so overflow returns an Err instead of aborting.
+        let expected_len = counter_len.checked_add(34).ok_or_else(|| {
+            SketchError::DeserializationError("counter size overflow".to_string())
+        })?;
+        if bytes.len() < expected_len {
             return Err(SketchError::DeserializationError(format!(
                 "Expected {} bytes, got {}",
-                34 + counter_len,
+                expected_len,
                 bytes.len()
             )));
+        }
+
+        // Consistency check: the buffer must be large enough to hold `m`
+        // counters at `counter_bits` bits each, otherwise get/set_counter would
+        // index out of bounds (panic) during later queries.
+        let counters_per_byte = 8 / counter_bits as usize;
+        let required_bytes = m.div_ceil(counters_per_byte);
+        if counter_len < required_bytes {
+            return Err(SketchError::DeserializationError(
+                "counter buffer too small for m".to_string(),
+            ));
         }
 
         let counters = bytes[34..34 + counter_len].to_vec();
@@ -498,5 +539,83 @@ mod tests {
         let filter = StableBloomFilter::new(1000, 0.01).unwrap();
         let memory = filter.memory_usage();
         assert!(memory > 0);
+    }
+
+    /// Builds a raw StableBloomFilter header (34 bytes) for fuzz-style tests.
+    fn craft_header(
+        m: u64,
+        k: u64,
+        counter_bits: u8,
+        max_counter: u8,
+        p: u64,
+        counter_len: u64,
+    ) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&m.to_le_bytes());
+        bytes.extend_from_slice(&k.to_le_bytes());
+        bytes.push(counter_bits);
+        bytes.push(max_counter);
+        bytes.extend_from_slice(&p.to_le_bytes());
+        bytes.extend_from_slice(&counter_len.to_le_bytes());
+        bytes
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_oversized_counter_len_without_panic() {
+        // Enormous declared counter buffer with a short tail: must Err, never
+        // panic, overflow-abort, or attempt a huge allocation.
+        let bytes = craft_header(64, 3, 3, 7, 1, u64::MAX);
+        assert!(StableBloomFilter::from_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_zero_counter_bits_without_panic() {
+        // counter_bits == 0 would divide by zero via `8 / counter_bits`.
+        let bytes = craft_header(64, 3, 0, 0, 1, 0);
+        assert!(StableBloomFilter::from_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_zero_m_without_panic() {
+        // m == 0 would panic later via `% self.m` / `random_range(0..self.m)`.
+        let bytes = craft_header(0, 3, 3, 7, 1, 0);
+        assert!(StableBloomFilter::from_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_undersized_counter_buffer() {
+        // m claims many counters but counter_len is far too small to hold them:
+        // must Err rather than allow later out-of-bounds indexing.
+        let mut bytes = craft_header(1_000_000, 3, 3, 7, 1, 4);
+        bytes.extend_from_slice(&[0u8; 4]); // full declared body present
+        assert!(StableBloomFilter::from_bytes(&bytes).is_err());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): express the inherent API via
+// the orthogonal capability traits, delegating to the inherent methods.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Update<[u8]> for StableBloomFilter {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for StableBloomFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        StableBloomFilter::contains(self, item)
+    }
+}
+
+impl Serializable for StableBloomFilter {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(StableBloomFilter::to_bytes(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        StableBloomFilter::from_bytes(bytes)
     }
 }

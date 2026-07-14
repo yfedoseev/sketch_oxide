@@ -58,7 +58,7 @@ impl PrioritySample {
                 .items
                 .iter()
                 .enumerate()
-                .min_by(|a, b| a.1 .2.partial_cmp(&b.1 .2).unwrap())
+                .min_by(|a, b| a.1.2.partial_cmp(&b.1.2).unwrap())
                 .unwrap();
             if min_q > self.tau {
                 self.tau = min_q;

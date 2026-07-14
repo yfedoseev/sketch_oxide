@@ -250,6 +250,10 @@ impl SketchPolymer {
     }
 }
 
+// No capability-trait match: `insert(item, value)` and `quantile(item, w) -> f64`
+// both take a per-item key (and quantile is non-optional), so neither the scalar
+// `Update<f64>` nor `QuantileQuery` applies. No serialization.
+
 #[cfg(test)]
 mod tests {
     use super::*;

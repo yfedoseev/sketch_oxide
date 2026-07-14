@@ -26,11 +26,11 @@ impl LossyCounting {
         Ok(self.inner.estimate(&python_item_to_bytes(item)?))
     }
     /// Items with frequency above fraction `s`, as (bytes, count).
-    fn query(&self, py: Python<'_>, s: f64) -> Vec<(PyObject, u64)> {
+    fn query(&self, py: Python<'_>, s: f64) -> Vec<(Py<PyAny>, u64)> {
         self.inner
             .query(s)
             .into_iter()
-            .map(|(k, c)| (PyBytes::new_bound(py, &k).into_any().unbind(), c))
+            .map(|(k, c)| (PyBytes::new(py, &k).into_any().unbind(), c))
             .collect()
     }
     /// Total number of items processed.

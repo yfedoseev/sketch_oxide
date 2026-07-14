@@ -211,3 +211,21 @@ mod tests {
         assert!(!pf.contains(b"anything"));
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): express the inherent API via
+// the orthogonal capability traits, delegating to the inherent methods.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Update<[u8]> for PrefixFilter {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for PrefixFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        PrefixFilter::contains(self, item)
+    }
+}

@@ -72,11 +72,7 @@ impl<T: Hash + Eq + Clone + AsRef<[u8]>> DistinctSampling<T> {
     fn level_of(item: &[u8]) -> u32 {
         let h = xxhash(item, LEVEL_SEED);
         // h == 0 (probability 2^-64) maps to the maximum level.
-        if h == 0 {
-            64
-        } else {
-            h.trailing_zeros()
-        }
+        if h == 0 { 64 } else { h.trailing_zeros() }
     }
 
     /// Records one occurrence of `item`.

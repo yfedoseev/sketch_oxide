@@ -243,7 +243,7 @@ impl CuckooHeavyKeeper {
             return;
         }
         // Replace the current weakest if this item is stronger.
-        if let Some((&min_h, &min_c)) = self.top.iter().min_by_key(|(_, &c)| c) {
+        if let Some((&min_h, &min_c)) = self.top.iter().min_by_key(|&(_, &c)| c) {
             if count > min_c {
                 self.top.remove(&min_h);
                 self.top.insert(item_hash, count);
@@ -341,5 +341,21 @@ mod tests {
         for f in 0..50u64 {
             assert_eq!(a.estimate(&f.to_le_bytes()), b.estimate(&f.to_le_bytes()));
         }
+    }
+}
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl Update<[u8]> for CuckooHeavyKeeper {
+    fn update(&mut self, item: &[u8]) {
+        CuckooHeavyKeeper::update(self, item);
+    }
+}
+
+// `estimate` returns `u32`; widening to PointQuery's `u64` is lossless.
+impl PointQuery<[u8]> for CuckooHeavyKeeper {
+    fn query(&self, item: &[u8]) -> u64 {
+        u64::from(self.estimate(item))
     }
 }

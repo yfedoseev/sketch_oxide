@@ -148,7 +148,7 @@ impl PersonLevelDp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{SeedableRng, rngs::StdRng};
 
     fn rng() -> StdRng {
         StdRng::seed_from_u64(0xD1FF_0BEE_C0DE)

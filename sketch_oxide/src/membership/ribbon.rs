@@ -55,11 +55,30 @@ impl RibbonFilter {
     /// # Panics
     /// Panics if `n` is 0 or `fpr` is not in range (0, 1)
     pub fn new(n: usize, fpr: f64) -> Self {
-        assert!(n > 0, "Expected number of elements must be > 0");
-        assert!(
-            fpr > 0.0 && fpr < 1.0,
-            "False positive rate must be in (0, 1)"
-        );
+        Self::try_new(n, fpr).expect("invalid Ribbon filter parameters")
+    }
+
+    /// Creates a filter, returning an error on invalid parameters instead of
+    /// panicking — the library-wide constructor convention (fable5 doc 01 F4).
+    ///
+    /// # Errors
+    /// Returns `InvalidParameter` if `n == 0` or `fpr` is not in `(0, 1)`.
+    pub fn try_new(n: usize, fpr: f64) -> Result<Self, crate::common::SketchError> {
+        use crate::common::SketchError;
+        if n == 0 {
+            return Err(SketchError::InvalidParameter {
+                param: "n".to_string(),
+                value: n.to_string(),
+                constraint: "must be greater than 0".to_string(),
+            });
+        }
+        if !(fpr > 0.0 && fpr < 1.0) {
+            return Err(SketchError::InvalidParameter {
+                param: "fpr".to_string(),
+                value: fpr.to_string(),
+                constraint: "must be in (0, 1)".to_string(),
+            });
+        }
 
         // Ribbon filters achieve ~log2(1/fpr) + 2 bits per key
         // For 1% FPR: log2(100) + 2 ≈ 8.6 bits/key
@@ -67,14 +86,14 @@ impl RibbonFilter {
         let total_bits = (n as f64 * bits_per_key).ceil() as usize;
         let cols = total_bits;
 
-        Self {
+        Ok(Self {
             key_hashes: Vec::with_capacity(n),
             solution: vec![0u8; cols.div_ceil(8)], // Byte-aligned
             cols,
             n,
             count: 0,
             finalized: false,
-        }
+        })
     }
 
     /// Creates a Ribbon filter with specific parameters
@@ -224,8 +243,15 @@ impl RibbonFilter {
         let count = usize::from_le_bytes(bytes[16..24].try_into().unwrap());
         let finalized = bytes[24] == 1;
 
+        // Checked arithmetic: `count`/`cols` are attacker-controlled and
+        // `count * 8` (or the sum) can overflow, aborting the process under
+        // overflow-checks (fable5 doc 01 F2).
         let solution_len = cols.div_ceil(8);
-        let expected_size = 25 + count * 8 + solution_len;
+        let expected_size = count
+            .checked_mul(8)
+            .and_then(|k| k.checked_add(25))
+            .and_then(|k| k.checked_add(solution_len))
+            .ok_or("Invalid byte array size")?;
 
         if bytes.len() != expected_size {
             return Err("Invalid byte array size");
@@ -488,13 +514,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Expected number of elements must be > 0")]
+    #[should_panic(expected = "param: \"n\"")]
     fn test_new_panics_on_zero_n() {
         RibbonFilter::new(0, 0.01);
     }
 
     #[test]
-    #[should_panic(expected = "False positive rate must be in (0, 1)")]
+    #[should_panic(expected = "param: \"fpr\"")]
     fn test_new_panics_on_invalid_fpr() {
         RibbonFilter::new(100, 1.5);
     }
@@ -526,5 +552,41 @@ mod tests {
         assert!(debug_str.contains("RibbonFilter"));
         assert!(debug_str.contains("n"));
         assert!(debug_str.contains("finalized"));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): express the inherent API via
+// the orthogonal capability traits, delegating to the inherent methods.
+//
+// NOTE: the inherent Ribbon API is incremental-insert-then-`finalize()`; the
+// `Update` impl mirrors the inherent `insert` exactly (callers must still call
+// `finalize()` before querying, as with the inherent API).
+// ---------------------------------------------------------------------------
+use crate::common::SketchError;
+use crate::common::capabilities::*;
+
+impl Update<[u8]> for RibbonFilter {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for RibbonFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        RibbonFilter::contains(self, item)
+    }
+}
+
+impl Serializable for RibbonFilter {
+    fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+        Ok(RibbonFilter::to_bytes(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+        // Inherent `from_bytes` uses a `&'static str` error; map it into the
+        // capability's `SketchError` so callers see a uniform error type.
+        RibbonFilter::from_bytes(bytes)
+            .map_err(|e| SketchError::DeserializationError(e.to_string()))
     }
 }

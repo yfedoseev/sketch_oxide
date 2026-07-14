@@ -13,7 +13,7 @@
 //! 8. Memory usage tracking
 //! 9. Varying FPR targets
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use sketch_oxide::common::RangeFilter;
 use sketch_oxide::range_filters::MementoFilter;
 

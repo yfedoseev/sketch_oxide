@@ -15,8 +15,8 @@
 use crate::common::SketchError;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
 use std::hash::{BuildHasherDefault, Hash};
 
 /// A `HashMap` with a fixed-seed hasher so iteration order — and thus the min-slot tie-breaking
@@ -102,7 +102,7 @@ impl<T: Hash + Eq + Clone> UnbiasedSpaceSaving<T> {
         let (min_key, min_val) = self
             .counts
             .iter()
-            .min_by_key(|(_, &v)| v)
+            .min_by_key(|&(_, &v)| v)
             .map(|(k, &v)| (k.clone(), v))
             .expect("table is full so non-empty");
         let new_count = min_val + 1;
@@ -233,3 +233,15 @@ mod tests {
         assert_eq!(a.top_k(8), b.top_k(8));
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl<T: std::hash::Hash + Eq + Clone> Update<T> for UnbiasedSpaceSaving<T> {
+    fn update(&mut self, item: &T) {
+        UnbiasedSpaceSaving::update(self, item.clone());
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `estimate` returns `Option<u64>`
+// (`None` for evicted/unseen items), not the bare `u64` PointQuery requires.

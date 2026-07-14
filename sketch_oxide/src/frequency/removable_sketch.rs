@@ -320,3 +320,15 @@ mod tests {
         assert!(freq >= 120);
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::Update;
+
+impl<T: std::hash::Hash> Update<T> for RemovableUniversalSketch {
+    fn update(&mut self, item: &T) {
+        RemovableUniversalSketch::update(self, item, 1);
+    }
+}
+
+// PointQuery is intentionally NOT implemented: `estimate` returns a *signed*
+// `i64` (removals can drive counts negative), incompatible with `u64`.

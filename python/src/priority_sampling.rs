@@ -40,7 +40,7 @@ impl PrioritySampling {
         self.inner
             .sample()
             .into_iter()
-            .map(|(v, w)| (PyBytes::new_bound(py, &v).unbind(), w))
+            .map(|(v, w)| (PyBytes::new(py, &v).unbind(), w))
             .collect()
     }
 

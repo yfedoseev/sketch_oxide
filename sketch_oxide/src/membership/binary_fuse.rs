@@ -30,7 +30,7 @@
 //! Graf, Thomas M., and Daniel Lemire. "Binary Fuse Filters: Fast and Smaller
 //! Than Xor Filters." ACM Journal of Experimental Algorithmics 27 (2022): 1-16.
 
-use crate::common::{hash::xxhash, Sketch, SketchError};
+use crate::common::{Sketch, SketchError, hash::xxhash};
 use std::collections::HashSet;
 
 const MAX_ITERATIONS: u64 = 10000; // Max attempts to find valid seed
@@ -461,8 +461,16 @@ impl Sketch for BinaryFuseFilter {
 
         let fingerprints = bytes[25..].to_vec();
 
-        let expected_fp_len = (segment_length * segment_count) as usize;
-        if fingerprints.len() != expected_fp_len && size > 0 {
+        // Checked multiply: `segment_length`/`segment_count` are read raw from
+        // untrusted bytes and a `u32 * u32` product can wrap. Validate the
+        // fingerprint length unconditionally (the old `&& size > 0` escape
+        // hatch let a crafted header slip a mismatched array through).
+        let expected_fp_len = (segment_length as usize)
+            .checked_mul(segment_count as usize)
+            .ok_or_else(|| {
+                SketchError::DeserializationError("segment dimensions too large".to_string())
+            })?;
+        if fingerprints.len() != expected_fp_len {
             return Err(SketchError::DeserializationError(format!(
                 "Fingerprint array length mismatch: expected {}, got {}",
                 expected_fp_len,
@@ -484,6 +492,37 @@ impl Sketch for BinaryFuseFilter {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deserialize_rejects_wrapping_segment_dims_without_panic() {
+        // Regression (fable5 doc 05 #1): segment_length * segment_count as a
+        // u32 product could wrap; the length check was also skipped when
+        // size == 0. A crafted header must be rejected, not slip through.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&0u64.to_le_bytes()); // seed
+        bytes.extend_from_slice(&u32::MAX.to_le_bytes()); // segment_length (huge)
+        bytes.extend_from_slice(&3u32.to_le_bytes()); // segment_count = 3 (passes id check)
+        bytes.extend_from_slice(&0usize.to_le_bytes()); // size = 0 (old escape hatch)
+        bytes.push(9); // bits_per_entry
+        bytes.extend_from_slice(&[0u8; 4]); // a few fingerprint bytes
+        assert!(BinaryFuseFilter::deserialize(&bytes).is_err());
+    }
+
+    #[test]
+    fn deserialize_round_trips_and_empty_filter() {
+        let empty = BinaryFuseFilter::from_items(std::iter::empty::<u64>(), 9).unwrap();
+        let bytes = empty.serialize();
+        let restored = BinaryFuseFilter::deserialize(&bytes).expect("empty round-trip");
+        assert!(restored.is_empty());
+
+        let items: Vec<u64> = (0..1000).collect();
+        let filter = BinaryFuseFilter::from_items(items.iter().copied(), 9).unwrap();
+        let bytes = filter.serialize();
+        let restored = BinaryFuseFilter::deserialize(&bytes).expect("populated round-trip");
+        for &i in &items {
+            assert!(restored.contains(&i));
+        }
+    }
 
     #[test]
     fn test_calculate_segment_length() {

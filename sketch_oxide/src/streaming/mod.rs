@@ -56,3 +56,57 @@ mod tests {
         // This test ensures the module compiles successfully
     }
 }
+
+/// Smoke test for the capability-trait adoptions (fable5 doc 01 F3): drive
+/// several concrete sketches purely through the generic `Update` /
+/// `PointQuery` / `CardinalityEstimate` traits, proving the split composes.
+#[cfg(test)]
+mod capability_smoke {
+    use crate::common::{CardinalityEstimate, PointQuery, Temporal, Update};
+    use crate::similarity::OddSketch;
+    use crate::streaming::{Hokusai, SlidingSketch};
+
+    // Generic over ANY byte-ingesting point-query sketch.
+    fn ingest_then_query<S: Update<[u8]> + PointQuery<[u8]>>(
+        sketch: &mut S,
+        item: &[u8],
+        n: usize,
+    ) -> u64 {
+        for _ in 0..n {
+            sketch.update(item);
+        }
+        sketch.query(item)
+    }
+
+    // Generic over ANY byte-ingesting cardinality estimator.
+    fn distinct<S: Update<[u8]> + CardinalityEstimate>(sketch: &mut S, items: &[&[u8]]) -> f64 {
+        for it in items {
+            sketch.update(it);
+        }
+        sketch.estimate_cardinality()
+    }
+
+    #[test]
+    fn generic_point_query_over_capability_traits() {
+        // SlidingSketch (needs its clock primed) and Hokusai both satisfy
+        // Update<[u8]> + PointQuery<[u8]>; neither should underestimate.
+        let mut s = SlidingSketch::new(1000, 10, 4, 1024).unwrap();
+        s.advance(0);
+        assert!(ingest_then_query(&mut s, b"alpha", 40) >= 40);
+
+        let mut h = Hokusai::new(4, 256, 4).unwrap();
+        assert!(ingest_then_query(&mut h, b"alpha", 40) >= 40);
+    }
+
+    #[test]
+    fn generic_cardinality_over_capability_traits() {
+        let items: Vec<[u8; 4]> = (0u32..200).map(u32::to_le_bytes).collect();
+        let refs: Vec<&[u8]> = items.iter().map(|b| b.as_slice()).collect();
+        let mut odd = OddSketch::new(4096).unwrap();
+        let est = distinct(&mut odd, &refs);
+        assert!(
+            est.is_finite() && est > 40.0,
+            "OddSketch cardinality off: {est}"
+        );
+    }
+}

@@ -167,7 +167,7 @@ impl<T: Hash + Eq + Clone> StickySampling<T> {
         let threshold = ((s - self.epsilon) * self.n as f64).max(0.0);
         self.entries
             .iter()
-            .filter(|(_, &f)| f as f64 >= threshold)
+            .filter(|&(_, &f)| f as f64 >= threshold)
             .map(|(k, &f)| (k.clone(), f))
             .collect()
     }
@@ -278,5 +278,20 @@ mod tests {
         assert!(ss.is_empty());
         assert_eq!(ss.estimate(&42), 0);
         assert!(ss.query(0.1).is_empty());
+    }
+}
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl<T: std::hash::Hash + Eq + Clone> Update<T> for StickySampling<T> {
+    fn update(&mut self, item: &T) {
+        self.insert(item.clone());
+    }
+}
+
+impl<T: std::hash::Hash + Eq + Clone> PointQuery<T> for StickySampling<T> {
+    fn query(&self, item: &T) -> u64 {
+        self.estimate(item)
     }
 }

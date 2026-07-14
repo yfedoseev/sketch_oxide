@@ -259,7 +259,7 @@ mod tests {
         for seed in 0..runs {
             let mut t = ThinkD::with_seed(0.5, seed).unwrap();
             add_clique(&mut t, 12); // K12 has C(12,3) = 220 triangles
-                                    // Delete every edge incident to node 0 (removes C(11,2) = 55 triangles ⇒ 165 remain).
+            // Delete every edge incident to node 0 (removes C(11,2) = 55 triangles ⇒ 165 remain).
             for w in 1..12u64 {
                 t.remove_edge(0, w);
             }

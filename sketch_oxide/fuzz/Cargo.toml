@@ -1,0 +1,51 @@
+# cargo-fuzz targets for untrusted-deserialization hardening (fable5 doc 05 #4).
+# This crate is intentionally OUTSIDE the main workspace (cargo-fuzz convention);
+# run with `cargo +nightly fuzz run <target>` from `sketch_oxide/`.
+[package]
+name = "sketch_oxide-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.sketch_oxide]
+path = ".."
+
+[[bin]]
+name = "deserialize_ddsketch"
+path = "fuzz_targets/deserialize_ddsketch.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "deserialize_spline"
+path = "fuzz_targets/deserialize_spline.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "deserialize_binary_fuse"
+path = "fuzz_targets/deserialize_binary_fuse.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "deserialize_kll"
+path = "fuzz_targets/deserialize_kll.rs"
+test = false
+doc = false
+bench = false
+
+# Keep panics as aborts so the fuzzer catches them.
+[profile.release]
+debug = 1
+
+[workspace]

@@ -13,9 +13,9 @@
 //! 7. Integration (4 tests)
 //! 8. Property Tests (3 tests)
 
+use sketch_oxide::SketchError;
 use sketch_oxide::common::RangeFilter;
 use sketch_oxide::range_filters::Grafite;
-use sketch_oxide::SketchError;
 
 // ============================================================================
 // 1. Construction Tests (5 tests)

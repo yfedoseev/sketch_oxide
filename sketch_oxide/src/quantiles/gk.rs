@@ -155,6 +155,27 @@ impl GreenwaldKhanna {
     }
 }
 
+// Capability-trait adoptions (fable5 doc 01 F3): express exactly the streaming
+// ingest and immutable rank-query capabilities this type has, delegating to
+// inherent methods.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{QuantileQuery, Update};
+
+    impl Update<f64> for GreenwaldKhanna {
+        fn update(&mut self, item: &f64) {
+            self.insert(*item);
+        }
+    }
+
+    // `quantile(&self, ..) -> Option<f64>` is immutable, so `QuantileQuery` fits.
+    impl QuantileQuery for GreenwaldKhanna {
+        fn quantile(&self, rank: f64) -> Option<f64> {
+            GreenwaldKhanna::quantile(self, rank)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,7 +207,7 @@ mod tests {
         for &phi in &[0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99] {
             let est = gk.quantile(phi).unwrap();
             let true_rank = phi * n as f64; // value == rank for this data
-                                            // The returned value's true rank (== its value here) is within ~2εn of the target.
+            // The returned value's true rank (== its value here) is within ~2εn of the target.
             assert!(
                 (est - true_rank).abs() <= 2.0 * eps * n as f64,
                 "phi {phi}: est {est} vs target {true_rank}"

@@ -121,6 +121,10 @@ impl<T: Hash + Eq + Clone> PerKeyQuantiles<T> {
     }
 }
 
+// No capability-trait match: this is a keyed multiplexer — `update(key, value)`
+// and `quantile(key, phi)` both take a per-key argument, so neither the scalar
+// `Update<f64>` nor `QuantileQuery` (single-argument) applies. No serialization.
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -187,14 +187,28 @@ impl Sketch for TcmSketch {
         }
         let depth = u64::from_le_bytes(bytes[0..8].try_into().unwrap()) as usize;
         let width = u64::from_le_bytes(bytes[8..16].try_into().unwrap()) as usize;
-        let mut sketch = Self::new(depth, width)?;
-        let expected = 16 + depth * width * width * 8;
+        // `depth`/`width` are attacker-controlled (full u64 → usize). Validate the
+        // byte length with checked arithmetic BEFORE constructing the sketch:
+        // `Self::new` allocates `vec![0u64; depth * width * width]`, so a crafted
+        // triple product would either overflow (aborting under
+        // overflow-checks=true) or drive a giant allocation (OOM) before any
+        // length check could reject it. `expected == bytes.len()` guarantees
+        // `depth * width * width * 8 <= bytes.len()`, bounding the allocation.
+        let expected = depth
+            .checked_mul(width)
+            .and_then(|n| n.checked_mul(width))
+            .and_then(|cells| cells.checked_mul(8))
+            .and_then(|n| n.checked_add(16))
+            .ok_or_else(|| {
+                SketchError::DeserializationError("matrix grid size overflow".to_string())
+            })?;
         if bytes.len() != expected {
             return Err(SketchError::DeserializationError(format!(
                 "expected {expected} bytes, got {}",
                 bytes.len()
             )));
         }
+        let mut sketch = Self::new(depth, width)?;
         for (i, c) in sketch.matrices.iter_mut().enumerate() {
             let off = 16 + i * 8;
             *c = u64::from_le_bytes(bytes[off..off + 8].try_into().unwrap());
@@ -212,6 +226,31 @@ mod tests {
         assert!(TcmSketch::new(0, 16).is_err());
         assert!(TcmSketch::new(4, 0).is_err());
         assert!(TcmSketch::new(4, 16).is_ok());
+    }
+
+    #[test]
+    fn deserialize_rejects_oversized_dims_without_panic() {
+        // Regression: `depth`/`width` drive `vec![0u64; depth*width*width]`
+        // inside `Self::new`, which previously ran BEFORE the length check.
+        // Overflowing product.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // depth
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // width
+        bytes.extend_from_slice(&[0u8; 8]);
+        assert!(
+            TcmSketch::deserialize(&bytes).is_err(),
+            "must error, not overflow/OOM"
+        );
+
+        // Large-but-non-overflowing product with a truncated tail.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&4u64.to_le_bytes()); // depth
+        bytes.extend_from_slice(&100_000u64.to_le_bytes()); // width -> 4*1e10 cells
+        bytes.extend_from_slice(&[0u8; 8]);
+        assert!(TcmSketch::deserialize(&bytes).is_err());
+
+        // Truncated header.
+        assert!(TcmSketch::deserialize(&[0u8; 8]).is_err());
     }
 
     #[test]

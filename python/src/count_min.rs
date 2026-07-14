@@ -161,7 +161,7 @@ impl CountMinSketch {
     ///     >>> cms = CountMinSketch(epsilon=0.01, delta=0.01)
     ///     >>> cms.update_batch(["apple", "banana", "apple"])
     fn update_batch(&mut self, items: &Bound<'_, PyAny>) -> PyResult<()> {
-        let items_list: &Bound<'_, PyList> = items.downcast()?;
+        let items_list: &Bound<'_, PyList> = items.cast()?;
         for item in items_list {
             self.update(&item)?;
         }
@@ -182,7 +182,7 @@ impl CountMinSketch {
     ///     >>> cms = CountMinSketch(epsilon=0.01, delta=0.01)
     ///     >>> estimates = cms.estimate_batch(["apple", "banana"])
     fn estimate_batch(&self, items: &Bound<'_, PyAny>) -> PyResult<Vec<u64>> {
-        let items_list: &Bound<'_, PyList> = items.downcast()?;
+        let items_list: &Bound<'_, PyList> = items.cast()?;
         let mut estimates = Vec::new();
         for item in items_list {
             estimates.push(self.estimate(&item)?);

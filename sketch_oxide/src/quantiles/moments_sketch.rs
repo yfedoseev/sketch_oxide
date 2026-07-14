@@ -378,6 +378,25 @@ fn invert_cdf(nodes: &[f64], cdf: &[f64], target: f64) -> f64 {
     }
 }
 
+// Capability-trait adoptions (fable5 doc 01 F3): delegate to inherent methods.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{QuantileQuery, Update};
+
+    impl Update<f64> for MomentsSketch {
+        fn update(&mut self, item: &f64) {
+            self.add(*item);
+        }
+    }
+
+    // `quantile(&self, ..) -> Option<f64>` is immutable, so `QuantileQuery` fits.
+    impl QuantileQuery for MomentsSketch {
+        fn quantile(&self, rank: f64) -> Option<f64> {
+            MomentsSketch::quantile(self, rank)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

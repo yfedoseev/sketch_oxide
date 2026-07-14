@@ -40,6 +40,6 @@ pub use odd_sketch::OddSketch;
 pub use oph::OnePermutationHash;
 pub use prob_min_hash::ProbMinHash;
 pub use simhash::SimHash;
-pub use simhash_lsh::{hamming_distance, SimHashLsh};
+pub use simhash_lsh::{SimHashLsh, hamming_distance};
 pub use super_min_hash::SuperMinHash;
 pub use weighted_minhash::WeightedMinHash;

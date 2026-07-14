@@ -136,7 +136,7 @@ impl SplineSketch {
     ///     >>> # ... add data ...
     ///     >>> data = spline.serialize()
     fn serialize<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        PyBytes::new_bound(py, &self.inner.serialize())
+        PyBytes::new(py, &self.inner.serialize())
     }
 
     /// Deserialize a sketch from bytes

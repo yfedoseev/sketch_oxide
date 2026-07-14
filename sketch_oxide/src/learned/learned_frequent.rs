@@ -11,8 +11,8 @@
 //! The oracle is any [`Oracle`](crate::learned::Oracle): a learned model, a precomputed table, or a
 //! closure. A key is treated as heavy when its score is at least `threshold`.
 
-use crate::common::hash::xxhash;
 use crate::common::Result;
+use crate::common::hash::xxhash;
 use crate::frequency::FrequentItems;
 use crate::learned::oracle::{Oracle, Score};
 use std::collections::HashMap;

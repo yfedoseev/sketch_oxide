@@ -45,6 +45,8 @@ pub type Timestamp = u64;
 /// This is advisory metadata — it documents intent and lets late-data handling be
 /// reasoned about; the arithmetic is identical either way.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
 pub enum TimeDomain {
     /// Timestamps are when events actually occurred. Records may arrive out of order or
     /// late relative to the watermark.
@@ -66,6 +68,8 @@ impl TimeDomain {
 
 /// What to do with a record whose timestamp is older than `watermark - allowed_lateness`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
 pub enum LateDataPolicy {
     /// Discard the record. The safe default: a too-late record cannot be placed in a
     /// window that has already closed.
@@ -81,6 +85,7 @@ pub enum LateDataPolicy {
 /// How a record's timestamp was handled relative to the watermark.
 ///
 /// Returned by [`Watermark::admit`] so callers know whether/at-what-time to record it.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Admission {
     /// Record is on time (at or after `watermark - allowed_lateness`); use this timestamp.
@@ -115,6 +120,7 @@ pub enum Admission {
 /// wm.advance(500);
 /// assert_eq!(wm.watermark(), 1_000);
 /// ```
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 pub struct Watermark {
     /// Highest time seen via `advance`; never decreases.

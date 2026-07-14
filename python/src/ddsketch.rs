@@ -125,7 +125,7 @@ impl DDSketch {
             .filter_map(|&q| self.inner.quantile(q))
             .collect();
 
-        Ok(PyArray1::from_vec_bound(py, results))
+        Ok(PyArray1::from_vec(py, results))
     }
 
     /// Merge another DDSketch into this one

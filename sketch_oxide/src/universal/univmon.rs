@@ -933,3 +933,21 @@ impl Mergeable for UnivMon {
         Ok(())
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// UnivMon ingests a weighted item `(bytes, value)` — exactly its `Sketch::Item`
+// — so it satisfies `Update<(Vec<u8>, f64)>` (delegating to the existing
+// `Sketch::update`). `CardinalityEstimate` is skipped: UnivMon's estimators are
+// frequency-moment norms (L1/L2/entropy), not set cardinality. `Serializable`
+// is skipped: the current `Sketch::deserialize` is lossy (it rebuilds an empty
+// instance rather than restoring the layers), so it would not honestly
+// round-trip.
+// ---------------------------------------------------------------------------
+use crate::common::Update;
+
+impl Update<(Vec<u8>, f64)> for UnivMon {
+    fn update(&mut self, item: &(Vec<u8>, f64)) {
+        <Self as Sketch>::update(self, item);
+    }
+}

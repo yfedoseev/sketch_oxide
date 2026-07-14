@@ -366,9 +366,10 @@ mod tests {
     fn test_sketch_trait() {
         let mut eh = ExponentialHistogram::new(1000, 0.1).unwrap();
 
-        // Test update (using Sketch trait)
-        eh.update(&(100u64, 1u64));
-        eh.update(&(200u64, 1u64));
+        // Test update (using Sketch trait explicitly — the capability `Update`
+        // impl also matches this item type, so disambiguate).
+        Sketch::update(&mut eh, &(100u64, 1u64));
+        Sketch::update(&mut eh, &(200u64, 1u64));
 
         // Test estimate
         let estimate = eh.estimate();
@@ -482,6 +483,28 @@ mod tests {
             eh.num_buckets(),
             max_buckets
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 21: Malicious num_buckets in deserialize
+    // -------------------------------------------------------------------------
+    #[test]
+    fn test_deserialize_rejects_oversized_num_buckets_without_panic() {
+        // Craft a valid 40-byte header claiming a huge bucket count with no
+        // bucket data following. Must return Err rather than panicking,
+        // ABORTing on `num_buckets * 16` overflow, or OOMing on with_capacity.
+        let mut header = Vec::new();
+        header.extend_from_slice(&1000u64.to_le_bytes()); // window_size
+        header.extend_from_slice(&0.1f64.to_le_bytes()); // epsilon
+        header.extend_from_slice(&10u64.to_le_bytes()); // k (ignored)
+        header.extend_from_slice(&0u64.to_le_bytes()); // last_timestamp
+        header.extend_from_slice(&u64::MAX.to_le_bytes()); // num_buckets (malicious)
+        assert!(ExponentialHistogram::deserialize(&header).is_err());
+
+        // A count whose `* 16` overflows usize must also be rejected, not abort.
+        let mut overflow = header.clone();
+        overflow[32..40].copy_from_slice(&((u64::MAX / 8).to_le_bytes()));
+        assert!(ExponentialHistogram::deserialize(&overflow).is_err());
     }
 }
 
@@ -713,7 +736,17 @@ impl Sketch for ExponentialHistogram {
         let last_timestamp = u64::from_le_bytes(bytes[24..32].try_into().unwrap());
         let num_buckets = u64::from_le_bytes(bytes[32..40].try_into().unwrap()) as usize;
 
-        let expected_len = HEADER_SIZE + num_buckets * 16;
+        // `num_buckets` is attacker-controlled. Use checked arithmetic so a crafted
+        // count cannot overflow `num_buckets * 16` (which ABORTS under
+        // overflow-checks = a DoS), and require the buckets to actually be present in
+        // the input before the `Vec::with_capacity` below so a huge count cannot drive
+        // an OOM allocation (count * 16 <= remaining bytes).
+        let buckets_bytes = num_buckets.checked_mul(16).ok_or_else(|| {
+            SketchError::DeserializationError("bucket table size overflow".to_string())
+        })?;
+        let expected_len = HEADER_SIZE.checked_add(buckets_bytes).ok_or_else(|| {
+            SketchError::DeserializationError("bucket table size overflow".to_string())
+        })?;
         if bytes.len() < expected_len {
             return Err(SketchError::DeserializationError(format!(
                 "Expected {} bytes, got {}",
@@ -748,5 +781,32 @@ impl Mergeable for ExponentialHistogram {
         self.core.merge_from(&other.core)?;
         self.last_timestamp = self.last_timestamp.max(other.last_timestamp);
         Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// ExponentialHistogram ingests `(timestamp, count)` events — exactly its
+// `Sketch::Item` — so it satisfies `Update<(u64, u64)>` (delegating to the
+// existing infallible `Sketch::update`). Its serialize/deserialize round-trip
+// works, so it also satisfies `Serializable`. `Sketch::estimate` returns the
+// count at the last timestamp (not a set cardinality), and `count` needs a
+// current-time argument, so those query traits are skipped.
+// ---------------------------------------------------------------------------
+use crate::common::{Serializable, Update};
+
+impl Update<(u64, u64)> for ExponentialHistogram {
+    fn update(&mut self, item: &(u64, u64)) {
+        <Self as Sketch>::update(self, item);
+    }
+}
+
+impl Serializable for ExponentialHistogram {
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        Ok(<Self as Sketch>::serialize(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        <Self as Sketch>::deserialize(bytes)
     }
 }

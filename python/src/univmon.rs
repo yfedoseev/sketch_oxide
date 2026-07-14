@@ -117,7 +117,7 @@ impl UnivMon {
             self.inner
                 .update(val.as_bytes(), value)
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
-        } else if let Ok(b) = item.downcast::<PyBytes>() {
+        } else if let Ok(b) = item.cast::<PyBytes>() {
             self.inner
                 .update(b.as_bytes(), value)
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
@@ -215,10 +215,10 @@ impl UnivMon {
     ///     >>> assert heavy[0][0] == b"popular"
     fn heavy_hitters(&self, threshold: f64) -> Vec<(Py<PyBytes>, f64)> {
         let results = self.inner.heavy_hitters(threshold);
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             results
                 .into_iter()
-                .map(|(item, freq)| (PyBytes::new_bound(py, &item).into(), freq))
+                .map(|(item, freq)| (PyBytes::new(py, &item).into(), freq))
                 .collect()
         })
     }
@@ -269,8 +269,8 @@ impl UnivMon {
     ///     >>> print(f"Layers: {stats['num_layers']}, Updates: {stats['samples_processed']}")
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("num_layers", stats.num_layers)?;
             dict.set_item("samples_processed", stats.samples_processed)?;
             dict.set_item("total_memory", stats.total_memory)?;

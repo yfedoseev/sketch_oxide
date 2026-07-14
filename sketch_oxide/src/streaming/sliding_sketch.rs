@@ -240,3 +240,24 @@ mod tests {
         assert!(s.estimate(b"target") >= 50, "no underestimate");
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// SlidingSketch ingests byte items via `update` (time driven separately via
+// `Temporal::advance`), so it satisfies `Update<[u8]>`. Its
+// `estimate(&[u8]) -> u64` is a clean per-key point query, matching
+// `PointQuery<[u8]>`.
+// ---------------------------------------------------------------------------
+use crate::common::{PointQuery, Update};
+
+impl Update<[u8]> for SlidingSketch {
+    fn update(&mut self, item: &[u8]) {
+        SlidingSketch::update(self, item);
+    }
+}
+
+impl PointQuery<[u8]> for SlidingSketch {
+    fn query(&self, item: &[u8]) -> u64 {
+        self.estimate(item)
+    }
+}

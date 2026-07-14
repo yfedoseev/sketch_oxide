@@ -310,3 +310,23 @@ mod tests {
         assert!(a.merge(&b).is_err());
     }
 }
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Update};
+    use std::hash::Hash;
+
+    impl<T: Hash> Update<T> for SetSketch {
+        fn update(&mut self, item: &T) {
+            self.add(item);
+        }
+    }
+
+    impl CardinalityEstimate for SetSketch {
+        fn estimate_cardinality(&self) -> f64 {
+            // Disambiguate from the trait method of the same name.
+            SetSketch::estimate_cardinality(self)
+        }
+    }
+}

@@ -78,7 +78,7 @@ impl HeavyKeeper {
             self.inner.update(&val.to_le_bytes());
         } else if let Ok(val) = item.extract::<String>() {
             self.inner.update(val.as_bytes());
-        } else if let Ok(b) = item.downcast::<PyBytes>() {
+        } else if let Ok(b) = item.cast::<PyBytes>() {
             self.inner.update(b.as_bytes());
         } else {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -111,7 +111,7 @@ impl HeavyKeeper {
             Ok(self.inner.estimate(&val.to_le_bytes()))
         } else if let Ok(val) = item.extract::<String>() {
             Ok(self.inner.estimate(val.as_bytes()))
-        } else if let Ok(b) = item.downcast::<PyBytes>() {
+        } else if let Ok(b) = item.cast::<PyBytes>() {
             Ok(self.inner.estimate(b.as_bytes()))
         } else {
             Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -195,7 +195,7 @@ impl HeavyKeeper {
     ///     >>> hk = HeavyKeeper(k=10, epsilon=0.001, delta=0.01)
     ///     >>> hk.update_batch(["apple", "banana", "apple"])
     fn update_batch(&mut self, items: &Bound<'_, PyAny>) -> PyResult<()> {
-        let items_list: &Bound<'_, PyList> = items.downcast()?;
+        let items_list: &Bound<'_, PyList> = items.cast()?;
         for item in items_list {
             self.update(&item)?;
         }
@@ -218,8 +218,8 @@ impl HeavyKeeper {
     ///     >>> print(f"Memory: {stats['memory_bits'] // 8} bytes")
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("total_updates", stats.total_updates)?;
             dict.set_item("k", stats.k)?;
             dict.set_item("memory_bits", stats.memory_bits)?;

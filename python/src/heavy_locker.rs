@@ -27,11 +27,11 @@ impl HeavyLocker {
         Ok(self.inner.query(&python_item_to_bytes(item)?))
     }
     /// Heavy hitters above frequency fraction `phi`, as (bytes, count).
-    fn heavy_hitters(&self, py: Python<'_>, phi: f64) -> Vec<(PyObject, u64)> {
+    fn heavy_hitters(&self, py: Python<'_>, phi: f64) -> Vec<(Py<PyAny>, u64)> {
         self.inner
             .heavy_hitters(phi)
             .into_iter()
-            .map(|(k, c)| (PyBytes::new_bound(py, &k).into_any().unbind(), c))
+            .map(|(k, c)| (PyBytes::new(py, &k).into_any().unbind(), c))
             .collect()
     }
     fn __repr__(&self) -> String {

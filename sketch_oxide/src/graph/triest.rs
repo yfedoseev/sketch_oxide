@@ -80,11 +80,7 @@ impl Triest {
 
     #[inline]
     fn canon(u: u64, v: u64) -> (u64, u64) {
-        if u <= v {
-            (u, v)
-        } else {
-            (v, u)
-        }
+        if u <= v { (u, v) } else { (v, u) }
     }
 
     /// Common neighbours of `a` and `b` in the sampled graph.

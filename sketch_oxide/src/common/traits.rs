@@ -32,18 +32,21 @@ pub trait Sketch {
     ///
     /// # Returns
     /// The estimated value as a float
+    #[must_use]
     fn estimate(&self) -> f64;
 
     /// Check if the sketch is empty (no items added)
     ///
     /// # Returns
     /// `true` if the sketch has not processed any items
+    #[must_use]
     fn is_empty(&self) -> bool;
 
     /// Serialize the sketch to bytes
     ///
     /// # Returns
     /// A byte vector containing the serialized sketch
+    #[must_use]
     fn serialize(&self) -> Vec<u8>;
 
     /// Deserialize a sketch from bytes

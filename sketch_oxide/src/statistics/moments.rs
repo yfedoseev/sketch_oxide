@@ -118,20 +118,12 @@ impl MomentsSketch {
 
     /// Smallest value seen (`None` if empty).
     pub fn min(&self) -> Option<f64> {
-        if self.n == 0 {
-            None
-        } else {
-            Some(self.min)
-        }
+        if self.n == 0 { None } else { Some(self.min) }
     }
 
     /// Largest value seen (`None` if empty).
     pub fn max(&self) -> Option<f64> {
-        if self.n == 0 {
-            None
-        } else {
-            Some(self.max)
-        }
+        if self.n == 0 { None } else { Some(self.max) }
     }
 
     /// Merges another sketch (Pébay's parallel combination); exact, not approximate.

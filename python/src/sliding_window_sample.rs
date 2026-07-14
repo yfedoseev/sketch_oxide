@@ -37,9 +37,7 @@ impl SlidingWindowSample {
 
     /// Returns the current sampled item as `bytes`, or None if the window is empty.
     fn sample(&self, py: Python<'_>) -> Option<Py<PyBytes>> {
-        self.inner
-            .sample()
-            .map(|v| PyBytes::new_bound(py, v).unbind())
+        self.inner.sample().map(|v| PyBytes::new(py, v).unbind())
     }
 
     /// Total number of items pushed.

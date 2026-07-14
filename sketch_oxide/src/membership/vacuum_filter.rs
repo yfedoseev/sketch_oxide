@@ -583,11 +583,7 @@ impl VacuumFilter {
         let hash = xxh64(key, 0xDEADBEEF);
         let fp = ((hash >> 48) as u16) & self.fingerprint_mask;
         // Ensure non-zero (0 represents empty slot)
-        if fp == 0 {
-            1
-        } else {
-            fp
-        }
+        if fp == 0 { 1 } else { fp }
     }
 
     /// Computes the bucket index for a key
@@ -768,5 +764,23 @@ mod tests {
         assert!(!bucket.contains(200));
         assert!(bucket.contains(100));
         assert!(bucket.contains(300));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): express the inherent API via
+// the orthogonal capability traits, delegating to the inherent methods.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Update<[u8]> for VacuumFilter {
+    fn update(&mut self, item: &[u8]) {
+        let _ = self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for VacuumFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        VacuumFilter::contains(self, item)
     }
 }

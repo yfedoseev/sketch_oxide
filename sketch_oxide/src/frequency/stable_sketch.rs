@@ -315,3 +315,18 @@ mod tests {
         );
     }
 }
+
+// --- Capability-trait adoption (fable5 doc 01 F3) ---
+use crate::common::capabilities::{PointQuery, Update};
+
+impl Update<[u8]> for StableSketch {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl PointQuery<[u8]> for StableSketch {
+    fn query(&self, item: &[u8]) -> u64 {
+        self.estimate(item)
+    }
+}

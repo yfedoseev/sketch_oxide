@@ -217,11 +217,7 @@ impl SplineSketch {
 
     /// Constrain a derivative to ensure monotonicity
     fn constrain_derivative(&self, delta: f64, m: f64) -> f64 {
-        if m * delta < 0.0 {
-            0.0
-        } else {
-            m
-        }
+        if m * delta < 0.0 { 0.0 } else { m }
     }
 
     /// Merges another sketch into this one
@@ -308,7 +304,16 @@ impl Sketch for SplineSketch {
             bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
         ]) as usize;
 
-        let expected_len = 16 + sample_count * 8 + 24;
+        // Checked arithmetic: `sample_count` is attacker-controlled and
+        // `sample_count * 8` would overflow in release (no overflow-checks
+        // historically), bypassing this length check and leading to a giant
+        // `Vec::with_capacity` (OOM/abort) or out-of-bounds indexing.
+        let expected_len = sample_count
+            .checked_mul(8)
+            .and_then(|n| n.checked_add(16 + 24))
+            .ok_or_else(|| {
+                SketchError::DeserializationError("sample_count too large".to_string())
+            })?;
         if bytes.len() < expected_len {
             return Err(SketchError::DeserializationError(
                 "Invalid sample data length".to_string(),
@@ -388,6 +393,32 @@ impl Mergeable for SplineSketch {
     }
 }
 
+// Capability-trait adoptions (fable5 doc 01 F3): delegate to inherent methods.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{Serializable, Update};
+
+    // Ingests `u64` samples (its `Sketch::Item`); the inherent `update` also takes
+    // a weight, so route through the unit-weight `Sketch::update`.
+    impl Update<u64> for SplineSketch {
+        fn update(&mut self, item: &u64) {
+            <Self as crate::common::Sketch>::update(self, item);
+        }
+    }
+
+    // QuantileQuery not implemented: SplineSketch has no `quantile(&self, f64) -> Option<f64>`
+    // (rank queries go through `query(w) -> u64`).
+
+    impl Serializable for SplineSketch {
+        fn to_bytes(&self) -> crate::common::Result<Vec<u8>> {
+            Ok(<Self as crate::common::Sketch>::serialize(self))
+        }
+        fn from_bytes(bytes: &[u8]) -> crate::common::Result<Self> {
+            <Self as crate::common::Sketch>::deserialize(bytes)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -398,6 +429,41 @@ mod tests {
         assert!(sketch.is_empty());
         assert_eq!(sketch.sample_count(), 0);
         assert_eq!(sketch.total_weight(), 0.0);
+    }
+
+    #[test]
+    fn deserialize_rejects_overflowing_sample_count_without_panic() {
+        // Regression (fable5 doc 05 #1): a crafted `sample_count` near u64::MAX
+        // made `16 + sample_count * 8 + 24` overflow in release, bypassing the
+        // length check and driving a giant `Vec::with_capacity` (OOM/abort).
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&200u64.to_le_bytes()); // max_samples
+        bytes.extend_from_slice(&u64::MAX.to_le_bytes()); // sample_count
+        bytes.extend_from_slice(&[0u8; 24]); // partial tail
+        let result = SplineSketch::deserialize(&bytes);
+        assert!(result.is_err(), "must error, not overflow/OOM");
+    }
+
+    #[test]
+    fn deserialize_rejects_truncated_sample_data() {
+        // A moderate sample_count that no longer overflows but exceeds the
+        // available bytes must still be rejected cleanly.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&200u64.to_le_bytes());
+        bytes.extend_from_slice(&1_000_000u64.to_le_bytes()); // claims 1M samples
+        bytes.extend_from_slice(&[0u8; 24]);
+        assert!(SplineSketch::deserialize(&bytes).is_err());
+    }
+
+    #[test]
+    fn deserialize_round_trips_populated_sketch() {
+        let mut sketch = SplineSketch::new(200);
+        for i in 0..500u64 {
+            sketch.update(i, 1.0);
+        }
+        let bytes = sketch.serialize();
+        let restored = SplineSketch::deserialize(&bytes).expect("round-trip");
+        assert_eq!(restored.sample_count(), sketch.sample_count());
     }
 
     #[test]

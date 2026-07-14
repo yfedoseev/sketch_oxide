@@ -63,7 +63,7 @@
 //! Based on "Gorilla Range Filter: Shape-Based Range Filtering for LSM-Trees"
 //! (SIGMOD 2024) - Demonstrates 30-50% better FPR than Grafite for skewed data.
 
-use crate::common::{hash::xxhash, RangeFilter, SketchError};
+use crate::common::{RangeFilter, SketchError, hash::xxhash};
 
 /// Shape-based range filter optimized for LSM-tree workloads
 ///

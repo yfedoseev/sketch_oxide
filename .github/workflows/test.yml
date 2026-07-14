@@ -2,9 +2,9 @@ name: Test All Languages
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, "releases/**" ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, "releases/**" ]
 
 jobs:
   # Rust core library tests
@@ -37,19 +37,19 @@ jobs:
           targets: ${{ matrix.rust-target }}
 
       - name: Cache cargo registry
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo index
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
@@ -76,6 +76,16 @@ jobs:
       - name: Run benchmarks (without harness)
         working-directory: ./sketch_oxide
         run: cargo bench --no-run
+
+      # Free bounds-adjacent coverage for the get_unchecked hot paths and the
+      # deserializer overflow fixes (fable5 doc 05 immediate #2): run the suite
+      # as an optimized build with debug-assertions + overflow-checks on.
+      - name: Run tests (release + debug-assertions + overflow-checks)
+        if: matrix.rust-target == '' && matrix.rust == 'stable'
+        working-directory: ./sketch_oxide
+        env:
+          RUSTFLAGS: "-C debug-assertions=on -C overflow-checks=on"
+        run: cargo test --release --lib
 
   # Python bindings tests
   # Optimization: Reduce versions from 6 to 3 (drop EOL versions) to reduce CI costs
@@ -218,7 +228,7 @@ jobs:
         uses: EmbarkStudios/cargo-deny-action@v2
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
@@ -234,7 +244,7 @@ jobs:
         run: ruff check python/
 
       - name: Type check Python (mypy)
-        run: mypy python/ --ignore-missing-imports || true
+        run: mypy python/ --ignore-missing-imports
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -245,13 +255,38 @@ jobs:
         working-directory: ./nodejs
         run: |
           npm install
-          npx tsc --noEmit || true
+          npx tsc --noEmit
+
+  # MSRV: the crate must build on its declared rust-version (fable5 doc 01 F6).
+  msrv:
+    name: MSRV (1.87) build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned MSRV toolchain
+        uses: dtolnay/rust-toolchain@1.87.0
+      - name: Build on MSRV
+        working-directory: ./sketch_oxide
+        run: cargo build --all-features
+
+  # Public-API semver checking (fable5 doc 01 F6 / doc 04 #5).
+  semver:
+    name: cargo-semver-checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Check public API for accidental breaks
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          package: sketch_oxide
 
   # Final status check
   status:
     name: Test Status
     runs-on: ubuntu-latest
-    needs: [rust, python, nodejs, quality]
+    needs: [rust, python, nodejs, quality, msrv]
     if: always()
     steps:
       - name: Check test results
@@ -259,7 +294,8 @@ jobs:
           if [[ "${{ needs.rust.result }}" != "success" ||
                 "${{ needs.python.result }}" != "success" ||
                 "${{ needs.nodejs.result }}" != "success" ||
-                "${{ needs.quality.result }}" != "success" ]]; then
+                "${{ needs.quality.result }}" != "success" ||
+                "${{ needs.msrv.result }}" != "success" ]]; then
             echo "Some tests failed"
             exit 1
           fi

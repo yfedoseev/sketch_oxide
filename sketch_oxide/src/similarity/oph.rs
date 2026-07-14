@@ -180,3 +180,18 @@ mod tests {
         assert!(a.jaccard(&b).is_err());
     }
 }
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoptions (fable5 doc 01 F3 "split the `Sketch` trait").
+// One-permutation hashing ingests any hashable item, so it satisfies `Update`.
+// It has no `Sketch` impl (no serialize), no cardinality/quantile/point/
+// membership semantics (it estimates Jaccard between two sketches), so only
+// `Update` applies.
+// ---------------------------------------------------------------------------
+use crate::common::Update;
+
+impl<T: Hash> Update<T> for OnePermutationHash {
+    fn update(&mut self, item: &T) {
+        OnePermutationHash::update(self, item);
+    }
+}

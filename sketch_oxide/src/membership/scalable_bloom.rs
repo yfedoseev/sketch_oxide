@@ -37,7 +37,7 @@ impl Slice {
         }
     }
 
-    fn positions(&self, key: &[u8]) -> impl Iterator<Item = usize> + '_ {
+    fn positions(&self, key: &[u8]) -> impl Iterator<Item = usize> + '_ + use<'_> {
         let h1 = xxhash(key, self.seed);
         let h2 = xxhash(key, self.seed.wrapping_add(1));
         (0..self.k)
@@ -223,5 +223,23 @@ mod tests {
         }
         assert_eq!(f.len(), 1);
         assert_eq!(f.num_slices(), 1);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Capability-trait adoption (fable5 doc 01 F3): express the inherent API via
+// the orthogonal capability traits, delegating to the inherent methods.
+// ---------------------------------------------------------------------------
+use crate::common::capabilities::*;
+
+impl Update<[u8]> for ScalableBloomFilter {
+    fn update(&mut self, item: &[u8]) {
+        self.insert(item);
+    }
+}
+
+impl Filter<[u8]> for ScalableBloomFilter {
+    fn contains(&self, item: &[u8]) -> bool {
+        ScalableBloomFilter::contains(self, item)
     }
 }

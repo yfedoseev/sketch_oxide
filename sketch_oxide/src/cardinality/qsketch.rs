@@ -606,6 +606,20 @@ impl QSketch {
         ]) as usize;
         offset += 4;
 
+        // Each sample occupies 16 bytes on the wire (u64 id + f64 weight).
+        // Validate `num_samples * 16 <= remaining_bytes` BEFORE allocating
+        // capacity: a crafted `num_samples` like u32::MAX would otherwise make
+        // `Vec::with_capacity` request ~64 GiB and OOM the process before the
+        // per-iteration bounds check inside the loop could ever fire.
+        let sample_bytes = num_samples
+            .checked_mul(16)
+            .ok_or_else(|| SketchError::DeserializationError("sample size overflow".to_string()))?;
+        if sample_bytes > bytes.len() - offset {
+            return Err(SketchError::DeserializationError(
+                "sample count exceeds buffer".to_string(),
+            ));
+        }
+
         // Read samples
         let mut samples = Vec::with_capacity(num_samples);
         for _ in 0..num_samples {
@@ -656,6 +670,18 @@ impl QSketch {
             bytes[offset + 3],
         ]) as usize;
         offset += 4;
+
+        // Each items_seen entry occupies 16 bytes on the wire (u64 id + f64
+        // weight). Validate `num_items_seen * 16 <= remaining_bytes` BEFORE
+        // allocating capacity so a crafted count cannot trigger an OOM.
+        let items_bytes = num_items_seen.checked_mul(16).ok_or_else(|| {
+            SketchError::DeserializationError("items_seen size overflow".to_string())
+        })?;
+        if items_bytes > bytes.len() - offset {
+            return Err(SketchError::DeserializationError(
+                "items_seen count exceeds buffer".to_string(),
+            ));
+        }
 
         // Read items seen
         let mut items_seen = HashMap::with_capacity(num_items_seen);
@@ -935,6 +961,48 @@ mod tests {
     }
 
     #[test]
+    fn test_from_bytes_oversized_sample_count_rejected() {
+        // Craft a header whose num_samples = u32::MAX but with no sample tail.
+        // Must return Err (never allocate ~64 GiB / OOM, never panic).
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&256u32.to_le_bytes()); // max_samples
+        bytes.extend_from_slice(&0.0f64.to_le_bytes()); // total_weight
+        bytes.extend_from_slice(&u32::MAX.to_le_bytes()); // num_samples (huge)
+        assert_eq!(bytes.len(), 16);
+
+        let result = QSketch::from_bytes(&bytes);
+        assert!(result.is_err(), "oversized sample count must be rejected");
+    }
+
+    #[test]
+    fn test_from_bytes_oversized_items_seen_count_rejected() {
+        // Valid empty sample section, then num_items_seen = u32::MAX with no tail.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&256u32.to_le_bytes()); // max_samples
+        bytes.extend_from_slice(&0.0f64.to_le_bytes()); // total_weight
+        bytes.extend_from_slice(&0u32.to_le_bytes()); // num_samples = 0
+        bytes.extend_from_slice(&u32::MAX.to_le_bytes()); // num_items_seen (huge)
+        assert_eq!(bytes.len(), 20);
+
+        let result = QSketch::from_bytes(&bytes);
+        assert!(
+            result.is_err(),
+            "oversized items_seen count must be rejected"
+        );
+    }
+
+    #[test]
+    fn test_from_bytes_truncated_returns_err() {
+        // A valid prefix with num_samples claiming 1 but no room for the 16-byte
+        // sample body should Err rather than panic.
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&256u32.to_le_bytes());
+        bytes.extend_from_slice(&0.0f64.to_le_bytes());
+        bytes.extend_from_slice(&1u32.to_le_bytes()); // claims 1 sample, tail missing
+        assert!(QSketch::from_bytes(&bytes).is_err());
+    }
+
+    #[test]
     fn test_with_seed_reproducibility() {
         let mut qsketch1 = QSketch::with_seed(256, 42);
         let mut qsketch2 = QSketch::with_seed(256, 42);
@@ -949,5 +1017,32 @@ mod tests {
         // With same seed, sampling should be deterministic
         assert_eq!(qsketch1.sample_count(), qsketch2.sample_count());
         assert!((qsketch1.total_weight() - qsketch2.total_weight()).abs() < 0.0001);
+    }
+}
+
+/// Capability-trait adoptions (see `crate::common::capabilities`).
+///
+/// No `Update` impl: the inherent `update` requires a weight and the `Sketch`
+/// impl's `update` is an `unimplemented!` placeholder — there is no clean,
+/// single-argument ingest method to delegate to.
+mod capability_impls {
+    use super::*;
+    use crate::common::capabilities::{CardinalityEstimate, Serializable};
+    use crate::common::{Result, Sketch};
+
+    impl CardinalityEstimate for QSketch {
+        fn estimate_cardinality(&self) -> f64 {
+            <Self as Sketch>::estimate(self)
+        }
+    }
+
+    impl Serializable for QSketch {
+        fn to_bytes(&self) -> Result<Vec<u8>> {
+            Ok(<Self as Sketch>::serialize(self))
+        }
+
+        fn from_bytes(bytes: &[u8]) -> Result<Self> {
+            <Self as Sketch>::deserialize(bytes)
+        }
     }
 }

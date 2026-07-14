@@ -107,7 +107,7 @@ impl SlidingHyperLogLog {
             let mut hasher = XxHash64::with_seed(0);
             val.to_bits().hash(&mut hasher);
             hasher.finish()
-        } else if let Ok(bytes) = item.downcast::<pyo3::types::PyBytes>() {
+        } else if let Ok(bytes) = item.cast::<pyo3::types::PyBytes>() {
             let mut hasher = XxHash64::with_seed(0);
             bytes.as_bytes().hash(&mut hasher);
             hasher.finish()
@@ -244,7 +244,7 @@ impl SlidingHyperLogLog {
     /// Returns:
     ///     bytes: Serialized sketch data
     fn serialize<'py>(&self, py: Python<'py>) -> Bound<'py, pyo3::types::PyBytes> {
-        pyo3::types::PyBytes::new_bound(py, &self.inner.serialize())
+        pyo3::types::PyBytes::new(py, &self.inner.serialize())
     }
 
     /// Deserialize a sketch from bytes
@@ -278,8 +278,8 @@ impl SlidingHyperLogLog {
     ///     >>> assert stats['precision'] == 12
     fn stats(&self) -> PyResult<Py<PyAny>> {
         let stats = self.inner.stats();
-        Python::with_gil(|py| {
-            let dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let dict = pyo3::types::PyDict::new(py);
             dict.set_item("precision", stats.precision)?;
             dict.set_item("max_window_seconds", stats.max_window_seconds)?;
             dict.set_item("total_updates", stats.total_updates)?;
