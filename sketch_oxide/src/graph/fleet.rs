@@ -174,6 +174,64 @@ impl Fleet {
     }
 }
 
+impl crate::common::Serializable for Fleet {
+    /// Framed layout: `max_reservoir:u64`, `gamma:f64`, `p:f64`,
+    /// `butterflies:u64`, `num_edges:u64` + reservoir edges `(l:u64, r:u64)`.
+    /// The left/right adjacency is rebuilt from the reservoir on decode; the
+    /// RNG stream is not preserved (future coin flips stay independent).
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        use crate::common::cursor::{Framing, SketchId, WriteBuf};
+        let mut b = WriteBuf::with_capacity(40 + self.edges.len() * 16);
+        b.write_u64_le(self.max_reservoir as u64);
+        b.write_f64_le(self.gamma);
+        b.write_f64_le(self.p);
+        b.write_u64_le(self.butterflies);
+        b.write_u64_le(self.edges.len() as u64);
+        for &(l, r) in &self.edges {
+            b.write_u64_le(l);
+            b.write_u64_le(r);
+        }
+        Ok(Framing::new(SketchId::FLEET, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        use crate::common::cursor::{Framing, SketchId};
+        let (_, mut cur) = Framing::parse(bytes, SketchId::FLEET)?;
+        let max_reservoir = cur.read_u64_le()? as usize;
+        let gamma = cur.read_f64_le()?;
+        let p = cur.read_f64_le()?;
+        let butterflies = cur.read_u64_le()?;
+        let mut out = Self::new(max_reservoir, gamma, 0)?;
+        if !(p.is_finite() && p > 0.0 && p <= 1.0) {
+            return Err(SketchError::DeserializationError(format!(
+                "sampling probability {p} outside (0, 1]"
+            )));
+        }
+        out.p = p;
+        out.butterflies = butterflies;
+        out.rng = SmallRng::from_os_rng();
+        let num_edges = cur.read_len_prefixed_count(16)?;
+        if num_edges > max_reservoir {
+            return Err(SketchError::DeserializationError(format!(
+                "reservoir holds {num_edges} edges but capacity is {max_reservoir}"
+            )));
+        }
+        for _ in 0..num_edges {
+            let l = cur.read_u64_le()?;
+            let r = cur.read_u64_le()?;
+            out.left.entry(l).or_default().insert(r);
+            out.right.entry(r).or_default().insert(l);
+            out.edges.push((l, r));
+        }
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after Fleet payload".to_string(),
+            ));
+        }
+        Ok(out)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

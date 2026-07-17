@@ -137,6 +137,69 @@ impl Mascot {
     }
 }
 
+impl crate::common::Serializable for Mascot {
+    /// Framed layout: `p:f64`, `estimate:f64`, `num_seen:u64` + seen canonical
+    /// edges, `num_sampled:u64` + sampled canonical edges. The RNG stream is
+    /// not preserved (future coin flips stay independent, so the estimator's
+    /// unbiasedness is unaffected).
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        use crate::common::cursor::{Framing, SketchId, WriteBuf};
+        let mut b = WriteBuf::new();
+        b.write_f64_le(self.p);
+        b.write_f64_le(self.estimate);
+        b.write_u64_le(self.seen.len() as u64);
+        for &(u, v) in &self.seen {
+            b.write_u64_le(u);
+            b.write_u64_le(v);
+        }
+        let sampled: Vec<(u64, u64)> = self
+            .adj
+            .iter()
+            .flat_map(|(&u, ns)| ns.iter().filter(move |&&v| u < v).map(move |&v| (u, v)))
+            .collect();
+        b.write_u64_le(sampled.len() as u64);
+        for (u, v) in sampled {
+            b.write_u64_le(u);
+            b.write_u64_le(v);
+        }
+        Ok(Framing::new(SketchId::MASCOT, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        use crate::common::cursor::{Framing, SketchId};
+        use rand::SeedableRng;
+        let (_, mut cur) = Framing::parse(bytes, SketchId::MASCOT)?;
+        let p = cur.read_f64_le()?;
+        let estimate = cur.read_f64_le()?;
+        let mut out = Self::from_rng(p, rand::rngs::SmallRng::from_os_rng())?;
+        out.estimate = estimate;
+        let num_seen = cur.read_len_prefixed_count(16)?;
+        for _ in 0..num_seen {
+            let u = cur.read_u64_le()?;
+            let v = cur.read_u64_le()?;
+            out.seen.insert(if u < v { (u, v) } else { (v, u) });
+        }
+        let num_sampled = cur.read_len_prefixed_count(16)?;
+        for _ in 0..num_sampled {
+            let u = cur.read_u64_le()?;
+            let v = cur.read_u64_le()?;
+            if u == v {
+                return Err(SketchError::DeserializationError(
+                    "self-loop in Mascot sample".to_string(),
+                ));
+            }
+            out.adj.entry(u).or_default().insert(v);
+            out.adj.entry(v).or_default().insert(u);
+        }
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after Mascot payload".to_string(),
+            ));
+        }
+        Ok(out)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

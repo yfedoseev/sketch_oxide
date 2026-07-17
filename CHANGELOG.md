@@ -10,6 +10,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Development toward holistic 2026 coverage. See the phased roadmap (internal) for the
 full plan. This release is being built on the `releases/v0.2.0` branch.
 
+### 0.2.0 vs 0.1.6 at a glance
+
+The published 0.1.6 shipped **41 algorithms in 11 modules**. 0.2.0 grows the crate to
+**183 algorithm implementations in 17 modules** (count: one algorithm per implementation
+file, support files excluded):
+
+- **New modules**: `graph/` (HyperANF, TRIÈST, DOULION, MASCOT, ThinkD, FLEET, TCM, GSS,
+  AGM connectivity), `vector/` (RaBitQ), `statistics/`, `matrix/`, `learned/`, `privacy/`,
+  `net/`, `universal/`, plus large expansions of every 0.1.x module (e.g. frequency 8 → 30,
+  membership 9 → 22, quantiles 5 → 14, range filters 3 → 11).
+- **Serialization hardening**: shared `[magic][sketch-id][version]` framing
+  (`common::cursor::{Framing, SketchId}`), panic-free bounds-checked parsing on
+  attacker-controllable bytes, and the fallible `common::Serializable`
+  (`to_bytes`/`from_bytes`) capability trait.
+- **Cross-language canonical encoding** (`common::canonical`), MSRV declaration,
+  feature flags (`std`/`simd`/`serde`), release-profile LTO tuning.
+- **Bindings**: Python coverage grown to near-complete (~184 classes).
+
+### Added (2026-07 — nexus-consumption pass, fable5 W6.1)
+
+- **Graph-module serialization**: `Serializable` (`to_bytes`/`from_bytes`) for all nine
+  graph sketches — `HyperAnf`, `Triest`, `Doulion`, `Mascot`, `ThinkD`, `Fleet`,
+  `GssSketch`, `AgmConnectivity` (new framed formats, `SketchId` 11–18) and `TcmSketch`
+  (delegates to its existing wire format). Formats validate lengths with checked
+  arithmetic before allocating; sampling-based sketches document that the RNG stream is
+  not preserved (statistically inconsequential). For `Doulion` the deterministic per-edge
+  coin lets decode replay the stream and rebuild the identical sample.
+- **RaBitQ serialization**: `Serializable` for `RaBitQ` (stores `(dim, seed)` and rebuilds
+  the rotation deterministically) and `RaBitQCode` (packed sign words + scalars),
+  `SketchId` 19–20.
+- **Space-Saving full-fidelity serialization**: `to_bytes`/`from_bytes` **including
+  populated counters** for item types with a canonical byte codec (new
+  `common::canonical::CanonicalDecode` for `u64`/`String`/`Vec<u8>`/ints); the
+  empty-only blanket `Serializable` impl remains for arbitrary `T`.
+- **Integration tests outside inline modules**: `tests/graph_integration_tests.rs`
+  (18 tests: behavior + round-trips + malformed-input rejection for every graph sketch)
+  and `tests/nexus_serialization_tests.rs` (11 round-trip tests covering MinHash,
+  HyperLogLog, UltraLogLog, KLL, SpaceSaving, Bloom, BinaryFuse, RaBitQ).
+- `ReadCursor`/`WriteBuf` gained `u16`/`i64`/`i128` little-endian helpers.
+
+### Fixed (2026-07)
+
+- README algorithm counts were still the 0.1.x numbers ("41 algorithms across 10
+  categories") and claimed "100% feature parity" across bindings; both corrected to the
+  measured reality (183/17, per-binding coverage stated per language).
+
 ### Changed
 
 - **`range_filters::MementoFilter` — rebuilt on the genuine prefix/memento decomposition (fidelity

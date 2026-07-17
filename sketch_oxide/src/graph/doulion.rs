@@ -10,8 +10,9 @@
 //! Smaller `p` means less memory and faster counting at the cost of higher variance; `p = 1`
 //! degrades to exact counting.
 
+use crate::common::cursor::{Framing, SketchId, WriteBuf};
 use crate::common::hash::xxhash;
-use crate::common::{Result, SketchError};
+use crate::common::{Result, Serializable, SketchError};
 use std::collections::{HashMap, HashSet};
 
 /// A DOULION triangle-count estimator over a sparsified edge sample.
@@ -121,6 +122,43 @@ impl Doulion {
     #[inline]
     pub fn keep_prob(&self) -> f64 {
         self.p
+    }
+}
+
+impl Serializable for Doulion {
+    /// Framed layout: `p:f64`, `seed:u64`, `num_edges:u64`, then every *seen*
+    /// canonical edge as `(u:u64, v:u64)`. The per-edge coin is a deterministic
+    /// hash of `(edge, seed)`, so decoding replays the stream and rebuilds the
+    /// identical kept subgraph.
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        let mut b = WriteBuf::with_capacity(24 + self.edges.len() * 16);
+        b.write_f64_le(self.p);
+        b.write_u64_le(self.seed);
+        b.write_u64_le(self.edges.len() as u64);
+        for &(u, v) in &self.edges {
+            b.write_u64_le(u);
+            b.write_u64_le(v);
+        }
+        Ok(Framing::new(SketchId::DOULION, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        let (_, mut cur) = Framing::parse(bytes, SketchId::DOULION)?;
+        let p = cur.read_f64_le()?;
+        let seed = cur.read_u64_le()?;
+        let mut out = Self::new(p, seed)?;
+        let num_edges = cur.read_len_prefixed_count(16)?;
+        for _ in 0..num_edges {
+            let u = cur.read_u64_le()?;
+            let v = cur.read_u64_le()?;
+            out.add_edge(u, v); // deterministic coin: rebuilds the same sample
+        }
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after Doulion payload".to_string(),
+            ));
+        }
+        Ok(out)
     }
 }
 

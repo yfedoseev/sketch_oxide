@@ -11,7 +11,8 @@
 //! This is the TRIÈST-BASE variant: exact while the whole stream fits in the reservoir,
 //! and an unbiased estimate thereafter.
 
-use crate::common::{Result, SketchError};
+use crate::common::cursor::{Framing, SketchId, WriteBuf};
+use crate::common::{Result, Serializable, SketchError};
 use rand::Rng;
 use std::collections::{HashMap, HashSet};
 
@@ -179,6 +180,64 @@ impl Triest {
     #[inline]
     pub fn sample_size(&self) -> usize {
         self.edges.len()
+    }
+}
+
+impl Serializable for Triest {
+    /// Framed layout: `m:u64`, `t:u64`, `tau:i64`, `num_edges:u64`, then the
+    /// reservoir edges as `(u:u64, v:u64)` pairs. The adjacency and edge-set
+    /// are rebuilt from the reservoir on decode.
+    ///
+    /// The RNG stream is **not** preserved: the restored sketch draws fresh
+    /// randomness. Reservoir sampling only requires future coin flips to be
+    /// independent, so the estimator's guarantees are unaffected.
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        let mut b = WriteBuf::with_capacity(32 + self.edges.len() * 16);
+        b.write_u64_le(self.m as u64);
+        b.write_u64_le(self.t);
+        b.write_i64_le(self.tau);
+        b.write_u64_le(self.edges.len() as u64);
+        for &(u, v) in &self.edges {
+            b.write_u64_le(u);
+            b.write_u64_le(v);
+        }
+        Ok(Framing::new(SketchId::TRIEST, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        use rand::SeedableRng;
+        let (_, mut cur) = Framing::parse(bytes, SketchId::TRIEST)?;
+        let m = cur.read_u64_le()? as usize;
+        let t = cur.read_u64_le()?;
+        let tau = cur.read_i64_le()?;
+        let mut out = Self::from_rng(m, rand::rngs::SmallRng::from_os_rng())?;
+        out.t = t;
+        out.tau = tau;
+        let num_edges = cur.read_len_prefixed_count(16)?;
+        if num_edges > m {
+            return Err(SketchError::DeserializationError(format!(
+                "reservoir holds {num_edges} edges but capacity is {m}"
+            )));
+        }
+        for _ in 0..num_edges {
+            let u = cur.read_u64_le()?;
+            let v = cur.read_u64_le()?;
+            let e = Self::canon(u, v);
+            if u == v || !out.edge_set.insert(e) {
+                return Err(SketchError::DeserializationError(
+                    "invalid reservoir edge (self-loop or duplicate)".to_string(),
+                ));
+            }
+            out.adj.entry(e.0).or_default().insert(e.1);
+            out.adj.entry(e.1).or_default().insert(e.0);
+            out.edges.push(e);
+        }
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after Triest payload".to_string(),
+            ));
+        }
+        Ok(out)
     }
 }
 

@@ -39,6 +39,9 @@ use rand::{Rng, SeedableRng};
 #[derive(Clone, Debug)]
 pub struct RaBitQ {
     dim: usize,
+    /// Seed the rotation was derived from (stored so serialization can rebuild
+    /// the identical rotation instead of shipping the dense `dim × dim` matrix).
+    seed: u64,
     /// Row-major `dim × dim` orthonormal rotation matrix `P`.
     rotation: Vec<f64>,
     inv_sqrt_d: f64,
@@ -74,6 +77,7 @@ impl RaBitQ {
         let rotation = random_orthonormal(dim, &mut rng);
         Ok(Self {
             dim,
+            seed,
             rotation,
             inv_sqrt_d: 1.0 / (dim as f64).sqrt(),
         })
@@ -202,6 +206,77 @@ impl RaBitQCode {
     #[must_use]
     pub fn norm(&self) -> f64 {
         self.norm
+    }
+}
+
+impl crate::common::Serializable for RaBitQ {
+    /// Framed layout: `dim:u64`, `seed:u64`. The rotation matrix is a pure
+    /// function of `(dim, seed)`, so decoding rebuilds it bit-for-bit.
+    fn to_bytes(&self) -> Result<Vec<u8>, SketchError> {
+        use crate::common::cursor::{Framing, SketchId, WriteBuf};
+        let mut b = WriteBuf::with_capacity(16);
+        b.write_u64_le(self.dim as u64);
+        b.write_u64_le(self.seed);
+        Ok(Framing::new(SketchId::RABITQ, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self, SketchError> {
+        use crate::common::cursor::{Framing, SketchId};
+        let (_, mut cur) = Framing::parse(bytes, SketchId::RABITQ)?;
+        let dim = cur.read_u64_le()? as usize;
+        let seed = cur.read_u64_le()?;
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after RaBitQ payload".to_string(),
+            ));
+        }
+        // Rebuilding the rotation is O(dim³); cap dim so crafted bytes cannot
+        // drive an unbounded allocation/computation.
+        const MAX_DIM: usize = 1 << 16;
+        if dim > MAX_DIM {
+            return Err(SketchError::DeserializationError(format!(
+                "dim {dim} exceeds maximum {MAX_DIM}"
+            )));
+        }
+        Self::new(dim, seed)
+    }
+}
+
+impl crate::common::Serializable for RaBitQCode {
+    /// Framed layout: `num_words:u64` + packed sign words, `norm_factor:f64`,
+    /// `norm:f64`.
+    fn to_bytes(&self) -> Result<Vec<u8>, SketchError> {
+        use crate::common::cursor::{Framing, SketchId, WriteBuf};
+        let mut b = WriteBuf::with_capacity(8 + self.bits.len() * 8 + 16);
+        b.write_u64_le(self.bits.len() as u64);
+        for &w in &self.bits {
+            b.write_u64_le(w);
+        }
+        b.write_f64_le(self.norm_factor);
+        b.write_f64_le(self.norm);
+        Ok(Framing::new(SketchId::RABITQ_CODE, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self, SketchError> {
+        use crate::common::cursor::{Framing, SketchId};
+        let (_, mut cur) = Framing::parse(bytes, SketchId::RABITQ_CODE)?;
+        let num_words = cur.read_len_prefixed_count(8)?;
+        let mut bits = Vec::with_capacity(num_words);
+        for _ in 0..num_words {
+            bits.push(cur.read_u64_le()?);
+        }
+        let norm_factor = cur.read_f64_le()?;
+        let norm = cur.read_f64_le()?;
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after RaBitQCode payload".to_string(),
+            ));
+        }
+        Ok(Self {
+            bits,
+            norm_factor,
+            norm,
+        })
     }
 }
 

@@ -83,6 +83,11 @@ impl<'a> ReadCursor<'a> {
         Ok(self.read_array::<1>()?[0])
     }
 
+    /// Read a little-endian `u16`.
+    pub fn read_u16_le(&mut self) -> Result<u16> {
+        Ok(u16::from_le_bytes(self.read_array()?))
+    }
+
     /// Read a little-endian `u32`.
     pub fn read_u32_le(&mut self) -> Result<u32> {
         Ok(u32::from_le_bytes(self.read_array()?))
@@ -96,6 +101,16 @@ impl<'a> ReadCursor<'a> {
     /// Read a little-endian `u64`.
     pub fn read_u64_le(&mut self) -> Result<u64> {
         Ok(u64::from_le_bytes(self.read_array()?))
+    }
+
+    /// Read a little-endian `i64`.
+    pub fn read_i64_le(&mut self) -> Result<i64> {
+        Ok(i64::from_le_bytes(self.read_array()?))
+    }
+
+    /// Read a little-endian `i128`.
+    pub fn read_i128_le(&mut self) -> Result<i128> {
+        Ok(i128::from_le_bytes(self.read_array()?))
     }
 
     /// Read a little-endian `f64`.
@@ -165,6 +180,11 @@ impl WriteBuf {
         self.bytes.push(v);
     }
 
+    /// Append a little-endian `u16`.
+    pub fn write_u16_le(&mut self, v: u16) {
+        self.bytes.extend_from_slice(&v.to_le_bytes());
+    }
+
     /// Append a little-endian `u32`.
     pub fn write_u32_le(&mut self, v: u32) {
         self.bytes.extend_from_slice(&v.to_le_bytes());
@@ -177,6 +197,16 @@ impl WriteBuf {
 
     /// Append a little-endian `u64`.
     pub fn write_u64_le(&mut self, v: u64) {
+        self.bytes.extend_from_slice(&v.to_le_bytes());
+    }
+
+    /// Append a little-endian `i64`.
+    pub fn write_i64_le(&mut self, v: i64) {
+        self.bytes.extend_from_slice(&v.to_le_bytes());
+    }
+
+    /// Append a little-endian `i128`.
+    pub fn write_i128_le(&mut self, v: i128) {
         self.bytes.extend_from_slice(&v.to_le_bytes());
     }
 
@@ -275,6 +305,16 @@ impl SketchId {
     pub const BINARY_FUSE: u8 = 8;
     pub const SPLINE: u8 = 9;
     pub const CPC: u8 = 10;
+    pub const HYPER_ANF: u8 = 11;
+    pub const TRIEST: u8 = 12;
+    pub const DOULION: u8 = 13;
+    pub const MASCOT: u8 = 14;
+    pub const THINKD: u8 = 15;
+    pub const FLEET: u8 = 16;
+    pub const GSS: u8 = 17;
+    pub const AGM_CONNECTIVITY: u8 = 18;
+    pub const RABITQ: u8 = 19;
+    pub const RABITQ_CODE: u8 = 20;
 }
 
 #[cfg(test)]

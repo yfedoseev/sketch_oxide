@@ -15,7 +15,7 @@
 //!
 //! Total: 105 tests (exceeding 85+ requirement)
 
-use sketch_oxide::universal::{UnivMon, UnivMonStats};
+use sketch_oxide::universal::UnivMon;
 use sketch_oxide::{Mergeable, Sketch, SketchError};
 
 // ============================================================================

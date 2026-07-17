@@ -166,6 +166,69 @@ impl ThinkD {
     }
 }
 
+impl crate::common::Serializable for ThinkD {
+    /// Framed layout: `r:f64`, `global:f64`, `num_local:u64` + `(node:u64,
+    /// count:f64)` pairs, `num_sampled:u64` + sampled canonical edges. The RNG
+    /// stream is not preserved (future coin flips stay independent, so
+    /// unbiasedness is unaffected).
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        use crate::common::cursor::{Framing, SketchId, WriteBuf};
+        let mut b = WriteBuf::new();
+        b.write_f64_le(self.r);
+        b.write_f64_le(self.global);
+        b.write_u64_le(self.local.len() as u64);
+        for (&node, &count) in &self.local {
+            b.write_u64_le(node);
+            b.write_f64_le(count);
+        }
+        let sampled: Vec<(u64, u64)> = self
+            .adj
+            .iter()
+            .flat_map(|(&u, ns)| ns.iter().filter(move |&&v| u < v).map(move |&v| (u, v)))
+            .collect();
+        b.write_u64_le(sampled.len() as u64);
+        for (u, v) in sampled {
+            b.write_u64_le(u);
+            b.write_u64_le(v);
+        }
+        Ok(Framing::new(SketchId::THINKD, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        use crate::common::cursor::{Framing, SketchId};
+        use rand::SeedableRng;
+        let (_, mut cur) = Framing::parse(bytes, SketchId::THINKD)?;
+        let r = cur.read_f64_le()?;
+        let global = cur.read_f64_le()?;
+        let mut out = Self::from_rng(r, rand::rngs::SmallRng::from_os_rng())?;
+        out.global = global;
+        let num_local = cur.read_len_prefixed_count(16)?;
+        for _ in 0..num_local {
+            let node = cur.read_u64_le()?;
+            let count = cur.read_f64_le()?;
+            out.local.insert(node, count);
+        }
+        let num_sampled = cur.read_len_prefixed_count(16)?;
+        for _ in 0..num_sampled {
+            let u = cur.read_u64_le()?;
+            let v = cur.read_u64_le()?;
+            if u == v {
+                return Err(SketchError::DeserializationError(
+                    "self-loop in ThinkD sample".to_string(),
+                ));
+            }
+            out.adj.entry(u).or_default().insert(v);
+            out.adj.entry(v).or_default().insert(u);
+        }
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after ThinkD payload".to_string(),
+            ));
+        }
+        Ok(out)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

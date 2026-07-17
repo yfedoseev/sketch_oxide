@@ -247,6 +247,70 @@ impl AgmConnectivity {
     }
 }
 
+impl crate::common::Serializable for AgmConnectivity {
+    /// Framed layout: `n:u64`, `seed:u64`, then every L0 cell in the fixed
+    /// nested order `vertex → repetition → level → bucket` as `(count:i64,
+    /// id_sum:i64, id_sq_sum:i128)`. `levels`/`width`/`reps` are derived from
+    /// `n` by the constructor, so only `n` and `seed` are stored.
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        use crate::common::cursor::{Framing, SketchId, WriteBuf};
+        let cells = self.n * self.reps * self.levels as usize * self.width;
+        let mut b = WriteBuf::with_capacity(16 + cells * 32);
+        b.write_u64_le(self.n as u64);
+        b.write_u64_le(self.seed);
+        for vertex in &self.sketches {
+            for rep in vertex {
+                for level in rep {
+                    for cell in level {
+                        b.write_i64_le(cell.count);
+                        b.write_i64_le(cell.id_sum);
+                        b.write_i128_le(cell.id_sq_sum);
+                    }
+                }
+            }
+        }
+        Ok(Framing::new(SketchId::AGM_CONNECTIVITY, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        use crate::common::cursor::{Framing, SketchId};
+        let (_, mut cur) = Framing::parse(bytes, SketchId::AGM_CONNECTIVITY)?;
+        let n = cur.read_u64_le()? as usize;
+        let seed = cur.read_u64_le()?;
+        // Each vertex carries reps(4) × levels(≥6) × width(16) × 32-byte cells;
+        // bound `n` by the bytes actually present BEFORE the constructor
+        // allocates n × reps × levels × width cells (and computes n²).
+        let min_per_vertex = 4usize * 6 * 16 * 32;
+        let fits = n
+            .checked_mul(min_per_vertex)
+            .is_some_and(|need| need <= cur.remaining());
+        if !fits {
+            return Err(SketchError::DeserializationError(format!(
+                "declared {n} vertices exceed the {} payload bytes",
+                cur.remaining()
+            )));
+        }
+        let mut out = Self::new(n, seed)?;
+        for vertex in &mut out.sketches {
+            for rep in vertex {
+                for level in rep {
+                    for cell in level {
+                        cell.count = cur.read_i64_le()?;
+                        cell.id_sum = cur.read_i64_le()?;
+                        cell.id_sq_sum = cur.read_i128_le()?;
+                    }
+                }
+            }
+        }
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after AgmConnectivity payload".to_string(),
+            ));
+        }
+        Ok(out)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

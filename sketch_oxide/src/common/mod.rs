@@ -12,7 +12,7 @@ mod traits;
 mod types;
 pub mod validation;
 
-pub use canonical::{CanonicalEncode, STABLE_HASH_SEED, stable_hash};
+pub use canonical::{CanonicalDecode, CanonicalEncode, STABLE_HASH_SEED, stable_hash};
 pub use capabilities::{
     CardinalityEstimate, Filter, PointQuery, QuantileQuery, Serializable, Update,
 };

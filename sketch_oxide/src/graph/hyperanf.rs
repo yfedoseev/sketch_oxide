@@ -13,7 +13,8 @@
 //! property that makes the iteration converge to the true reachable set.
 
 use crate::cardinality::HyperLogLog;
-use crate::common::{Mergeable, Result, Sketch};
+use crate::common::cursor::{Framing, SketchId, WriteBuf};
+use crate::common::{Mergeable, Result, Serializable, Sketch, SketchError};
 use std::collections::HashMap;
 
 /// Approximate neighborhood-function estimator over an undirected graph of `u64` vertices.
@@ -122,6 +123,51 @@ impl HyperAnf {
     /// Number of vertices that have at least one incident edge.
     pub fn num_vertices(&self) -> usize {
         self.adjacency.len()
+    }
+}
+
+impl Serializable for HyperAnf {
+    /// Framed layout: `precision:u8`, `num_nodes:u64`, then per node
+    /// `id:u64, degree:u64, neighbors:u64×degree`.
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        let mut b = WriteBuf::new();
+        b.write_u8(self.precision);
+        b.write_u64_le(self.adjacency.len() as u64);
+        for (&node, neighbors) in &self.adjacency {
+            b.write_u64_le(node);
+            b.write_u64_le(neighbors.len() as u64);
+            for &n in neighbors {
+                b.write_u64_le(n);
+            }
+        }
+        Ok(Framing::new(SketchId::HYPER_ANF, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        let (_, mut cur) = Framing::parse(bytes, SketchId::HYPER_ANF)?;
+        let precision = cur.read_u8()?;
+        let mut anf = Self::new(precision)?;
+        // Each node record is at least id + degree = 16 bytes.
+        let num_nodes = cur.read_len_prefixed_count(16)?;
+        for _ in 0..num_nodes {
+            let node = cur.read_u64_le()?;
+            let degree = cur.read_len_prefixed_count(8)?;
+            let mut neighbors = Vec::with_capacity(degree);
+            for _ in 0..degree {
+                neighbors.push(cur.read_u64_le()?);
+            }
+            if anf.adjacency.insert(node, neighbors).is_some() {
+                return Err(SketchError::DeserializationError(format!(
+                    "duplicate node {node} in HyperAnf adjacency"
+                )));
+            }
+        }
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after HyperAnf payload".to_string(),
+            ));
+        }
+        Ok(anf)
     }
 }
 

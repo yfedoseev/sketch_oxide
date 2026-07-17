@@ -116,6 +116,61 @@ impl<T: CanonicalEncode + ?Sized> CanonicalEncode for &T {
     }
 }
 
+impl CanonicalEncode for Vec<u8> {
+    #[inline]
+    fn canonical_encode(&self, out: &mut Vec<u8>) {
+        out.extend_from_slice(self);
+    }
+}
+
+/// The decode counterpart of [`CanonicalEncode`], for owned item types stored
+/// inside serialized sketches (e.g. Space-Saving counters). `bytes` is exactly
+/// one item's canonical encoding (the container length-prefixes it).
+pub trait CanonicalDecode: Sized {
+    /// Decode one item from its exact canonical bytes.
+    ///
+    /// # Errors
+    /// [`crate::common::SketchError::DeserializationError`] if `bytes` is not a
+    /// valid canonical encoding of this type (wrong width, invalid UTF-8, …).
+    fn canonical_decode(bytes: &[u8]) -> crate::common::Result<Self>;
+}
+
+macro_rules! impl_canonical_decode_int {
+    ($($t:ty),*) => {$(
+        impl CanonicalDecode for $t {
+            #[inline]
+            fn canonical_decode(bytes: &[u8]) -> crate::common::Result<Self> {
+                let arr: [u8; core::mem::size_of::<$t>()] = bytes.try_into().map_err(|_| {
+                    crate::common::SketchError::DeserializationError(format!(
+                        "expected {} bytes for {}, got {}",
+                        core::mem::size_of::<$t>(),
+                        stringify!($t),
+                        bytes.len()
+                    ))
+                })?;
+                Ok(<$t>::from_le_bytes(arr))
+            }
+        }
+    )*};
+}
+impl_canonical_decode_int!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
+
+impl CanonicalDecode for String {
+    #[inline]
+    fn canonical_decode(bytes: &[u8]) -> crate::common::Result<Self> {
+        String::from_utf8(bytes.to_vec()).map_err(|_| {
+            crate::common::SketchError::DeserializationError("invalid UTF-8 string".to_string())
+        })
+    }
+}
+
+impl CanonicalDecode for Vec<u8> {
+    #[inline]
+    fn canonical_decode(bytes: &[u8]) -> crate::common::Result<Self> {
+        Ok(bytes.to_vec())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

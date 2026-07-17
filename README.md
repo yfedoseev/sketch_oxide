@@ -1,6 +1,6 @@
 # sketch_oxide 🚀
 
-**41 state-of-the-art probabilistic data structures (DataSketches) in Rust with Python, Node.js, Java & C# bindings**
+**183 state-of-the-art probabilistic data structures (DataSketches) in Rust with Python, Node.js, Java & C# bindings**
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
@@ -10,26 +10,35 @@
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 [![Tests](https://img.shields.io/badge/tests-1000%2B%20passing-brightgreen.svg)](tests/)
 
-> **Production-ready 2025 library**: 41 algorithms including modern options like UltraLogLog (2024), Binary Fuse Filters (2021), DDSketch (2019), REQ (2021), plus classic proven algorithms. **28-75% more space-efficient** than traditional implementations.
+> **2026 library**: 183 algorithm implementations across 17 modules, including modern options like UltraLogLog (2024), RaBitQ (2024), SplineSketch (2024), Binary Fuse Filters (2021), DDSketch (2019), REQ (2021), plus classic proven algorithms. **28-75% more space-efficient** than traditional implementations.
+>
+> The count is one algorithm per implementation file; shared support code (bias tables, oracle interfaces, DP mechanisms/accountant, codec extensions, shared window cores) is excluded. The last crates.io release (0.1.6) shipped 41 algorithms in 11 modules; the additional modules land with 0.2.0.
 
 ---
 
 ## Why sketch_oxide?
 
-### 🎯 Complete Algorithm Coverage (41 Algorithms)
+### 🎯 Complete Algorithm Coverage (183 Algorithms)
 
-**41 production-ready algorithms across 10 categories:**
+**183 algorithm implementations across 17 modules:**
 
-- **Cardinality** (5): HyperLogLog, UltraLogLog (2024), CPC, Theta, QSketch
-- **Membership** (9): Bloom, Blocked Bloom, Binary Fuse (2021), Counting Bloom, Cuckoo, Ribbon, Stable Bloom, Vacuum, Learned Bloom
-- **Quantiles** (5): DDSketch (2019), REQ (2021), KLL, TDigest, Spline Sketch
-- **Frequency** (8): Count-Min, Count Sketch, Space Saving, Frequent Items, Conservative Count-Min, Elastic, Heavy Keeper, SALSA
-- **Similarity** (2): MinHash, SimHash
-- **Sampling** (2): Reservoir, VarOpt
-- **Streaming** (3): Sliding Window, Exponential Histogram, Sliding HyperLogLog
-- **Reconciliation** (1): Rateless IBLT
-- **Range Filters** (3): Memento, GRF, Grafite
-- **Universal** (3): UnivMon, NitroSketch, HeavyKeeper
+- **Frequency** (30): Count-Min, Count Sketch, Space Saving, Heavy Keeper, Elastic Sketch, SALSA, NitroSketch, RHHH, WavingSketch, TowerSketch, …
+- **Membership** (22): Bloom, Blocked Bloom, Binary Fuse (2021), Cuckoo, Ribbon, Quotient-filter family, Learned/Sandwiched Bloom, Vacuum, XOR, …
+- **Streaming / windows** (19): DGIM Exponential Histogram, Sliding HyperLogLog, FiBA, Hokusai, persistent sketches, smooth histograms, …
+- **Cardinality** (15): HyperLogLog, HyperLogLog++, UltraLogLog (2024), CPC, Theta, Tuple, QSketch, KMV, SetSketch, …
+- **Quantiles** (14): KLL, DDSketch (2019), REQ (2021), TDigest, SplineSketch (2024), OTel exponential histogram, moments, …
+- **Similarity** (13): MinHash, SimHash, One-Permutation Hashing, weighted MinHash, LSH ensembles, …
+- **Sampling** (11): Reservoir (R/L), VarOpt, EBPPS, priority/stratified/L0 sampling, …
+- **Range filters** (11): Grafite, GRF, Memento, SuRF, Rosetta, Proteus, ARF, PGM-index, …
+- **Graph sketches** (9): HyperANF, TRIÈST, DOULION, MASCOT, ThinkD, FLEET, TCM, GSS, AGM connectivity
+- **Privacy / DP** (9): DP Count-Min, DP quantiles, local-DP frequency oracles (GRR/OLH), person-level DP, …
+- **Statistics** (8): AMS, Morris counters, moments, p-stable projections, HLL joint estimation, …
+- **Reconciliation** (6): IBLT, Rateless IBLT, PinSketch, CPISync, strata estimators, …
+- **Matrix** (6): Frequent Directions (+robust/sliding/DS-FD), Johnson-Lindenstrauss, Count-Sketch embeddings
+- **Learned** (5): learned Count-Min, learned Bloom variants, feature hashing, sketched SGD
+- **Universal** (3): UnivMon, CocoSketch, OmniSketch
+- **Vector** (1): RaBitQ 1-bit quantization (SIGMOD 2024)
+- **Network** (1): BeauCoup
 
 **Modern alternatives included:** UltraLogLog vs HyperLogLog, Binary Fuse vs Bloom Filters, DDSketch vs T-Digest - **choose what fits your needs**.
 
@@ -51,7 +60,7 @@ CPC:            56ns updates   (1.7x faster than target)
 - ✅ **Zero clippy warnings** (`-D warnings`)
 - ✅ **Comprehensive benchmarks** (Criterion.rs)
 - ✅ **TDD methodology** throughout
-- ✅ **Multi-language bindings**: Python (PyO3), Node.js (napi-rs), Java (JNI), C# (P/Invoke) with 100% feature parity
+- ✅ **Multi-language bindings**: Python (PyO3), Node.js (napi-rs), Java (JNI), C# (P/Invoke) — Python near-complete, Node.js broad, Java/C# partial
 
 ### 🏭 Battle-Tested Algorithms
 
@@ -72,7 +81,8 @@ All algorithms proven in production:
 
 ```toml
 [dependencies]
-sketch_oxide = "0.1"
+# crates.io still serves the 41-algorithm 0.1.6; use a git/path pin for the full 0.2.0 surface
+sketch_oxide = { git = "https://github.com/yfedoseev/sketch_oxide" }
 ```
 
 ```rust
@@ -180,7 +190,7 @@ console.log(`Count: ~${cms.estimate(targetEvent)}`);
 
 ## Algorithms
 
-**40+ production-ready algorithms** across 10 categories for comprehensive data streaming analytics. See [ROADMAP.md](ROADMAP.md) for complete algorithm documentation.
+**183 algorithm implementations** across 17 modules for comprehensive data streaming analytics; the sections below tour a representative subset. See [ROADMAP.md](ROADMAP.md) for complete algorithm documentation.
 
 ### 1. Cardinality Estimation
 
@@ -777,7 +787,8 @@ unique_users = spark.read.parquet("users.parquet") \\
 
 ```toml
 [dependencies]
-sketch_oxide = "0.1"
+# crates.io still serves the 41-algorithm 0.1.6; use a git/path pin for the full 0.2.0 surface
+sketch_oxide = { git = "https://github.com/yfedoseev/sketch_oxide" }
 ```
 
 Or for specific features:
@@ -990,11 +1001,11 @@ If you use sketch_oxide in academic work, please cite the relevant papers:
 
 **Key Advantages**:
 1. **Modern algorithms**: UltraLogLog (2024), SplineSketch (2024), Range Filters (SIGMOD 2024-2025), IBLT reconciliation, QSketch weighted cardinality
-2. **Comprehensive**: 40+ algorithms across 10 categories (cardinality, membership, frequency, quantiles, similarity, sampling, streaming, range filters, set reconciliation, and advanced variants)
+2. **Comprehensive**: 183 algorithms across 17 modules (cardinality, membership, frequency, quantiles, similarity, sampling, streaming, range filters, set reconciliation, graph, matrix, learned, privacy, statistics, universal, vector, network)
 3. **Space efficiency**: 28-75% smaller than traditional implementations
 4. **Performance**: 2-10x faster than research targets (plus 5-17x faster than other Rust libraries on membership/frequency)
 5. **Production-ready**: 854+ tests across 4 languages, comprehensive benchmarks, battle-tested algorithms
-6. **Multi-language**: Rust + Python + Node.js + Java + C# with 100% feature parity
+6. **Multi-language**: Rust + Python + Node.js + Java + C# (Python near-complete; Node.js broad; Java/C# partial)
 
 ---
 
@@ -1014,23 +1025,21 @@ Built on the shoulders of giants:
 
 ## Status
 
-### Current (v0.1.5)
-- ✅ **Rust core**: 41 production-ready algorithms fully implemented
-- ✅ **Python bindings**: All 41 algorithms available via PyO3
-- ✅ **Node.js bindings**: All 41 algorithms available via napi-rs
-- ⚠️ **Java bindings**: 9/41 algorithms available (partial)
-- ⚠️ **C# bindings**: 1/41 algorithms available (partial)
-- ✅ **Test suite**: 854+ tests across all languages (unit + integration + property-based)
-- ✅ **Code quality**: Zero clippy warnings, 100% rustfmt compliance
-- ✅ **Performance**: All algorithms exceed research targets by 2-10x
-- ✅ **CI/CD**: Complete publishing pipeline (PyPI, crates.io, npm)
+### Current (v0.2.0, in release engineering — crates.io still serves 0.1.6)
+- ✅ **Rust core**: 183 algorithm implementations across 17 modules; 2,900+ Rust tests passing
+- ✅ **Python bindings**: near-complete coverage via PyO3 (~184 exposed classes)
+- ✅ **Node.js bindings**: broad coverage via napi-rs
+- ⚠️ **Java bindings**: partial (small subset of the 0.1.x surface)
+- ⚠️ **C# bindings**: partial (minimal subset)
+- ✅ **Serialization**: framed, panic-free `to_bytes`/`from_bytes` with round-trip tests for the sketches consumed by downstream engines (cardinality, similarity, quantiles, heavy hitters, membership, graph, RaBitQ)
+- ✅ **Code quality**: rustfmt-clean; clippy-clean on new code
 
-### Next (v0.1.6) - Complete Multi-Language Support
-- 🔨 **Java FFI Completion**: Add 32 missing algorithms to reach 41/41
-- 🔨 **C# FFI Completion**: Add 40 missing algorithms to reach 41/41
-- ✅ **Documentation**: Complete algorithm catalog for all languages
-- ✅ **Cross-language validation**: Tests and examples across all 5 languages
-- ✅ **Benchmarks**: Performance benchmarks for all algorithms on all platforms
+### Published (v0.1.6 on crates.io)
+- 41 algorithms in 11 modules; no `graph/`, `vector/`, `statistics/`, `matrix/`, `learned/`, or `privacy/` modules
+
+### Next
+- 🔨 Publish 0.2.0 to crates.io (until then, consume via a git/path dependency)
+- 🔨 Java/C# FFI catch-up
 
 ---
 

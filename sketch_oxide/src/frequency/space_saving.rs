@@ -419,6 +419,91 @@ impl<T: Hash + Eq + Clone> SpaceSaving<T> {
     }
 }
 
+impl<T> SpaceSaving<T>
+where
+    T: Hash + Eq + Clone + crate::common::CanonicalEncode + crate::common::CanonicalDecode,
+{
+    /// Serializes the sketch **including its counters** for item types with a
+    /// canonical byte encoding (`u64`, `String`, `Vec<u8>`, …).
+    ///
+    /// Framed layout: `capacity:u64`, `stream_length:u64`, `epsilon:f64`,
+    /// `num_items:u64`, then per counter `item_len:u32 + item bytes +
+    /// count:u64 + error:u64`.
+    ///
+    /// This is the full-fidelity path; the blanket
+    /// [`Serializable`](crate::common::Serializable) impl remains restricted to
+    /// empty sketches for arbitrary `T`.
+    ///
+    /// # Errors
+    /// Currently infallible for encodable `T`; returns `Result` for signature
+    /// stability.
+    pub fn to_bytes(&self) -> Result<Vec<u8>, SketchError> {
+        use crate::common::cursor::{Framing, SketchId, WriteBuf};
+        let mut b = WriteBuf::new();
+        b.write_u64_le(self.capacity as u64);
+        b.write_u64_le(self.stream_length);
+        b.write_f64_le(self.epsilon);
+        b.write_u64_le(self.items.len() as u64);
+        for (item, &(count, error)) in &self.items {
+            let bytes = item.canonical_bytes();
+            b.write_u32_le(bytes.len() as u32);
+            b.write_bytes(&bytes);
+            b.write_u64_le(count);
+            b.write_u64_le(error);
+        }
+        Ok(Framing::new(SketchId::SPACE_SAVING, 2).frame(&b.into_bytes()))
+    }
+
+    /// Deserializes a sketch serialized by [`Self::to_bytes`], counters included.
+    ///
+    /// # Errors
+    /// [`SketchError::DeserializationError`] on truncated/malformed input or
+    /// when the counter set exceeds the declared capacity.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SketchError> {
+        use crate::common::cursor::{Framing, SketchId};
+        use std::collections::HashMap;
+        let (_, mut cur) = Framing::parse(bytes, SketchId::SPACE_SAVING)?;
+        let capacity = cur.read_u64_le()? as usize;
+        let stream_length = cur.read_u64_le()?;
+        let epsilon = cur.read_f64_le()?;
+        if !(epsilon > 0.0 && epsilon < 1.0) {
+            return Err(SketchError::DeserializationError(format!(
+                "epsilon {epsilon} outside (0, 1)"
+            )));
+        }
+        // Each counter is at least item_len:u32 + count:u64 + error:u64.
+        let num_items = cur.read_len_prefixed_count(20)?;
+        if num_items > capacity {
+            return Err(SketchError::DeserializationError(format!(
+                "{num_items} counters exceed capacity {capacity}"
+            )));
+        }
+        let mut items = HashMap::with_capacity(num_items);
+        for _ in 0..num_items {
+            let len = cur.read_u32_len_prefixed_count(1)?;
+            let item = T::canonical_decode(cur.read_bytes(len)?)?;
+            let count = cur.read_u64_le()?;
+            let error = cur.read_u64_le()?;
+            if items.insert(item, (count, error)).is_some() {
+                return Err(SketchError::DeserializationError(
+                    "duplicate counter item".to_string(),
+                ));
+            }
+        }
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after SpaceSaving payload".to_string(),
+            ));
+        }
+        Ok(Self {
+            capacity,
+            items,
+            stream_length,
+            epsilon,
+        })
+    }
+}
+
 impl<T: Hash + Eq + Clone> SpaceSaving<T> {
     /// Merges another Space-Saving sketch into this one
     ///

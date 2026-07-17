@@ -217,6 +217,17 @@ impl Sketch for TcmSketch {
     }
 }
 
+impl crate::common::Serializable for TcmSketch {
+    /// Delegates to the existing [`Sketch::serialize`] wire format.
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        Ok(<Self as Sketch>::serialize(self))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        <Self as Sketch>::deserialize(bytes)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

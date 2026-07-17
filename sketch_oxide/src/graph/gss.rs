@@ -196,6 +196,97 @@ impl GssSketch {
     }
 }
 
+impl crate::common::Serializable for GssSketch {
+    /// Framed layout: `side:u64`, `room:u64`, then `side²` cells (each
+    /// `num_slots:u32` + `(fp_s:u16, fp_d:u16, weight:u64)` slots), then
+    /// `num_buffer:u64` + `(cell_s:u32, fp_s:u16, cell_d:u32, fp_d:u16,
+    /// weight:u64)` overflow entries.
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        use crate::common::cursor::{Framing, SketchId, WriteBuf};
+        let mut b = WriteBuf::new();
+        b.write_u64_le(self.side as u64);
+        b.write_u64_le(self.room as u64);
+        for cell in &self.cells {
+            b.write_u32_le(cell.len() as u32);
+            for slot in cell {
+                b.write_u16_le(slot.fp_s);
+                b.write_u16_le(slot.fp_d);
+                b.write_u64_le(slot.weight);
+            }
+        }
+        b.write_u64_le(self.buffer.len() as u64);
+        for ((s, d), &w) in &self.buffer {
+            b.write_u32_le(s.cell);
+            b.write_u16_le(s.fp);
+            b.write_u32_le(d.cell);
+            b.write_u16_le(d.fp);
+            b.write_u64_le(w);
+        }
+        Ok(Framing::new(SketchId::GSS, 1).frame(&b.into_bytes()))
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        use crate::common::cursor::{Framing, SketchId};
+        let (_, mut cur) = Framing::parse(bytes, SketchId::GSS)?;
+        let side = cur.read_u64_le()? as usize;
+        let room = cur.read_u64_le()? as usize;
+        // side² cells follow, each at least 4 bytes (its u32 slot count):
+        // validate against the remaining length BEFORE allocating side² cells.
+        let num_cells = side
+            .checked_mul(side)
+            .ok_or_else(|| SketchError::DeserializationError("side² overflow".to_string()))?;
+        let min_needed = num_cells
+            .checked_mul(4)
+            .ok_or_else(|| SketchError::DeserializationError("cell bytes overflow".to_string()))?;
+        if min_needed > cur.remaining() {
+            return Err(SketchError::DeserializationError(format!(
+                "declared {num_cells} cells need >= {min_needed} bytes, have {}",
+                cur.remaining()
+            )));
+        }
+        let mut out = Self::new(side, room)?;
+        for cell in &mut out.cells {
+            let num_slots = cur.read_u32_len_prefixed_count(12)?;
+            if num_slots > room {
+                return Err(SketchError::DeserializationError(format!(
+                    "cell holds {num_slots} slots but room is {room}"
+                )));
+            }
+            cell.reserve(num_slots);
+            for _ in 0..num_slots {
+                let fp_s = cur.read_u16_le()?;
+                let fp_d = cur.read_u16_le()?;
+                let weight = cur.read_u64_le()?;
+                cell.push(Slot { fp_s, fp_d, weight });
+            }
+        }
+        let num_buffer = cur.read_len_prefixed_count(20)?;
+        for _ in 0..num_buffer {
+            let s = Addr {
+                cell: cur.read_u32_le()?,
+                fp: cur.read_u16_le()?,
+            };
+            let d = Addr {
+                cell: cur.read_u32_le()?,
+                fp: cur.read_u16_le()?,
+            };
+            let w = cur.read_u64_le()?;
+            if s.cell as usize >= side || d.cell as usize >= side {
+                return Err(SketchError::DeserializationError(
+                    "buffer entry addresses a cell outside the matrix".to_string(),
+                ));
+            }
+            out.buffer.insert((s, d), w);
+        }
+        if cur.remaining() != 0 {
+            return Err(SketchError::DeserializationError(
+                "trailing bytes after GssSketch payload".to_string(),
+            ));
+        }
+        Ok(out)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
