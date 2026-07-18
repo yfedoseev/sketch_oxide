@@ -69,7 +69,7 @@ pub use similarity::{MinHash, SimHash};
 pub use statistics::{HllJointEstimator, MorrisCounter};
 pub use streaming::{ExponentialHistogram, SlidingHyperLogLog, SlidingWindowCounter};
 pub use universal::{UnivMon, UnivMonStats};
-pub use vector::{RaBitQ, RaBitQCode};
+pub use vector::{PreparedQuery, RaBitQ, RaBitQCode};
 
 #[cfg(test)]
 mod tests {

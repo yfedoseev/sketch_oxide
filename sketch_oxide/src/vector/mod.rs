@@ -6,4 +6,4 @@
 
 mod rabitq;
 
-pub use rabitq::{RaBitQ, RaBitQCode};
+pub use rabitq::{PreparedQuery, RaBitQ, RaBitQCode};

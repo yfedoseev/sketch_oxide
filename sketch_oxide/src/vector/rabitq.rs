@@ -59,6 +59,20 @@ pub struct RaBitQCode {
     norm: f64,
 }
 
+/// A query rotated and normed **once** for repeated RaBitQ estimation, built by
+/// [`RaBitQ::prepare_query`]. Holds `w = P·q` (the O(dim²) rotation) plus the
+/// query norm, so each [`RaBitQ::estimate_inner_product_prepared`] against a
+/// code is only O(dim). Tie it to the same [`RaBitQ`] that produced the codes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PreparedQuery {
+    /// `P·q` — the rotated (un-normalized) query; `inv_qnorm` is applied per code.
+    w: Vec<f64>,
+    /// `1/‖q‖`, or 0 for the zero query.
+    inv_qnorm: f64,
+    /// `‖q‖`, retained for the final magnitude rescale.
+    qnorm: f64,
+}
+
 impl RaBitQ {
     /// Creates a quantizer for `dim`-dimensional vectors with a random rotation
     /// derived deterministically from `seed`.
@@ -156,6 +170,25 @@ impl RaBitQ {
     /// # Errors
     /// Returns `InvalidParameter` if `q.len()` does not match [`dim`](Self::dim).
     pub fn estimate_inner_product(&self, code: &RaBitQCode, q: &[f64]) -> Result<f64, SketchError> {
+        // Rotate + norm once, then a single-code estimate. For repeated queries
+        // (e.g. an HNSW traversal comparing one query to thousands of codes) call
+        // [`prepare_query`](Self::prepare_query) once and reuse the result via
+        // [`estimate_inner_product_prepared`](Self::estimate_inner_product_prepared)
+        // — that keeps the O(dim²) rotation out of the per-code hot loop.
+        let prepared = self.prepare_query(q)?;
+        Ok(self.estimate_inner_product_prepared(code, &prepared))
+    }
+
+    /// Prepares a query for repeated estimation: applies the O(dim²) rotation
+    /// `P·q` and precomputes the query norm **once**, so each later per-code
+    /// estimate is only O(dim). This is the split that makes RaBitQ usable
+    /// inside a graph traversal — one query is estimated against many codes, and
+    /// re-rotating per code (as [`estimate_inner_product`](Self::estimate_inner_product)
+    /// does) would dominate the cost.
+    ///
+    /// # Errors
+    /// Returns `InvalidParameter` if `q.len()` does not match [`dim`](Self::dim).
+    pub fn prepare_query(&self, q: &[f64]) -> Result<PreparedQuery, SketchError> {
         if q.len() != self.dim {
             return Err(SketchError::InvalidParameter {
                 param: "query length".to_string(),
@@ -164,18 +197,30 @@ impl RaBitQ {
             });
         }
         let qnorm = q.iter().map(|x| x * x).sum::<f64>().sqrt();
-        if qnorm == 0.0 || code.norm == 0.0 || code.norm_factor == 0.0 {
-            return Ok(0.0);
+        let inv_qnorm = if qnorm == 0.0 { 0.0 } else { 1.0 / qnorm };
+        Ok(PreparedQuery {
+            w: self.rotate(q), // w = P·q
+            inv_qnorm,
+            qnorm,
+        })
+    }
+
+    /// Estimates `⟨v, q⟩` from a code and a [`PreparedQuery`] — O(dim), no
+    /// rotation. Numerically identical to [`estimate_inner_product`](Self::estimate_inner_product)
+    /// with the same query.
+    #[must_use]
+    pub fn estimate_inner_product_prepared(
+        &self,
+        code: &RaBitQCode,
+        prepared: &PreparedQuery,
+    ) -> f64 {
+        if prepared.qnorm == 0.0 || code.norm == 0.0 || code.norm_factor == 0.0 {
+            return 0.0;
         }
-
-        // w = P·q̂
-        let inv_qnorm = 1.0 / qnorm;
-        let w = self.rotate(q);
-
         // ⟨x̄, w⟩ = (1/√D) Σ x_i w_i, with x_i = ±1 from the sign bits.
         let mut acc = 0.0;
-        for (i, &wi_scaled) in w.iter().enumerate() {
-            let wi = wi_scaled * inv_qnorm; // component of P·q̂
+        for (i, &wi_scaled) in prepared.w.iter().enumerate() {
+            let wi = wi_scaled * prepared.inv_qnorm; // component of P·q̂
             let bit = (code.bits[i / 64] >> (i % 64)) & 1;
             if bit == 1 {
                 acc += wi;
@@ -184,10 +229,17 @@ impl RaBitQ {
             }
         }
         let x_dot_w = acc * self.inv_sqrt_d;
-
         // ⟨o, q̂⟩ ≈ ⟨x̄, w⟩ / norm_factor, then rescale by the two norms.
         let unit_ip = x_dot_w / code.norm_factor;
-        Ok(unit_ip * code.norm * qnorm)
+        unit_ip * code.norm * prepared.qnorm
+    }
+
+    /// Estimates `‖v − q‖²` from a code and a [`PreparedQuery`] — the prepared
+    /// counterpart of [`estimate_l2_squared`](Self::estimate_l2_squared).
+    #[must_use]
+    pub fn estimate_l2_squared_prepared(&self, code: &RaBitQCode, prepared: &PreparedQuery) -> f64 {
+        let ip = self.estimate_inner_product_prepared(code, prepared);
+        (code.norm * code.norm + prepared.qnorm * prepared.qnorm - 2.0 * ip).max(0.0)
     }
 
     /// Estimates the squared Euclidean distance `‖v − q‖²`.
@@ -348,6 +400,36 @@ mod tests {
         assert_eq!(q.estimate_inner_product(&code, &[1.0; 16]).unwrap(), 0.0);
         let nonzero = q.encode(&[1.0; 16]).unwrap();
         assert_eq!(q.estimate_inner_product(&nonzero, &[0.0; 16]).unwrap(), 0.0);
+    }
+
+    #[test]
+    fn prepared_matches_unprepared_exactly() {
+        // The prepared path hoists the O(dim²) rotation out of the per-code loop;
+        // it must stay numerically identical to the one-shot estimate (which now
+        // delegates to it). Guards against a future divergent re-optimization.
+        let d = 128;
+        let rq = RaBitQ::new(d, 7).unwrap();
+        let mut rng = SmallRng::seed_from_u64(2024);
+        let query: Vec<f64> = (0..d).map(|_| standard_normal(&mut rng)).collect();
+        let prepared = rq.prepare_query(&query).unwrap();
+        for _ in 0..50 {
+            let o: Vec<f64> = (0..d).map(|_| standard_normal(&mut rng)).collect();
+            let code = rq.encode(&o).unwrap();
+            assert_eq!(
+                rq.estimate_inner_product(&code, &query).unwrap(),
+                rq.estimate_inner_product_prepared(&code, &prepared),
+                "prepared IP diverged from one-shot",
+            );
+            assert_eq!(
+                rq.estimate_l2_squared(&code, &query).unwrap(),
+                rq.estimate_l2_squared_prepared(&code, &prepared),
+                "prepared L2 diverged from one-shot",
+            );
+        }
+        // Zero query → 0, matching the one-shot early return.
+        let zprep = rq.prepare_query(&vec![0.0; d]).unwrap();
+        let code = rq.encode(&vec![1.0; d]).unwrap();
+        assert_eq!(rq.estimate_inner_product_prepared(&code, &zprep), 0.0);
     }
 
     #[test]
